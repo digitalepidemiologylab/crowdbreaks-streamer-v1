@@ -1,0 +1,31 @@
+name: crowdbreaks-flask
+channels:
+- defaults
+dependencies:
+- ca-certificates=2017.08.26=ha1e5d58_0
+- certifi=2017.7.27.1=py36hd973bb6_0
+- click=6.7=py36hec950be_0
+- flask=0.12.2=py36h5658096_0
+- itsdangerous=0.24=py36h49fbb8d_1
+- jinja2=2.9.6=py36hde4beb4_1
+- libcxx=4.0.1=h579ed51_0
+- libcxxabi=4.0.1=hebd6815_0
+- libedit=3.1=hb4e282d_0
+- libffi=3.2.1=h475c297_4
+- markupsafe=1.0=py36h3a1e703_1
+- ncurses=6.0=ha932d30_1
+- openssl=1.0.2m=h86d3e6a_0
+- pip=9.0.1=py36h1555ced_4
+- python=3.6.3=h5ce8c04_4
+- readline=7.0=h5003dca_4
+- setuptools=36.5.0=py36h2134326_0
+- sqlite=3.20.1=h7e4c145_2
+- tk=8.6.7=h35a86e2_3
+- werkzeug=0.12.2=py36h168efa1_0
+- wheel=0.29.0=py36h3597b6d_1
+- xz=5.2.3=h0278029_2
+- zlib=1.2.11=hf3cbc9b_2
+- pip:
+  - redis==2.10.6
+prefix: /Users/martin/Applications/miniconda3/envs/crowdbreaks-flask
+

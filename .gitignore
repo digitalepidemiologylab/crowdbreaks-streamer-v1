@@ -1,0 +1,15 @@
+# secret keys
+instance/
+
+# OS stuff
+.DS_Store
+
+# Python
+*.pyc
+*.pyo
+
+# Vim
+**/*.swp
+**/*.swo
+/.tags
+/.tags_sorted_by_file
