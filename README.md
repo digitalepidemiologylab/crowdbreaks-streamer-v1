@@ -1,6 +1,6 @@
-# Crowdbreaks Flask server 
+# Crowdbreaks Flask API 
 
-Intended to be used for stream processing (currently from logstash), Machine Learning, ML tasks (such as vaccine sentiments), and forwarding them to ElasticSearch.
+Intended to be used for stream processing (currently from logstash), Machine Learning, running ML tasks (such as vaccine sentiments), and forwarding them to ElasticSearch.
 
 
 # Installation
@@ -11,13 +11,17 @@ git clone git@github.com:salathegroup/crowdbreaks-flask-api.git
 cd crowdbreaks-flask-api
 conda env create -f environment.yml
 source activate crowdbreaks-flask
+
+# start server
 export FLASK_APP=app.py
 export FLASK_DEBUG=1
 flask run
+# or without CLI just using
+python app.py
 ```
 Set up configuration:
-default keys: config.py
-secret keys: instance/config.conf
+default keys: `config.py`
+secret keys: `instance/config.conf`
 ```
 mkdir instance
 cp config.py.example ./instance/config.py
@@ -39,6 +43,3 @@ brew services start redis
 # data: /usr/local/var
 
 ```
-
-
-
