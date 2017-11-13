@@ -1,6 +1,6 @@
 # Crowdbreaks Flask API 
 
-Intended to be used for stream processing (currently from logstash), Machine Learning, running ML tasks (such as vaccine sentiments), and forwarding them to ElasticSearch.
+Intended to be used for stream processing (currently from logstash), running ML tasks (such as vaccine sentiments), and forwarding them to ElasticSearch.
 
 
 # Installation
