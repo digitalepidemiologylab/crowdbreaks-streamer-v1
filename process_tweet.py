@@ -1,3 +1,6 @@
+import pdb
+import math
+
 class ProcessTweet(object):
     """Wrapper class for processing Tweets """
 
@@ -5,7 +8,8 @@ class ProcessTweet(object):
     KEEP_FIELDS = [ 'id', 
             'created_at',
             'project',
-            'text', {
+            'text',
+            {
                 'place': [
                     'id',
                     'place_type',
@@ -46,7 +50,6 @@ class ProcessTweet(object):
 
         :tweet: Tweet object
         :returns: Stripped tweet
-
         """
 
         tweet_stripped = {}
@@ -66,3 +69,48 @@ class ProcessTweet(object):
 
         return tweet_stripped
 
+    @classmethod
+    def compute_average_location(cls, tweet, target_tweet):
+        """Compute average location from bounding box
+
+        :tweet: Tweet object with place field
+        :target_tweet: (Stripped) tweet object to write into
+        :returns: Modified target_tweet
+        """
+
+        coords = tweet.get('place', {}).get('bounding_box', {}).get('coordinates', None)
+
+        if coords is None:
+            return target_tweet
+
+        av_x = av_y = av_z = 0
+        for lon_d, lat_d in coords[0]:
+            # convert to radian
+            lon = lon_d * math.pi / 180.0
+            lat = lat_d * math.pi / 180.0
+
+            # transform to cartesian coords and sum up
+            av_x += math.cos(lat) * math.cos(lon)
+            av_y += math.cos(lat) * math.sin(lon)
+            av_z += math.sin(lat)
+
+        # normalize
+        num_points = len(coords[0])
+        av_x /= num_points
+        av_y /= num_points
+        av_z /= num_points
+
+        # transform back to polar coordinates
+        av_lat = (180 / math.pi) * math.atan2(av_z, math.sqrt(av_x * av_x + av_y * av_y))
+        av_lon = (180 / math.pi) * math.atan2(av_y, av_x)
+
+        # calculate approximate radius if polygon is approximated to be a circle (for better estimate, calculate area)
+        max_lat = max([lat for lon, lat in coords[0]])
+        max_lon = max([lon for lon, lat in coords[0]])
+        radius = (abs(av_lon - max_lon) + abs(av_lat - max_lat))/2
+
+        # store in target object
+        target_tweet['place']['average_location'] = [av_lon, av_lat]
+        target_tweet['place']['location_radius'] = radius
+
+        return target_tweet
