@@ -1,1 +1,3 @@
 # Config defined here will override everything which is in config.py directory of root
+ELASTICSEARCH_USERNAME=""
+ELASTICSEARCH_PASSWORD=""

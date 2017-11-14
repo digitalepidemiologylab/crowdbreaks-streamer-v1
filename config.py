@@ -1,4 +1,8 @@
 # Default configs
+DEBUG=True
+
+# Logging
+WORKER_LOGFILE='worker.log'
 
 # Redis
 REDIS_HOST='localhost'
@@ -9,8 +13,14 @@ REDIS_LOGSTASH_QUEUE_KEY='logstash'
 REDIS_SUBMIT_QUEUE_KEY='es_submit'
 REDIS_SENTIMENT_QUEUE_KEY='sentiment'
 
-# num processes
+# Elasticsearch
+ELASTICSEARCH_HOST='localhost'
+ELASTICSEARCH_PORT='9200'
+
+# Num processes
 NUM_PROCESSES_PREPROCESSING=2
+NUM_SUBMIT_PREPROCESSING=2
+NUM_SENTIMENT_PREPROCESSING=2
 
 
 
