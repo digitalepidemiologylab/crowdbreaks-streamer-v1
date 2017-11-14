@@ -2,13 +2,13 @@ from multiprocessing import Pool
 import multiprocessing
 import redis
 import json
-from app import app, redis_connection_pool
+from app import app, POOL
 from process_tweet import ProcessTweet
 import time
 from copy import copy
 import pdb
 
-def process_tweet(tweet):
+def process_tweet(tweet, redis_conn):
     current_process = multiprocessing.current_process()
     print("Process {} is now processing tweet with id {}".format(current_process.name, tweet['id_str']))
 
@@ -18,13 +18,17 @@ def process_tweet(tweet):
     # Todo: incorporate filter function
 
     # compute average location from bounding box (reducing storage on ES)
-
     if tweet['place'] is not None and tweet['place']['bounding_box'] is not None:
         tweet_stripped = ProcessTweet.compute_average_location(tweet, tweet_stripped)
 
-    # If vaccine sentiment put on vaccine sentiment queue
+    if tweet_stripped['project'] is not None and tweet_stripped['project'] == 'vaccine_sentiment_tracking':
+        # If tweet belongs to vaccine sentiment project, compute sentiment
+        redis_conn.rpush(queue_name(app.config['REDIS_SENTIMENT_QUEUE_KEY']), json.dumps(tweet_stripped))
+    else:
+        # Else push to ES submit queue
+        redis_conn.rpush(queue_name(app.config['REDIS_SUBMIT_QUEUE_KEY']), json.dumps(tweet_stripped))
+        
 
-    # else submit to ES index
 
     return
 
@@ -34,7 +38,7 @@ def queue_name(name):
 def main(parallel=True, with_sleep=False):
 
     # instantiate Redis
-    redis_conn = redis.Redis(connection_pool=redis_connection_pool)
+    redis_conn = redis.Redis(connection_pool=POOL)
 
     logstash_queue = app.config['REDIS_LOGSTASH_QUEUE_KEY']
 
@@ -47,7 +51,7 @@ def main(parallel=True, with_sleep=False):
 
             _, _tweet = redis_conn.blpop(queue_name(logstash_queue))
             tweet = json.loads(_tweet)
-            res = preprocess_pool.apply_async(process_tweet, args=(tweet,))
+            res = preprocess_pool.apply_async(process_tweet, args=(tweet, redis_conn))
     else:
         # for testing purposes...
         while True:
@@ -57,7 +61,7 @@ def main(parallel=True, with_sleep=False):
                 time.sleep(0.2)
             _, _tweet = redis_conn.blpop(queue_name(logstash_queue))
             tweet = json.loads(_tweet)
-            res = process_tweet(tweet)
+            res = process_tweet(tweet, redis_conn)
 
 
 if __name__ == '__main__':

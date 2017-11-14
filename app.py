@@ -9,7 +9,7 @@ app.config.from_object('config')
 app.config.from_pyfile('config.py')
 
 # Build connection pool to Redis
-redis_connection_pool = redis.ConnectionPool(host=app.config['REDIS_HOST'],
+POOL = redis.ConnectionPool(host=app.config['REDIS_HOST'],
         port=app.config['REDIS_PORT'],
         db=app.config['REDIS_DB'])
 
