@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 import redis
 import elasticsearch
 import sys
@@ -11,6 +11,7 @@ app.config.from_object('config')
 # secret configs
 app.config.from_pyfile('config.py')
 
+# create logger instance
 logger = Logger.setup('app')
  
 # Build connection pool to Redis
@@ -36,6 +37,12 @@ else:
 def index():
     return "hello world!!!"
 
+@app.route('/elasticsearch/indices', methods=['GET'])
+def indeces():
+    return jsonify(es.indices.get_alias('*'))
+
+def index():
+    return "hello world!!!"
 
 if __name__ == '__main__':
     app.run()

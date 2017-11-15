@@ -1,0 +1,141 @@
+{
+  "template" : "project*",
+  "version" : 1,
+  "settings" : {
+    "index.refresh_interval" : "5s"
+  },
+  "mappings" : {
+    "tweet" : {
+      "_all": {
+        "enabled": false
+      },
+      "dynamic": false,
+      "properties": {
+        "@timestamp" : {
+          "type" : "date"
+        },
+        "id": {
+          "type": "long"
+        },
+        "entities" : {
+          "properties" : {
+            "hashtags" : {
+              "properties" : {
+                "text" : {
+                  "type" : "text",
+                  "fields" : {
+                    "keyword" : {
+                      "type" : "keyword"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "created_at": {
+          "type": "date",
+          "format": "EEE MMM dd HH:mm:ss Z yyyy"
+        },
+        "text": {
+          "type": "text",
+          "analyzer": "english"
+        },
+        "lang": {
+          "type": "keyword"
+        },
+        "user": {
+          "properties": {
+            "name": {
+              "type": "keyword"
+            },
+            "id_str": {
+              "type": "keyword"
+            },
+            "screen_name": {
+              "type": "keyword"
+            },
+            "lang": {
+              "type": "keyword"
+            },
+            "description": {
+              "type": "text",
+              "analyzer": "english"
+            },
+            "geo_enabled": {
+              "type": "boolean"
+            },
+            "time_zone": {
+              "type": "keyword",
+              "index": false
+            },
+            "location": {
+              "type": "keyword"
+            }
+          }
+        },
+        "coordinates": {
+          "type": "object",
+          "dynamic": "true",
+          "properties": {
+            "coordinates": {
+              "type": "geo_point"
+            }
+          }
+        },
+        "retweet_count": {
+          "type": "integer"
+        },
+        "project": {
+          "type": "keyword"
+        },
+        "tags": {
+          "type": "keyword",
+          "index": false
+        },
+        "place": {
+          "properties": {
+            "average_location": {
+              "type": "geo_point"
+            },
+            "location_radius": {
+              "type": "float"
+            },
+            "id": {
+              "type": "keyword"
+            },
+            "place_type": {
+              "type": "keyword"
+            },
+            "full_name": {
+              "type": "keyword"
+            },
+            "country": {
+              "type": "keyword"
+            },
+            "country_code": {
+              "type": "keyword",
+              "index": false
+            },
+            "place_type": {
+              "type": "keyword",
+              "index": false
+            }
+          }
+        },
+        "type": {
+          "type": "keyword",
+          "index": false
+        },
+        "timestamp_ms": {
+          "type": "keyword",
+          "index": false
+        },
+        "meta": {
+          "dynamic": "true",
+          "type": "object"
+        }
+      }
+    }
+  }
+}

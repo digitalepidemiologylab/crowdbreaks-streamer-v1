@@ -26,6 +26,7 @@ class Logger:
 
         # create logger
         logger = logging.getLogger(name)
+        logger_handlers = []
 
         # Console output line.
         console_handler = logging.StreamHandler()
@@ -33,6 +34,7 @@ class Logger:
         log_formatter = logging.Formatter(log_format)
         console_handler.setFormatter(log_formatter)
         rotate_file.setFormatter(log_formatter)
+        logger_handlers.extend([rotate_file, console_handler])
 
         # set specific output file only for this logger
         if filename is not None:
@@ -42,8 +44,9 @@ class Logger:
                 logfile_path, mode='w', maxBytes=log_file_max_size, backupCount=log_num_backups
             )
             rotate_file_specific.setFormatter(log_formatter)
-            logger.handlers = rotate_file, console_handler, rotate_file_specific
-        else:
-            logger.handlers = rotate_file, console_handler
+            logger_handlers.append(rotate_file_specific)
+
+        logger.handlers = logger_handlers
 
         return logger
+
