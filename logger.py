@@ -5,7 +5,7 @@ import pathlib
 
 class Logger:
     @staticmethod
-    def setup(name, filename=None):
+    def setup(name, filename=None, use_elasticsearch_logger=False):
         """
         Sets up logging to an all.log file and filename if provided.
 
@@ -25,7 +25,10 @@ class Logger:
         )
 
         # create logger
-        logger = logging.getLogger(name)
+        if use_elasticsearch_logger:
+            logger = logging.getLogger('elasticsearch')
+        else:
+            logger = logging.getLogger(name)
         logger_handlers = []
 
         # Console output line.

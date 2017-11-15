@@ -11,7 +11,7 @@ class Elastic(object):
     """Interaction with Elasticsearch"""
 
     def __init__(self, es=None, config_path='./../'):
-        self.logger = Logger.setup('ES')
+        self.logger = Logger.setup('ES', use_elasticsearch_logger=False)
 
         # connect
         if es is None:
@@ -25,6 +25,16 @@ class Elastic(object):
             self.logger.info('Successfully connected to ElasticSearch')
         else:
             self.logger.error('Connection to ElasticSearch not successful')
+
+
+    def index_tweet(self, tweet):
+        """Index new tweet in index name given by tweet['project']. Will not re-index already existing doc with same ID.
+
+        :tweet: tweet to index
+        """
+
+        self.es.index(index='project_'+tweet['project'], id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
+        self.logger.debug('Tweet with id {} sent to project {}'.format(tweet['id'], tweet['project']))
 
 
     def put_template(self, template_name='project', filename='project_template.json', template_sub_folder='templates'):

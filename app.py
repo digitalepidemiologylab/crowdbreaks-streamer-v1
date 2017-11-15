@@ -3,6 +3,7 @@ import redis
 import elasticsearch
 import sys
 from logger import Logger
+from elastic_search.elastic import Elastic
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -25,13 +26,7 @@ else:
     logger.error('Connection to Redis not successful')
 
 # Connect to elasticsearch
-es = elasticsearch.Elasticsearch(["{}:{}".format(app.config['ELASTICSEARCH_HOST'], app.config['ELASTICSEARCH_PORT'])],
-        http_auth=(app.config['ELASTICSEARCH_USERNAME'], app.config['ELASTICSEARCH_PASSWORD']))
-if es.ping():
-    logger.info('Successfully connected to ElasticSearch')
-else:
-    logger.error('Connection to ElasticSearch not successful')
-
+es = Elastic()
 
 @app.route('/', methods=['GET'])
 def index():
