@@ -1,5 +1,7 @@
 import pdb
 import math
+from nltk import TweetTokenizer
+import re
 
 class ProcessTweet(object):
     """Wrapper class for processing Tweets """
@@ -114,3 +116,39 @@ class ProcessTweet(object):
         target_tweet['place']['location_radius'] = radius
 
         return target_tweet
+
+    @classmethod
+    def tokenize(self, tweet, discard_word_length=2):
+        """Prepare tweets for sentence embeddings
+
+        :tweet: input tweet text
+        :discard_word_length: Discard tweets with less words than this
+        :returns: Same tweet with text_tokenized field. Returns None if tweet is invalid.
+
+        """
+
+        tknzr = TweetTokenizer()
+
+        # Replace unnecessary spacings/EOL chars
+        try:
+            tweet = tweet.replace('\n', '').replace('\r', '').strip()
+        except:
+            return None
+        tweet = tknzr.tokenize(tweet)
+
+        # throw away anything below 2 words
+        if not  discard_word_length < len(tweet) < 110:
+            return None
+        tweet = ' '.join(tweet)
+        tweet = tweet.lower()
+
+        # replace urls and mentions
+        tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>',tweet)
+        tweet = re.sub('(\@[^\s]+)','<user>',tweet)
+        try:
+            tweet = tweet.decode('unicode_escape').encode('ascii','ignore')
+        except:
+            pass
+        filter(lambda word: ' ' not in word, tweet)
+        return tweet
+

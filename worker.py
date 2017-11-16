@@ -25,8 +25,12 @@ def process_from_logstash(tweet):
 
     if tweet_stripped['project'] == 'vaccine_sentiment':
         # If tweet belongs to vaccine sentiment project, compute sentiment
-        logger.debug('Process {}: Pushing tweet from project {} (id: {}) to sentiment queue'.format(current_process().name, tweet['project'], tweet['id']))
-        redis_conn.rpush(sentiment_queue, json.dumps(tweet_stripped))
+        print('Before tokenizing: {}'.format(tweet_stripped['text']))
+        text_tokenized = ProcessTweet.tokenize(copy(tweet_stripped['text']))
+        tweet_stripped['text_tokenized'] = text_tokenized
+        print('After tokenizing: {}'.format(tweet_stripped['text_tokenized']))
+        logger.debug('Process {}: Pushing tweet from project {} (id: {}) to embedding queue'.format(current_process().name, tweet['project'], tweet['id']))
+        redis_conn.rpush(embedding_queue, json.dumps(tweet_stripped))
     else:
         # Else push to ES submit queue
         logger.debug('Process {}: Pushing tweet from project {} (id: {}) to submit queue'.format(current_process().name, tweet['project'], tweet['id']))
@@ -36,14 +40,18 @@ def process_from_logstash(tweet):
 def queue_name(name):
     return "{}:{}".format(app.config['REDIS_NAMESPACE'], name)
 
-
 def submit_tweet(tweet):
     logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
     es.index_tweet(tweet)
 
-
 def compute_sentiment(tweet):
     logger.debug("Compute sentiment for tweet with id {} to ES".format(tweet['id']))
+
+    # Run classifier
+    # Clean up tweet
+
+    # Send to submit queue
+    redis_conn.rpush(submit_queue, json.dumps(tweet_stripped))
 
 
 def main(parallel=True):
@@ -58,7 +66,7 @@ def main(parallel=True):
         redis_conn = redis.Redis(connection_pool=POOL)
 
         # Pop from queues and assign job to a free worker...
-        _q, _tweet = redis_conn.blpop([logstash_queue, submit_queue, sentiment_queue])
+        _q, _tweet = redis_conn.blpop([logstash_queue, submit_queue, embedding_result_queue])
         tweet = json.loads(_tweet)
         q_name = _q.decode()
         if parallel:
@@ -66,22 +74,23 @@ def main(parallel=True):
                 res = preprocess_pool.apply_async(process_from_logstash, args=(tweet,))
             elif q_name == submit_queue:
                 res = submit_pool.apply_async(submit_tweet, args=(tweet,))
-            elif q_name == sentiment_queue:
-                res = sentiment_pool.apply_async(compute_sentiment, args=(tweet,))
+            elif q_name == embedding_result_queue:
+                res = embedding_pool.apply_async(compute_sentiment, args=(tweet,))
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
         else:
+            # For debug purposes... (will be deleted)
             if q_name == logstash_queue:
-                process_tweet(tweet)
+                process_from_logstash(tweet)
             elif q_name == submit_queue:
                 submit_tweet(tweet)
-            elif q_name == sentiment_queue:
+            elif q_name == embedding_queue:
                 compute_sentiment(tweet)
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
                 
             logger.info('That was a lot of work... sleeping for a bit now')
-            time.sleep(0.2)
+            time.sleep(1)
 
 
 if __name__ == '__main__':
@@ -91,12 +100,13 @@ if __name__ == '__main__':
     # queue names
     logstash_queue = queue_name(app.config['REDIS_LOGSTASH_QUEUE_KEY'])
     submit_queue = queue_name(app.config['REDIS_SUBMIT_QUEUE_KEY'])
-    sentiment_queue = queue_name(app.config['REDIS_SENTIMENT_QUEUE_KEY'])
+    embedding_queue = queue_name(app.config['REDIS_EMBEDDING_QUEUE_KEY'])
+    embedding_result_queue = queue_name(app.config['REDIS_EMBEDDING_RESULT_QUEUE_KEY'])
 
     # Process pools
     logger.info("Starting worker pools...")
     preprocess_pool = Pool(processes=app.config['NUM_PROCESSES_PREPROCESSING'])
     submit_pool = Pool(processes=app.config['NUM_SUBMIT_PREPROCESSING'])
-    sentiment_pool = Pool(processes=app.config['NUM_SENTIMENT_PREPROCESSING'])
+    embedding_pool = Pool(processes=app.config['NUM_EMBEDDING_PREPROCESSING'])
 
     main(parallel=True)
