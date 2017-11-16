@@ -7,18 +7,21 @@ from elastic_search.elastic import Elastic
 
 app = Flask(__name__, instance_relative_config=True)
 
-# configs
+# Configs
 app.config.from_object('config')
-# secret configs
+
+# Secret configs
 app.config.from_pyfile('config.py')
 
-# create logger instance
+# Create logger instance
 logger = Logger.setup('app')
  
 # Build connection pool to Redis
 POOL = redis.ConnectionPool(host=app.config['REDIS_HOST'],
         port=app.config['REDIS_PORT'],
         db=app.config['REDIS_DB'])
+
+# Test Redis
 redis_conn = redis.Redis(connection_pool=POOL)
 if redis_conn.ping():
     logger.info('Successfully connected to Redis')
@@ -28,16 +31,16 @@ else:
 # Connect to elasticsearch
 es = Elastic()
 
+
 @app.route('/', methods=['GET'])
 def index():
     return "hello world!!!"
+
 
 @app.route('/elasticsearch/indices', methods=['GET'])
 def indeces():
     return jsonify(es.indices.get_alias('*'))
 
-def index():
-    return "hello world!!!"
 
 if __name__ == '__main__':
     app.run()

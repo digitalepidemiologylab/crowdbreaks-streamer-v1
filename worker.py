@@ -38,7 +38,7 @@ def queue_name(name):
 
 
 def submit_tweet(tweet):
-    logger.debug("Submitting tweet with id {} to ES".format(tweet['id']))
+    logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
     es.index_tweet(tweet)
 
 
