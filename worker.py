@@ -7,7 +7,9 @@ import time
 from copy import copy
 import pdb
 from logger import Logger
-
+import pickle as pkl
+import os, sys
+import numpy as np
 
 def process_from_logstash(tweet):
     # Note to future self: sharing connections like that might be problematic,
@@ -58,14 +60,56 @@ def submit_tweet(tweet):
     logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
     es.index_tweet(tweet)
 
-def compute_sentiment(tweet):
-    logger.debug("Compute sentiment for tweet with id {} to ES".format(tweet['id']))
+def compute_sentiment(embedded_text_obj):
+    """Classify sentiment based on word embeddings given in 'sentence_vector'. If part of 'vaccine_sentiment' project push tweet into ES, otherwise return predicted label
+    :param embedding_text_obj: Text object to classify 
+    :returns: None if part of vaccine_sentiment_tracking project, otherwise returns classified label and distances to hyperplane 
+    """
+    redis_conn = redis.Redis(connection_pool=POOL)
+    logger.debug("Compute sentiment for embedded_text_obj with id {}".format(embedded_text_obj['id']))
+    labelled_successfully = False
+    label = None
+    if 'sentence_vector' not in embedded_text_obj:
+        logger.error("Tweet with id {} has no field 'sentence_vector'".format(embedded_text_obj['id']))
+    elif not isinstance(embedded_text_obj['sentence_vector'], list) or len(embedded_text_obj['sentence_vector']) < 1:
+        logger.error("Tweet with id {} has an invalid sentence_vector".format(embedded_text_obj['id']))
+    else:
+        # Run classifier
+        input_vec = np.zeros([1, len(embedded_text_obj['sentence_vector'])])
+        input_vec[0] = embedded_text_obj['sentence_vector']
 
-    # Run classifier
-    # Clean up tweet
+        # Load classifier into memory of process
+        f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
+        with open(f_clf, 'rb') as f:
+            clf = pkl.load(f)
+        try: 
+            label = clf.predict(input_vec)[0]
+            distances = clf.decision_function(input_vec)[0]
+        except Exception as e:
+            logger.error(e)
+            logger.error("Error occured when trying to predict tweet {}".format(embedded_text_obj['id']))
+        else:
+            labelled_successfully = True
 
-    # Send to submit queue
-    redis_conn.rpush(submit_queue, json.dumps(tweet_stripped))
+    # Clean up
+    delete_keys = ['sentence_vector', 'text_tokenized']
+    for del_key in delete_keys:
+        if del_key in embedded_text_obj:
+            del embedded_text_obj[del_key]
+
+    if 'project' in embedded_text_obj and embedded_text_obj['project'] == 'vaccine_sentiment':
+        if labelled_successfully:
+            # add meta information
+            label_dict = {-1: 'anti-vaccine', 0:'other', 1:'pro-vaccine'}
+            meta = {'sentiment': {clf_file: {'label': label_dict[label], 'distances': list(distances)}}}
+            embedded_text_obj['meta'] = meta
+            logger.debug("Tweet with id {} predicted to be of label '{}' ".format(embedded_text_obj['id'], label_dict[label]))
+
+        # Send to submit queue
+        redis_conn.rpush(submit_queue, json.dumps(embedded_text_obj))
+    else:
+        return label
+
 
 
 def main(parallel=True):
@@ -92,13 +136,14 @@ def main(parallel=True):
                 res = embedding_pool.apply_async(compute_sentiment, args=(tweet,))
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
+            # time.sleep(0.1)
         else:
             # For debug purposes... (will be deleted)
             if q_name == logstash_queue:
                 process_from_logstash(tweet)
             elif q_name == submit_queue:
                 submit_tweet(tweet)
-            elif q_name == embedding_queue:
+            elif q_name == embedding_result_queue:
                 compute_sentiment(tweet)
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
@@ -122,5 +167,15 @@ if __name__ == '__main__':
     preprocess_pool = Pool(processes=app.config['NUM_PROCESSES_PREPROCESSING'])
     submit_pool = Pool(processes=app.config['NUM_SUBMIT_PREPROCESSING'])
     embedding_pool = Pool(processes=app.config['NUM_EMBEDDING_PREPROCESSING'])
+
+    # load classifier
+    clf_file = 'sent2vec_v1.0'
+    f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
+    try:
+        f = open(f_clf, 'rb')
+    except IOError:
+        logger.error('File under {} could not be found or opened.'.format(f_clf))
+        sys.exit()
+    f.close()
 
     main(parallel=True)
