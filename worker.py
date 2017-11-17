@@ -12,7 +12,6 @@ from logger import Logger
 def process_from_logstash(tweet):
     # Note to future self: sharing connections like that might be problematic,
     # check: https://stackoverflow.com/questions/28638939/python3-x-how-to-share-a-database-connection-between-processes 
-    redis_conn = redis.Redis(connection_pool=POOL)
 
     # Strip json
     tweet_stripped = ProcessTweet.strip(copy(tweet))
@@ -24,20 +23,32 @@ def process_from_logstash(tweet):
         tweet_stripped = ProcessTweet.compute_average_location(tweet, tweet_stripped)
 
     if tweet_stripped['project'] == 'vaccine_sentiment':
-        # If tweet belongs to vaccine sentiment project, compute sentiment
-        print('Before tokenizing: {}'.format(tweet_stripped['text']))
-        text_tokenized = ProcessTweet.tokenize(copy(tweet_stripped['text']))
-        if text_tokenized is None:
-            logger.warning('Tweet with id {} and text {} could not be tokenized.'.format(tweet['id'], tweet['text']))
-            return
-        tweet_stripped['text_tokenized'] = text_tokenized
-        print('After tokenizing: {}'.format(tweet_stripped['text_tokenized']))
-        logger.debug('Process {}: Pushing tweet from project {} (id: {}) to embedding queue'.format(current_process().name, tweet['project'], tweet['id']))
-        redis_conn.rpush(embedding_queue, json.dumps(tweet_stripped))
+        # If tweet belongs to vaccine sentiment project, compute sentence embeddings
+        compute_embedding(tweet_stripped)
     else:
         # Else push to ES submit queue
+        redis_conn = redis.Redis(connection_pool=POOL)
         logger.debug('Process {}: Pushing tweet from project {} (id: {}) to submit queue'.format(current_process().name, tweet['project'], tweet['id']))
         redis_conn.rpush(submit_queue, json.dumps(tweet_stripped))
+
+
+def compute_embedding(input_text_obj):
+    """Tokenize and send to embedding queue. Based on 'text' field a new field 'text_tokenized' is computed, containing the tokenized field. 
+    :param input_text_obj: Input dictionary object, needs to contain at least an id and text field.
+    """
+    redis_conn = redis.Redis(connection_pool=POOL)
+    text_not_available = 'text' not in input_text_obj or input_text_obj['text'] == ""
+    id_not_available = 'id' not in input_text_obj
+    if text_not_available or id_not_available or not isinstance(input_text_obj, dict):
+        logger.error('Object contains no text or no id or is not of type dict.')
+        return
+    input_text_tokenized = ProcessTweet.tokenize(copy(input_text_obj['text']))
+    if input_text_tokenized is None:
+        logger.warning('Input_text_obj with id {} and text {} could not be tokenized.'.format(input_text_obj['id'], input_text_obj['text']))
+        return
+    input_text_obj['text_tokenized'] = input_text_tokenized
+    logger.debug('Process {}: Pushing input_text_obj with id: {} to embedding queue'.format(current_process().name, input_text_obj['id']))
+    redis_conn.rpush(embedding_queue, json.dumps(input_text_obj))
 
 
 def queue_name(name):
