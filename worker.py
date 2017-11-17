@@ -27,6 +27,9 @@ def process_from_logstash(tweet):
         # If tweet belongs to vaccine sentiment project, compute sentiment
         print('Before tokenizing: {}'.format(tweet_stripped['text']))
         text_tokenized = ProcessTweet.tokenize(copy(tweet_stripped['text']))
+        if text_tokenized is None:
+            logger.warning('Tweet with id {} and text {} could not be tokenized.'.format(tweet['id'], tweet['text']))
+            return
         tweet_stripped['text_tokenized'] = text_tokenized
         print('After tokenizing: {}'.format(tweet_stripped['text_tokenized']))
         logger.debug('Process {}: Pushing tweet from project {} (id: {}) to embedding queue'.format(current_process().name, tweet['project'], tweet['id']))
