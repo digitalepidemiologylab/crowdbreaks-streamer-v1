@@ -26,6 +26,17 @@ dependencies:
 - xz=5.2.3=h0278029_2
 - zlib=1.2.11=hf3cbc9b_2
 - pip:
+  - elasticsearch==5.5.1
+  - elasticsearch-dsl==5.3.0
+  - flask-cors==3.0.3
+  - nltk==3.2.5
+  - numpy==1.13.3
+  - python-dateutil==2.6.1
   - redis==2.10.6
+  - scikit-learn==0.19.1
+  - scipy==1.0.0
+  - six==1.11.0
+  - sklearn==0.0
+  - urllib3==1.21.1
 prefix: /Users/martin/Applications/miniconda3/envs/crowdbreaks-flask
 
