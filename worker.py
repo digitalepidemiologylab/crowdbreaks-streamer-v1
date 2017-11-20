@@ -1,7 +1,8 @@
 from multiprocessing import Pool, current_process
 import redis
 import json
-from app import app, es, POOL
+import config
+import app
 from process_tweet import ProcessTweet
 import time
 from copy import copy
@@ -10,6 +11,7 @@ from logger import Logger
 import pickle as pkl
 import os, sys
 import numpy as np
+import uuid
 
 def process_from_logstash(tweet):
     # Note to future self: sharing connections like that might be problematic,
@@ -26,10 +28,11 @@ def process_from_logstash(tweet):
 
     if tweet_stripped['project'] == 'vaccine_sentiment':
         # If tweet belongs to vaccine sentiment project, compute sentence embeddings
+        tweet_stripped['result_queue'] = embedding_result_queue
         compute_embedding(tweet_stripped)
     else:
         # Else push to ES submit queue
-        redis_conn = redis.Redis(connection_pool=POOL)
+        redis_conn = redis.Redis(connection_pool=app.POOL)
         logger.debug('Process {}: Pushing tweet from project {} (id: {}) to submit queue'.format(current_process().name, tweet['project'], tweet['id']))
         redis_conn.rpush(submit_queue, json.dumps(tweet_stripped))
 
@@ -38,7 +41,7 @@ def compute_embedding(input_text_obj):
     """Tokenize and send to embedding queue. Based on 'text' field a new field 'text_tokenized' is computed, containing the tokenized field. 
     :param input_text_obj: Input dictionary object, needs to contain at least an id and text field.
     """
-    redis_conn = redis.Redis(connection_pool=POOL)
+    redis_conn = redis.Redis(connection_pool=app.POOL)
     text_not_available = 'text' not in input_text_obj or input_text_obj['text'] == ""
     id_not_available = 'id' not in input_text_obj
     if text_not_available or id_not_available or not isinstance(input_text_obj, dict):
@@ -54,63 +57,91 @@ def compute_embedding(input_text_obj):
 
 
 def queue_name(name):
-    return "{}:{}".format(app.config['REDIS_NAMESPACE'], name)
+    return "{}:{}".format(config.REDIS_NAMESPACE, name)
 
 def submit_tweet(tweet):
     logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
-    es.index_tweet(tweet)
+    app.es.index_tweet(tweet)
 
-def compute_sentiment(embedded_text_obj):
-    """Classify sentiment based on word embeddings given in 'sentence_vector'. If part of 'vaccine_sentiment' project push tweet into ES, otherwise return predicted label
-    :param embedding_text_obj: Text object to classify 
-    :returns: None if part of vaccine_sentiment_tracking project, otherwise returns classified label and distances to hyperplane 
+def compute_sentiment(tweet_obj, model='sent2vec_v1.0'):
+    """Classify sentiment of vaccine sentiment related project
+    :param tweet_obj: Tweet object to classify 
     """
-    redis_conn = redis.Redis(connection_pool=POOL)
-    logger.debug("Compute sentiment for embedded_text_obj with id {}".format(embedded_text_obj['id']))
-    labelled_successfully = False
+    redis_conn = redis.Redis(connection_pool=app.POOL)
+    logger.debug("Compute sentiment for tweet_obj with id {}".format(tweet_obj['id']))
     label = None
-    if 'sentence_vector' not in embedded_text_obj:
-        logger.error("Tweet with id {} has no field 'sentence_vector'".format(embedded_text_obj['id']))
-    elif not isinstance(embedded_text_obj['sentence_vector'], list) or len(embedded_text_obj['sentence_vector']) < 1:
-        logger.error("Tweet with id {} has an invalid sentence_vector".format(embedded_text_obj['id']))
-    else:
-        # Run classifier
-        input_vec = np.zeros([1, len(embedded_text_obj['sentence_vector'])])
-        input_vec[0] = embedded_text_obj['sentence_vector']
+    if 'sentence_vector' not in tweet_obj:
+        logger.error("Tweet with id {} has no field 'sentence_vector'".format(tweet_obj['id']))
+    elif not isinstance(tweet_obj['sentence_vector'], list) or len(tweet_obj['sentence_vector']) < 1:
+        logger.error("Tweet with id {} has an invalid sentence_vector".format(tweet_obj['id']))
 
-        # Load classifier into memory of process
-        f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
-        with open(f_clf, 'rb') as f:
-            clf = pkl.load(f)
-        try: 
-            label = clf.predict(input_vec)[0]
-            distances = clf.decision_function(input_vec)[0]
-        except Exception as e:
-            logger.error(e)
-            logger.error("Error occured when trying to predict tweet {}".format(embedded_text_obj['id']))
-        else:
-            labelled_successfully = True
+    # Run classifier
+    label, distances = classify(tweet_obj['sentence_vector'])
 
     # Clean up
-    delete_keys = ['sentence_vector', 'text_tokenized']
+    delete_keys = ['sentence_vector', 'text_tokenized', 'result_queue']
     for del_key in delete_keys:
-        if del_key in embedded_text_obj:
-            del embedded_text_obj[del_key]
+        if del_key in tweet_obj:
+            del tweet_obj[del_key]
 
-    if 'project' in embedded_text_obj and embedded_text_obj['project'] == 'vaccine_sentiment':
-        if labelled_successfully:
-            # add meta information
-            label_dict = {-1: 'anti-vaccine', 0:'other', 1:'pro-vaccine'}
-            meta = {'sentiment': {clf_file: {'label': label_dict[label], 'distances': list(distances)}}}
-            embedded_text_obj['meta'] = meta
-            logger.debug("Tweet with id {} predicted to be of label '{}' ".format(embedded_text_obj['id'], label_dict[label]))
+    # add meta information
+    meta = {'sentiment': {str(model): {'label': label, 'distances': distances}}}
+    tweet_obj['meta'] = meta
+    logger.debug("Tweet with id {} predicted to be of label '{}' ".format(tweet_obj['id'], label))
 
-        # Send to submit queue
-        redis_conn.rpush(submit_queue, json.dumps(embedded_text_obj))
+    # Send to submit queue
+    redis_conn.rpush(submit_queue, json.dumps(tweet_obj))
+
+
+def classify(sentence_vector, model='sent2vec_v1.0'):
+    """Compute label based on sentence vector
+
+    :param sentence_vector: In case of sent2vec represents 1x700 dimensional vector to be classified
+    :param model: filename of classifier to be used
+    :returns: predicted label, distances to separating hyperplane
+    """
+    input_vec = np.zeros([1, len(sentence_vector)])
+    input_vec[0] = np.asarray(sentence_vector)
+    # Load classifier into memory of process
+    f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', model + '.p')
+    with open(f_clf, 'rb') as f:
+        clf = pkl.load(f)
+    try: 
+        label = clf.predict(input_vec)[0]
+        distances = clf.decision_function(input_vec)[0]
+    except Exception as e:
+        logger.error(e)
+        return None
     else:
-        return label
+        label_dict = {-1: 'anti-vaccine', 0:'neutral', 1:'pro-vaccine'}
+        return label_dict[label], list(distances)
 
 
+def vaccine_sentiment_single_request(input_data):
+    """Handle single request from Flask
+    :param input_data: Text object containing a field 'text'
+    :returns: Classified label
+    """
+    redis_conn = redis.Redis(connection_pool=app.POOL)
+    q_name = queue_name('single_request_{}'.format(uuid.uuid4()))
+    embedding_queue = queue_name(config.REDIS_EMBEDDING_QUEUE_KEY)
+    text_tokenized = ProcessTweet.tokenize(copy(input_data['text']))
+    if text_tokenized is None:
+        return None, None
+
+    input_data['text_tokenized'] = text_tokenized.strip()
+    input_data['result_queue'] = q_name
+    input_data['mode'] = 'single_request'
+    redis_conn.rpush(embedding_queue, json.dumps(input_data))
+
+    # wait for result
+    _, _res = redis_conn.blpop([q_name])
+    res = json.loads(_res)
+
+    if 'sentence_vector' not in res or not isinstance(res['sentence_vector'], list) or len(res['sentence_vector']) < 1:
+        return None, None
+    else:
+        return classify(res['sentence_vector'])
 
 def main(parallel=True):
     """main
@@ -121,7 +152,7 @@ def main(parallel=True):
 
     while True:
         logger.debug('Fetching new work...')
-        redis_conn = redis.Redis(connection_pool=POOL)
+        redis_conn = redis.Redis(connection_pool=app.POOL)
 
         # Pop from queues and assign job to a free worker...
         _q, _tweet = redis_conn.blpop([logstash_queue, submit_queue, embedding_result_queue])
@@ -149,24 +180,12 @@ def main(parallel=True):
                 logger.warning("Queue name {} is not being processed".format(q_name))
                 
             logger.info('That was a lot of work... sleeping for a bit now')
-            time.sleep(1)
+            # time.sleep(0.1)
 
 
 if __name__ == '__main__':
     # set up logging
     logger = Logger.setup('worker', filename='worker.log')
-
-    # queue names
-    logstash_queue = queue_name(app.config['REDIS_LOGSTASH_QUEUE_KEY'])
-    submit_queue = queue_name(app.config['REDIS_SUBMIT_QUEUE_KEY'])
-    embedding_queue = queue_name(app.config['REDIS_EMBEDDING_QUEUE_KEY'])
-    embedding_result_queue = queue_name(app.config['REDIS_EMBEDDING_RESULT_QUEUE_KEY'])
-
-    # Process pools
-    logger.info("Starting worker pools...")
-    preprocess_pool = Pool(processes=app.config['NUM_PROCESSES_PREPROCESSING'])
-    submit_pool = Pool(processes=app.config['NUM_SUBMIT_PREPROCESSING'])
-    embedding_pool = Pool(processes=app.config['NUM_EMBEDDING_PREPROCESSING'])
 
     # load classifier
     clf_file = 'sent2vec_v1.0'
@@ -177,5 +196,17 @@ if __name__ == '__main__':
         logger.error('File under {} could not be found or opened.'.format(f_clf))
         sys.exit()
     f.close()
+
+    # queue names
+    logstash_queue = queue_name(config.REDIS_LOGSTASH_QUEUE_KEY)
+    submit_queue = queue_name(config.REDIS_SUBMIT_QUEUE_KEY)
+    embedding_queue = queue_name(config.REDIS_EMBEDDING_QUEUE_KEY)
+    embedding_result_queue = queue_name(config.REDIS_EMBEDDING_RESULT_QUEUE_KEY)
+
+    # Process pools
+    logger.info("Starting worker pools...")
+    preprocess_pool = Pool(processes=config.NUM_PROCESSES_PREPROCESSING)
+    submit_pool = Pool(processes=config.NUM_SUBMIT_PREPROCESSING)
+    embedding_pool = Pool(processes=config.NUM_EMBEDDING_PREPROCESSING)
 
     main(parallel=True)
