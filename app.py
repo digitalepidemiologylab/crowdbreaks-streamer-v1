@@ -38,6 +38,7 @@ else:
 # Connect to elasticsearch
 es = Elastic()
 
+
 @app.route('/', methods=['GET'])
 def index():
     return "hello world!!!"

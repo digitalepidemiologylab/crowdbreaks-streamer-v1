@@ -15,8 +15,7 @@ class Elastic(object):
 
         # connect
         if es is None:
-            self.es = elasticsearch.Elasticsearch(["{}:{}".format(config.ELASTICSEARCH_HOST, config.ELASTICSEARCH_PORT)],
-                    http_auth=(instance.config.ELASTICSEARCH_USERNAME, instance.config.ELASTICSEARCH_PASSWORD))
+            self.es = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)])
         else:
             self.es = es
 

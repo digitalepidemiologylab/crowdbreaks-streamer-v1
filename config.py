@@ -14,9 +14,7 @@ REDIS_SUBMIT_QUEUE_KEY='es_submit'
 REDIS_EMBEDDING_QUEUE_KEY='embedding'
 REDIS_EMBEDDING_RESULT_QUEUE_KEY='embedding_result'
 
-# Elasticsearch
-ELASTICSEARCH_HOST='localhost'
-ELASTICSEARCH_PORT='9200'
+# Elasticsearch (define in instance/config.py)
 
 # Num processes
 NUM_PROCESSES_PREPROCESSING=2
