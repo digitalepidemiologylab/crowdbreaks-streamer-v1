@@ -109,10 +109,10 @@ Test whether uwsgi is working:
 `uwsgi --ini uwsgi.ini`
 
 Write system daemon script
+
+`cd /etc/systemd/system`
+Create the following file: `touch /etc/systemd/system/flask.service`:
 ```
-cd /etc/systemd/system
-# Create the following file
-# /etc/systemd/system/flask.service 
 [Unit]
 Description=uWSGI instance to serve crowdbreaks-flask-api
 
@@ -132,10 +132,10 @@ Make sure server is running properly:
 `sudo systemctl status flask.service` or alternatively: `service flask status`
 
 Reverse proxy:
+
+`cd /etc/nginx/sites-available/` 
+Create the following file: `touch /etc/nginx/sites-available/logstash-dev.crowdbreaks.org`:
 ```
-cd /etc/nginx/sites-available/
-# Create the following file
-# /etc/nginx/sites-available/logstash-dev.crowdbreaks.org 
 server { 
  listen 80;
  server_name logstash-dev.crowdbreaks.org www.logstash-dev.crowdbreaks.org;
