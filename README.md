@@ -44,6 +44,48 @@ brew services start redis
 
 ```
 
+## Production EC2 (Ubuntu 16.04)
+Install anaconda
+```
+cd && mkdir downloads && cd downloads
+wget https://repo.continuum.io/archive/Anaconda3-5.0.1-Linux-x86_64.sh
+bash Anaconda3-5.0.1-Linux-x86_64.sh
+```
+Pull repo
+```
+cd && git clone git clone https://github.com/salathegroup/crowdbreaks-flask-api.git && cd crowdbreaks-flask-api/
+git submodule update --init --recursive
+conda create --name flask-api
+source activate flask-api
+pip install -r requirements.txt
+mkdir instance
+cp config.py.example instance/config.py
+# Add secrets to instance/config.py
+``` 
+Install Redis
+
+```
+cd ~/downloads
+wget http://download.redis.io/redis-stable.tar.gz
+tar xvzf redis-stable.tar.gz 
+cd redis-stable/deps
+make hiredis jemalloc linenoise lua geohash-int
+cd ..
+make
+sudo make install
+```
+Configure and run Redis
+```
+sudo mkdir /etc/redis
+sudo mkdir /var/redis
+sudo cp utils/redis_init_script /etc/init.d/redis_6379
+sudo cp ~/crowdbreaks-flask-api/other_configs/6379.conf /etc/redis/
+sudo mkdir /var/redis/6379
+sudo update-rc.d redis_6379 defaults
+# Start daemon
+sudo /etc/init.d/redis_6379 start
+```
+See status using `service redis_6379 status`
 
 
 # Vaccine sentiment tracking
