@@ -61,10 +61,15 @@ pip install -r requirements.txt
 mkdir instance
 cp config.py.example instance/config.py
 # Add secrets to instance/config.py
+
+# Download SVM binaries
+cd ~/crowdbreaks-flask-api/bin/vaccine_sentiment/
+wget https://s3.eu-central-1.amazonaws.com/crowdbreaks-dev/binaries/sent2vec_v1.0.p
 ``` 
 Install Redis
 
 ```
+sudo apt-get install make gcc redis-server
 cd ~/downloads
 wget http://download.redis.io/redis-stable.tar.gz
 tar xvzf redis-stable.tar.gz 
@@ -86,6 +91,8 @@ sudo update-rc.d redis_6379 defaults
 sudo /etc/init.d/redis_6379 start
 ```
 See status using `service redis_6379 status`
+
+
 
 
 # Vaccine sentiment tracking
