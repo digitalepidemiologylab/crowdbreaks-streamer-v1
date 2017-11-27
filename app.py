@@ -8,6 +8,7 @@ from logger import Logger
 from elastic_search.elastic import Elastic
 import pdb
 import worker
+import os
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -26,7 +27,8 @@ logger = Logger.setup('app')
 # Build connection pool to Redis
 POOL = redis.ConnectionPool(host=app.config['REDIS_HOST'],
         port=app.config['REDIS_PORT'],
-        db=app.config['REDIS_DB'])
+        db=app.config['REDIS_DB'],
+        password=app.config['REDIS_PW'])
 
 # Test Redis
 redis_conn = redis.Redis(connection_pool=POOL)
@@ -37,7 +39,6 @@ else:
 
 # Connect to elasticsearch
 es = Elastic()
-
 
 @app.route('/', methods=['GET'])
 def index():
@@ -53,4 +54,5 @@ def get_vaccine_sentiment():
 
 
 if __name__ == '__main__':
-    app.run()
+    os.system('python worker.py')
+    app.run(host='0.0.0.0')

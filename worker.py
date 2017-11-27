@@ -186,16 +186,17 @@ def main(parallel=True):
 if __name__ == '__main__':
     # set up logging
     logger = Logger.setup('worker', filename='worker.log')
+    logger.info('Hello from worker logger!')
 
     # load classifier
-    clf_file = 'sent2vec_v1.0'
-    f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
-    try:
-        f = open(f_clf, 'rb')
-    except IOError:
-        logger.error('File under {} could not be found or opened.'.format(f_clf))
-        sys.exit()
-    f.close()
+    # clf_file = 'sent2vec_v1.0'
+    # f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
+    # try:
+    #     f = open(f_clf, 'rb')
+    # except IOError:
+    #     logger.error('File under {} could not be found or opened.'.format(f_clf))
+    #     sys.exit()
+    # f.close()
 
     # queue names
     logstash_queue = queue_name(config.REDIS_LOGSTASH_QUEUE_KEY)
