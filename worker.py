@@ -16,6 +16,7 @@ import uuid
 def process_from_logstash(tweet):
     # Note to future self: sharing connections like that might be problematic,
     # check: https://stackoverflow.com/questions/28638939/python3-x-how-to-share-a-database-connection-between-processes 
+    redis_conn = redis.Redis(connection_pool=app.POOL)
 
     # Strip json
     tweet_stripped = ProcessTweet.strip(copy(tweet))
@@ -26,42 +27,27 @@ def process_from_logstash(tweet):
     if tweet['place'] is not None and tweet['place']['bounding_box'] is not None:
         tweet_stripped = ProcessTweet.compute_average_location(tweet, tweet_stripped)
 
+    # If tweet belongs to vaccine sentiment project, tokenize and compute sentence embeddings
     if tweet_stripped['project'] == 'vaccine_sentiment':
-        # If tweet belongs to vaccine sentiment project, compute sentence embeddings
-        tweet_stripped['result_queue'] = embedding_result_queue
-        compute_embedding(tweet_stripped)
+        text_tokenized = ProcessTweet.tokenize(copy(tweet_stripped['text']))
+        if text_tokenized is None:
+            logger.debug("Field text is either too short or could not be properly tokenized.")
+            redis_conn.rpush(submit_queue, json.dumps(tweet_stripped))
+        else:
+            tweet_stripped['text_tokenized'] = text_tokenized.strip()
+            tweet_stripped['result_queue'] = embedding_output_queue
+            logger.debug("Sending tweet with id {} to {} queue".format(tweet_stripped['id'], embedding_input_queue))
+            redis_conn.rpush(embedding_input_queue, json.dumps(tweet_stripped))
     else:
         # Else push to ES submit queue
-        redis_conn = redis.Redis(connection_pool=app.POOL)
-        logger.debug('Process {}: Pushing tweet from project {} (id: {}) to submit queue'.format(current_process().name, tweet['project'], tweet['id']))
+        logger.debug('Process {}: Pushing tweet from project {} (id: {}) to submit queue'.format(current_process().name, tweet_stripped['project'], tweet_stripped['id']))
         redis_conn.rpush(submit_queue, json.dumps(tweet_stripped))
 
-
-def compute_embedding(input_text_obj):
-    """Tokenize and send to embedding queue. Based on 'text' field a new field 'text_tokenized' is computed, containing the tokenized field. 
-    :param input_text_obj: Input dictionary object, needs to contain at least an id and text field.
-    """
-    redis_conn = redis.Redis(connection_pool=app.POOL)
-    text_not_available = 'text' not in input_text_obj or input_text_obj['text'] == ""
-    id_not_available = 'id' not in input_text_obj
-    if text_not_available or id_not_available or not isinstance(input_text_obj, dict):
-        logger.error('Object contains no text or no id or is not of type dict.')
-        return
-    input_text_tokenized = ProcessTweet.tokenize(copy(input_text_obj['text']))
-    if input_text_tokenized is None:
-        logger.warning('Input_text_obj with id {} and text {} could not be tokenized.'.format(input_text_obj['id'], input_text_obj['text']))
-        return
-    input_text_obj['text_tokenized'] = input_text_tokenized
-    logger.debug('Process {}: Pushing input_text_obj with id: {} to embedding queue'.format(current_process().name, input_text_obj['id']))
-    redis_conn.rpush(embedding_queue, json.dumps(input_text_obj))
-
-
-def queue_name(name):
-    return "{}:{}".format(config.REDIS_NAMESPACE, name)
 
 def submit_tweet(tweet):
     logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
     app.es.index_tweet(tweet)
+
 
 def compute_sentiment(tweet_obj, model='sent2vec_v1.0'):
     """Classify sentiment of vaccine sentiment related project
@@ -69,7 +55,6 @@ def compute_sentiment(tweet_obj, model='sent2vec_v1.0'):
     """
     redis_conn = redis.Redis(connection_pool=app.POOL)
     logger.debug("Compute sentiment for tweet_obj with id {}".format(tweet_obj['id']))
-    label = None
     if 'sentence_vector' not in tweet_obj:
         logger.error("Tweet with id {} has no field 'sentence_vector'".format(tweet_obj['id']))
     elif not isinstance(tweet_obj['sentence_vector'], list) or len(tweet_obj['sentence_vector']) < 1:
@@ -85,7 +70,11 @@ def compute_sentiment(tweet_obj, model='sent2vec_v1.0'):
             del tweet_obj[del_key]
 
     # add meta information
-    meta = {'sentiment': {str(model): {'label': label, 'distances': distances}}}
+    if label is not None:
+        meta = {'sentiment': {str(model): {'label': label, 'distances': distances}}}
+    else:
+        meta = {'sentiment': {str(model): {'label': 'not determinable'}}}
+
     tweet_obj['meta'] = meta
     logger.debug("Tweet with id {} predicted to be of label '{}' ".format(tweet_obj['id'], label))
 
@@ -124,7 +113,6 @@ def vaccine_sentiment_single_request(input_data):
     """
     redis_conn = redis.Redis(connection_pool=app.POOL)
     q_name = queue_name('single_request_{}'.format(uuid.uuid4()))
-    embedding_queue = queue_name(config.REDIS_EMBEDDING_QUEUE_KEY)
     text_tokenized = ProcessTweet.tokenize(copy(input_data['text']))
     if text_tokenized is None:
         return None, None
@@ -132,7 +120,8 @@ def vaccine_sentiment_single_request(input_data):
     input_data['text_tokenized'] = text_tokenized.strip()
     input_data['result_queue'] = q_name
     input_data['mode'] = 'single_request'
-    redis_conn.rpush(embedding_queue, json.dumps(input_data))
+    embedding_input_queue = queue_name(config.REDIS_EMBEDDING_INPUT_QUEUE_KEY)
+    redis_conn.rpush(embedding_input_queue, json.dumps(input_data))
 
     # wait for result
     _, _res = redis_conn.blpop([q_name])
@@ -142,6 +131,11 @@ def vaccine_sentiment_single_request(input_data):
         return None, None
     else:
         return classify(res['sentence_vector'])
+
+
+def queue_name(name):
+    return "{}:{}".format(config.REDIS_NAMESPACE, name)
+
 
 def main(parallel=True):
     """main
@@ -155,7 +149,7 @@ def main(parallel=True):
         redis_conn = redis.Redis(connection_pool=app.POOL)
 
         # Pop from queues and assign job to a free worker...
-        _q, _tweet = redis_conn.blpop([logstash_queue, submit_queue, embedding_result_queue])
+        _q, _tweet = redis_conn.blpop([logstash_queue, submit_queue, embedding_output_queue])
         tweet = json.loads(_tweet)
         q_name = _q.decode()
         if parallel:
@@ -163,7 +157,7 @@ def main(parallel=True):
                 res = preprocess_pool.apply_async(process_from_logstash, args=(tweet,))
             elif q_name == submit_queue:
                 res = submit_pool.apply_async(submit_tweet, args=(tweet,))
-            elif q_name == embedding_result_queue:
+            elif q_name == embedding_output_queue:
                 res = embedding_pool.apply_async(compute_sentiment, args=(tweet,))
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
@@ -174,40 +168,46 @@ def main(parallel=True):
                 process_from_logstash(tweet)
             elif q_name == submit_queue:
                 submit_tweet(tweet)
-            elif q_name == embedding_result_queue:
+            elif q_name == embedding_output_queue:
                 compute_sentiment(tweet)
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
                 
             logger.info('That was a lot of work... sleeping for a bit now')
-            # time.sleep(0.1)
+            time.sleep(0.1)
 
 
 if __name__ == '__main__':
+    PARALLEL = False
+
     # set up logging
     logger = Logger.setup('worker', filename='worker.log')
     logger.info('Hello from worker logger!')
 
-    # load classifier
-    # clf_file = 'sent2vec_v1.0'
-    # f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
-    # try:
-    #     f = open(f_clf, 'rb')
-    # except IOError:
-    #     logger.error('File under {} could not be found or opened.'.format(f_clf))
-    #     sys.exit()
-    # f.close()
+    # Check for classifier file
+    clf_file = 'sent2vec_v1.0'
+    f_clf = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'bin', 'vaccine_sentiment', clf_file + '.p')
+    if not os.path.isfile(f_clf):
+        logger.error('File under {} could not be found.'.format(f_clf))
+        sys.exit()
 
-    # queue names
+    # Queue for tweets coming from logstash
     logstash_queue = queue_name(config.REDIS_LOGSTASH_QUEUE_KEY)
+
+    # Queue to push tweets into which can be sent to ElasticSearch
     submit_queue = queue_name(config.REDIS_SUBMIT_QUEUE_KEY)
-    embedding_queue = queue_name(config.REDIS_EMBEDDING_QUEUE_KEY)
-    embedding_result_queue = queue_name(config.REDIS_EMBEDDING_RESULT_QUEUE_KEY)
+
+    # Queue sent2vec listens to
+    embedding_input_queue = queue_name(config.REDIS_EMBEDDING_INPUT_QUEUE_KEY)
+
+    # queue to for sent2vec to push tweet results into
+    embedding_output_queue = queue_name(config.REDIS_EMBEDDING_OUTPUT_QUEUE_KEY)
 
     # Process pools
-    logger.info("Starting worker pools...")
-    preprocess_pool = Pool(processes=config.NUM_PROCESSES_PREPROCESSING)
-    submit_pool = Pool(processes=config.NUM_SUBMIT_PREPROCESSING)
-    embedding_pool = Pool(processes=config.NUM_EMBEDDING_PREPROCESSING)
+    if PARALLEL:
+        logger.info("Starting worker pools...")
+        preprocess_pool = Pool(processes=config.NUM_PROCESSES_PREPROCESSING)
+        submit_pool = Pool(processes=config.NUM_SUBMIT_PREPROCESSING)
+        embedding_pool = Pool(processes=config.NUM_EMBEDDING_PREPROCESSING)
 
-    main(parallel=True)
+    main(parallel=PARALLEL)

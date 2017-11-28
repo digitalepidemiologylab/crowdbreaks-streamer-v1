@@ -8,8 +8,8 @@ WORKER_LOGFILE='worker.log'
 REDIS_NAMESPACE='crowdbreaks'
 REDIS_LOGSTASH_QUEUE_KEY='logstash'
 REDIS_SUBMIT_QUEUE_KEY='es_submit'
-REDIS_EMBEDDING_QUEUE_KEY='embedding'
-REDIS_EMBEDDING_RESULT_QUEUE_KEY='embedding_result'
+REDIS_EMBEDDING_INPUT_QUEUE_KEY='embedding'
+REDIS_EMBEDDING_OUTPUT_QUEUE_KEY='embedding_result'
 
 # Elasticsearch (define in instance/config.py)
 
