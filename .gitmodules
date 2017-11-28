@@ -1,3 +1,0 @@
-[submodule "lib/sent2vec"]
-	path = lib/sent2vec
-	url = https://github.com/salathegroup/sent2vec.git
