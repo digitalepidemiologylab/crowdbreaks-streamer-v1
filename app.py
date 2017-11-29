@@ -53,6 +53,7 @@ def index():
 
 
 @app.route('/sentiment/vaccine', methods=['POST'])
+@requires_auth
 def get_vaccine_sentiment():
     data = request.get_json()
     label, distances = worker.vaccine_sentiment_single_request(data)
