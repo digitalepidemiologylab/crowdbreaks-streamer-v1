@@ -56,7 +56,6 @@ bash Anaconda3-5.0.1-Linux-x86_64.sh -b
 ### Pull repo
 ```
 cd && git clone git clone https://github.com/salathegroup/crowdbreaks-flask-api.git && cd crowdbreaks-flask-api/
-git submodule update --init --recursive
 conda create --name flask-api
 source activate flask-api
 pip install -r requirements.txt
@@ -69,30 +68,35 @@ cd ~/crowdbreaks-flask-api/bin/vaccine_sentiment/
 wget https://s3.eu-central-1.amazonaws.com/crowdbreaks-dev/binaries/sent2vec_v1.0.p
 ``` 
 ### Install Redis
-
+Mostly following [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-redis-on-ubuntu-16-04)
 ```
-sudo apt-get install make gcc redis-server
-cd ~/downloads
+sudo apt-get update
+sudo apt-get install build-essential tcl
+cd /tmp
+curl -O http://download.redis.io/redis-stable.tar.gz
 wget http://download.redis.io/redis-stable.tar.gz
-tar xvzf redis-stable.tar.gz 
-cd redis-stable/deps
-make hiredis jemalloc linenoise lua geohash-int
-cd ..
+tar xzvf redis-stable.tar.gz
+cd redis-stable
 make
 sudo make install
 ```
 ### Configure and run Redis
 ```
 sudo mkdir /etc/redis
-sudo mkdir /var/redis
-sudo cp utils/redis_init_script /etc/init.d/redis_6379
-sudo cp ~/crowdbreaks-flask-api/other_configs/6379.conf /etc/redis/
-sudo mkdir /var/redis/6379
-sudo update-rc.d redis_6379 defaults
-# Start daemon
-sudo /etc/init.d/redis_6379 start
+sudo cp ~/crowdbreaks-flask-api/lib/configs/redis.conf /etc/redis
+# Set password under requirepass 
+# Note that this config is using port 6389
+
+# Create service
+sudo cp ~/crowdbreaks-flask-api/lib/configs/redis.service /etc/systemd/system/redis.service
+sudo adduser --system --group --no-create-home redis
+sudo mkdir /var/lib/redis
+sudo chown redis:redis /var/lib/redis
+sudo chmod 770 /var/lib/redis
+sudo systemctl start redis
 ```
-See status using `service redis_6379 status`
+See status using `sudo systemctl status redis
+
 
 ### Deployment
 [See here](https://peteris.rocks/blog/deploy-flask-apps-using-anaconda-on-ubuntu-server/) for more detailed explanations.
