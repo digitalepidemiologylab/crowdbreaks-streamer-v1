@@ -118,10 +118,9 @@ Make sure server is running properly:
 `sudo systemctl status flask-api.service` or alternatively: `service flask-api status`
 
 ### nginx
-Forward all traffic on subdomain to 
+Forward all traffic on port 80 on subdomain to localhost:8080
 
-`cd /etc/nginx/sites-available/` 
-Create the following file: `touch /etc/nginx/sites-available/logstash-dev.crowdbreaks.org`:
+`touch /etc/nginx/sites-available/logstash-dev.crowdbreaks.org`:
 ```
 server { 
  listen 80;
@@ -141,7 +140,7 @@ Restart nginx to pick up the changes:
 `sudo systemctl restart nginx`
 
 ### Add SSL certificate using Let's encrypt
-Following [this](https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-16-04)
+Following [this](https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-16-04).
 In order to use basic auth on the Flask API endpoint, we should use SSL certificates on the EC2 instance. Make sure both port 80 and port 443 are open for inbound traffic in the AWS security group.
 ```
 sudo add-apt-repository ppa:certbot/certbot
