@@ -47,7 +47,6 @@ else:
 es = Elastic()
 
 @app.route('/', methods=['GET'])
-@requires_auth
 def index():
     return "hello world!!!"
 
@@ -56,8 +55,10 @@ def index():
 @requires_auth
 def get_vaccine_sentiment():
     data = request.get_json()
-    label, distances = worker.vaccine_sentiment_single_request(data)
+    logger.debug('Incoing request with data {}'.format(data))
+    label, distances = worker.vaccine_sentiment_single_request(data, logger)
     res = {'label': label, 'distances': distances}
+    logger.debug('Result: {}'.format(label))
     return json.dumps(res)
 
 

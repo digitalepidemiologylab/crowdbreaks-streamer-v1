@@ -106,7 +106,7 @@ def classify(sentence_vector, model='sent2vec_v1.0'):
         return label_dict[label], list(distances)
 
 
-def vaccine_sentiment_single_request(input_data):
+def vaccine_sentiment_single_request(input_data, logger):
     """Handle single request from Flask
     :param input_data: Text object containing a field 'text'
     :returns: Classified label
@@ -161,7 +161,6 @@ def main(parallel=True):
                 res = embedding_pool.apply_async(compute_sentiment, args=(tweet,))
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
-            # time.sleep(0.1)
         else:
             # For debug purposes... (will be deleted)
             if q_name == logstash_queue:
@@ -172,9 +171,6 @@ def main(parallel=True):
                 compute_sentiment(tweet)
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
-                
-            logger.info('That was a lot of work... sleeping for a bit now')
-            time.sleep(0.1)
 
 
 if __name__ == '__main__':
