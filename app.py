@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
+from basic_auth import requires_auth
 import json
 import redis
 import elasticsearch
@@ -25,10 +26,15 @@ app.config.from_pyfile('config.py')
 logger = Logger.setup('app')
  
 # Build connection pool to Redis
-POOL = redis.ConnectionPool(host=app.config['REDIS_HOST'],
-        port=app.config['REDIS_PORT'],
-        db=app.config['REDIS_DB'],
-        password=app.config['REDIS_PW'])
+if 'REDIS_PW' in app.config:
+    POOL = redis.ConnectionPool(host=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT'],
+            db=app.config['REDIS_DB'],
+            password=app.config['REDIS_PW'])
+else:
+    POOL = redis.ConnectionPool(host=app.config['REDIS_HOST'],
+            port=app.config['REDIS_PORT'],
+            db=app.config['REDIS_DB'])
 
 # Test Redis
 redis_conn = redis.Redis(connection_pool=POOL)
@@ -41,6 +47,7 @@ else:
 es = Elastic()
 
 @app.route('/', methods=['GET'])
+@requires_auth
 def index():
     return "hello world!!!"
 
