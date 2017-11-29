@@ -148,8 +148,7 @@ sudo apt-get update
 sudo apt-get install python-certbot-nginx
 sudo certbot --nginx -d logstash-dev.crowdbreaks.org
 ```
-This should automatically modify the nginx config as well as add all necessary certificates.
-
+This should automatically modify the nginx config as well as add all necessary certificates. The current certificate on logstash-dev will expire 2018-02-27. Run `/opt/letsencrypt/letsencrypt-auto —debug` or set up a cron job to renew certificates.
 
 # Vaccine sentiment tracking
 
