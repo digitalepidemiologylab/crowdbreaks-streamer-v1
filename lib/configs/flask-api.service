@@ -1,0 +1,12 @@
+[Unit]
+Description=uWSGI instance to serve crowdbreaks-flask-api
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/crowdbreaks-flask-api
+ExecStart=/bin/bash -c 'source /home/ubuntu/anaconda3/bin/activate flask-api && /home/ubuntu/anaconda3/bin/uwsgi --ini /home/ubuntu/crowdbreaks-flask-api/uwsgi.ini'
+
+[Install]
+WantedBy=multi-user.target
