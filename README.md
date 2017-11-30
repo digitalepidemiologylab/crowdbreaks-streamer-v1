@@ -181,3 +181,5 @@ Description of models in `bin/vaccine_sentiment/`
 | `sent2vec_v1.0.p` | sklearn SVM RBF classifier | Trained on data from Bauch et al. (unpublished). Word vectors obtained using sent2vec (based on fastText) and pre-trained model [sent2vec_twitter_bigrams](https://drive.google.com/open?id=0B6VhzidiLvjSeHI4cmdQdXpTRHc) 23GB (700dim, trained on english tweets). |
 
 
+# Author
+Martin Müller (martin.muller@epfl.ch)
