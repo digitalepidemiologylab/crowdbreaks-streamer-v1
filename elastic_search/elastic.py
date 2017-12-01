@@ -15,7 +15,11 @@ class Elastic(object):
 
         # connect
         if es is None:
-            self.es = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)])
+            if 'ELASTICSEARCH_PASSWORD' in instance.config.__dict__:
+                self.es = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)], 
+                        http_auth=(instance.config.ELASTICSEARCH_USERNAME, instance.config.ELASTICSEARCH_PASSWORD))
+            else:
+                self.es = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)])
         else:
             self.es = es
 
