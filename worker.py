@@ -115,7 +115,7 @@ def vaccine_sentiment_single_request(input_data, logger):
     q_name = queue_name('single_request_{}'.format(uuid.uuid4()))
     text_tokenized = ProcessTweet.tokenize(copy(input_data['text']))
     if text_tokenized is None:
-        return None, None
+        return 'unassignable', None
 
     input_data['text_tokenized'] = text_tokenized.strip()
     input_data['result_queue'] = q_name
