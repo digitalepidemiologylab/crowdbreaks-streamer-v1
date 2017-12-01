@@ -25,9 +25,9 @@ class Elastic(object):
 
         # test connection
         if self.es.ping():
-            self.logger.info('Successfully connected to ElasticSearch')
+            self.logger.info('Successfully connected to ElasticSearch host {}'.format(instance.config.ELASTICSEARCH_HOST) )
         else:
-            self.logger.error('Connection to ElasticSearch not successful')
+            self.logger.error('Connection to ElasticSearch host {} not successful'.format(instance.config.ELASTICSEARCH_HOST))
 
 
     def index_tweet(self, tweet):
@@ -74,10 +74,16 @@ class Elastic(object):
         res = self.es.indices.delete(index_name)
         self.logger.info("Index {} successfully deleted".format(index_name))
 
+    def get_sentiment_data(self, index_name, value, field='meta.sentiment.sent2vec_v1.0.label', interval='month'):
+        body = {'size': 0, 
+                'aggs': {'sentiment': {'date_histogram': {'field': 'created_at', 'interval': interval, 'format': 'yyyy-MM-dd'}}},
+                'query': {'bool': {'must': {'match_phrase': {field: value}}}}
+                }
+        return self.es.search(index=index_name, body=body)
 
-        
-
-
-
-
-
+    def get_all_agg(self, index_name, interval='month'):
+        body = {'size': 0, 
+                'aggs': {'sentiment': {'date_histogram': {'field': 'created_at', 'interval': interval, 'format': 'yyyy-MM-dd'}}},
+                'query': {'match_all': {}}
+                }
+        return self.es.search(index=index_name, body=body)

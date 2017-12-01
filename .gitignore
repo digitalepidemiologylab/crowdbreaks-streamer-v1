@@ -16,3 +16,6 @@ instance/
 
 # logs
 *.log
+
+# stuff
+scripts/retrieve_sent_data.py

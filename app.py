@@ -62,6 +62,18 @@ def get_vaccine_sentiment():
     return json.dumps(res)
 
 
+@app.route('/sentiment/data/<value>', methods=['GET'])
+@requires_auth
+def get_vaccine_data(value, interval='month'):
+    res = es.get_sentiment_data('project_vaccine_sentiment', value, interval=interval)
+    return json.dumps(res)
+
+@app.route('/sentiment/data/all', methods=['GET'])
+@requires_auth
+def get_all_data(interval='month'):
+    res = es.get_all_agg('project_vaccine_sentiment', interval=interval)
+    return json.dumps(res)
+
 if __name__ == '__main__':
     os.system('python worker.py')
     app.run(host='0.0.0.0')
