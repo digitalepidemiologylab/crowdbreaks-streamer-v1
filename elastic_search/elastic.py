@@ -79,11 +79,32 @@ class Elastic(object):
                 'aggs': {'sentiment': {'date_histogram': {'field': 'created_at', 'interval': interval, 'format': 'yyyy-MM-dd'}}},
                 'query': {'bool': {'must': {'match_phrase': {field: value}}}}
                 }
-        return self.es.search(index=index_name, body=body)
+        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
+        if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
+            return res['aggregations']['sentiment']['buckets']
+        else:
+            return []
 
     def get_all_agg(self, index_name, interval='month'):
         body = {'size': 0, 
                 'aggs': {'sentiment': {'date_histogram': {'field': 'created_at', 'interval': interval, 'format': 'yyyy-MM-dd'}}},
                 'query': {'match_all': {}}
                 }
-        return self.es.search(index=index_name, body=body)
+        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
+        if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
+            return res['aggregations']['sentiment']['buckets']
+        else:
+            return []
+
+
+
+# Helper functions
+def keys_exist(element, *keys):
+    """ Check if *keys (nested) exists in `element` (dict). """
+    _element = element
+    for key in keys:
+        try:
+            _element = _element[key]
+        except KeyError:
+            return False
+    return True
