@@ -123,7 +123,7 @@ class Elastic(object):
         for d in dates:
             if isinstance(d, str) and 'now' in d:
                 res.append(d)
-                break
+                continue
             try:
                 d_date = datetime.strptime(d, input_format)
             except:
