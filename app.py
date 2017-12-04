@@ -65,16 +65,23 @@ def get_vaccine_sentiment():
 @app.route('/sentiment/data/<value>', methods=['GET'])
 @requires_auth
 def get_vaccine_data(value):
-    interval = request.args.get('interval', 'month')
-    res = es.get_sentiment_data('project_vaccine_sentiment', value, interval=interval)
+    options = {}
+    options['interval'] = request.args.get('interval', 'month')
+    options['start_date'] = request.args.get('start_date', None)
+    options['end_date'] = request.args.get('end_date', None)
+    res = es.get_sentiment_data('project_vaccine_sentiment', value, **options)
     return json.dumps(res)
 
 
 @app.route('/sentiment/data/all', methods=['GET'])
 @requires_auth
 def get_all_data():
-    interval = request.args.get('interval', 'month')
-    res = es.get_all_agg('project_vaccine_sentiment', interval=interval)
+    options = {}
+    options['interval'] = request.args.get('interval', 'month')
+    options['start_date'] = request.args.get('start_date', None)
+    options['end_date'] = request.args.get('end_date', None)
+
+    res = es.get_all_agg('project_vaccine_sentiment', **options)
     return json.dumps(res)
 
 
