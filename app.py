@@ -67,8 +67,8 @@ def get_vaccine_sentiment():
 def get_vaccine_data(value):
     options = {}
     options['interval'] = request.args.get('interval', 'month')
-    options['start_date'] = request.args.get('start_date', None)
-    options['end_date'] = request.args.get('end_date', None)
+    options['start_date'] = request.args.get('start_date', 'now-20y')
+    options['end_date'] = request.args.get('end_date', 'now')
     res = es.get_sentiment_data('project_vaccine_sentiment', value, **options)
     return json.dumps(res)
 
@@ -78,8 +78,8 @@ def get_vaccine_data(value):
 def get_all_data():
     options = {}
     options['interval'] = request.args.get('interval', 'month')
-    options['start_date'] = request.args.get('start_date', None)
-    options['end_date'] = request.args.get('end_date', None)
+    options['start_date'] = request.args.get('start_date', 'now-20y')
+    options['end_date'] = request.args.get('end_date', 'now')
 
     res = es.get_all_agg('project_vaccine_sentiment', **options)
     return json.dumps(res)
