@@ -25,10 +25,14 @@ class Elastic(object):
             self.es = es
 
         # test connection
-        if self.es.ping():
+        if self.test_connection():
             self.logger.info('Successfully connected to ElasticSearch host {}'.format(instance.config.ELASTICSEARCH_HOST) )
         else:
             self.logger.error('Connection to ElasticSearch host {} not successful'.format(instance.config.ELASTICSEARCH_HOST))
+
+
+    def test_connection(self):
+        return self.es.ping()
 
 
     def index_tweet(self, tweet):

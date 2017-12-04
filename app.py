@@ -50,6 +50,15 @@ es = Elastic()
 def index():
     return "hello world!!!"
 
+@app.route('/test/redis', methods=['GET'])
+@requires_auth
+def test_redis():
+    return json.dumps(redis_conn.ping())
+
+@app.route('/test/es', methods=['GET'])
+@requires_auth
+def test_es():
+    return json.dumps(es.test_connection())
 
 @app.route('/sentiment/vaccine', methods=['POST'])
 @requires_auth
