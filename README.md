@@ -1,6 +1,6 @@
 # Crowdbreaks Flask API 
 
-Intended to be used for stream processing (currently from logstash), running ML tasks (such as vaccine sentiments), and forwarding them to ElasticSearch.
+Intended to be used for stream processing (currently from logstash), interaction with ElasticSearch, and endpoints for running ML tasks (such as vaccine sentiments).
 
 # Usage
 Determine vaccine sentiment of text
@@ -24,8 +24,8 @@ resp = requests.post(post_url, json=data, auth=(instance.config.FLASK_API_USERNA
 Distances are the distances to the hyperplanes for all pairs of classes -1, 0, 1 (anti-vaccine, neutral, pro-vaccine), [read more](http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html#sklearn.svm.SVC.decision_function)
 
 # Installation
-Setting up development environment:
-## Flask
+## Development (MacOSX)
+### Flask
 ```
 git clone git@github.com:salathegroup/crowdbreaks-flask-api.git
 cd crowdbreaks-flask-api
@@ -50,9 +50,8 @@ cp config.py.example ./instance/config.py
 # Set secret keys accordingly...
 ```
 
+### Redis
 
-## Redis
-On MacOSX:
 ```
 brew install redis
 # start redis-server using config file 
