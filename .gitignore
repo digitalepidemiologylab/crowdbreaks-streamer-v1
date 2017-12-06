@@ -15,7 +15,7 @@ instance/
 /.tags_sorted_by_file
 
 # logs
-*.log
+**/*.log
 
 # stuff
 scripts/retrieve_sent_data.py
