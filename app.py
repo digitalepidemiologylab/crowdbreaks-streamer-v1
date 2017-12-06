@@ -28,5 +28,5 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    os.system('python worker.py')
+    # os.system('python worker.py')
     app.run(use_reloader=False)
