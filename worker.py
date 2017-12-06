@@ -1,8 +1,7 @@
 from multiprocessing import Pool, current_process
-import redis
+# import redis
 import json
 import config
-import app
 from process_tweet import ProcessTweet
 import time
 from copy import copy
@@ -12,11 +11,10 @@ import pickle as pkl
 import os, sys
 import numpy as np
 import uuid
+from connections import redis, elastic
 
 def process_from_logstash(tweet):
-    # Note to future self: sharing connections like that might be problematic,
-    # check: https://stackoverflow.com/questions/28638939/python3-x-how-to-share-a-database-connection-between-processes 
-    redis_conn = redis.Redis(connection_pool=app.POOL)
+    redis_conn = redis.Redis()
 
     # Strip json
     tweet_stripped = ProcessTweet.strip(copy(tweet))
@@ -45,15 +43,16 @@ def process_from_logstash(tweet):
 
 
 def submit_tweet(tweet):
+    es = elastic.Elastic()
     logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
-    app.es.index_tweet(tweet)
+    es.index_tweet(tweet)
 
 
 def compute_sentiment(tweet_obj, model='sent2vec_v1.0'):
     """Classify sentiment of vaccine sentiment related project
     :param tweet_obj: Tweet object to classify 
     """
-    redis_conn = redis.Redis(connection_pool=app.POOL)
+    redis_conn = redis.Redis()
     logger.debug("Compute sentiment for tweet_obj with id {}".format(tweet_obj['id']))
     if 'sentence_vector' not in tweet_obj:
         logger.error("Tweet with id {} has no field 'sentence_vector'".format(tweet_obj['id']))
@@ -111,7 +110,7 @@ def vaccine_sentiment_single_request(input_data, logger):
     :param input_data: Text object containing a field 'text'
     :returns: Classified label
     """
-    redis_conn = redis.Redis(connection_pool=app.POOL)
+    redis_conn = redis.Redis()
     q_name = queue_name('single_request_{}'.format(uuid.uuid4()))
     text_tokenized = ProcessTweet.tokenize(copy(input_data['text']))
     if text_tokenized is None:
@@ -141,12 +140,11 @@ def main(parallel=True):
     """main
 
     :param parallel:
-    :param with_sleep:
     """
 
     while True:
         logger.debug('Fetching new work...')
-        redis_conn = redis.Redis(connection_pool=app.POOL)
+        redis_conn = redis.Redis()
 
         # Pop from queues and assign job to a free worker...
         _q, _tweet = redis_conn.blpop([logstash_queue, submit_queue, embedding_output_queue])
@@ -172,6 +170,7 @@ def main(parallel=True):
             else:
                 logger.warning("Queue name {} is not being processed".format(q_name))
 
+            time.sleep(0.4)
 
 if __name__ == '__main__':
     PARALLEL = False
@@ -186,6 +185,14 @@ if __name__ == '__main__':
     if not os.path.isfile(f_clf):
         logger.error('File under {} could not be found.'.format(f_clf))
         sys.exit()
+
+
+    # make sure redis and ES are initialized 
+    r = redis.Redis()
+    r.init()
+
+    es = elastic.Elastic()
+    es.init()
 
     # Queue for tweets coming from logstash
     logstash_queue = queue_name(config.REDIS_LOGSTASH_QUEUE_KEY)

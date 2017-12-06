@@ -1,37 +1,56 @@
 import elasticsearch
 import json
 import os
-import config
 import instance.config
 from logger import Logger
 from datetime import datetime, timezone
 
+LOGGER = None
+ES = None
 
-class Elastic(object):
-
+class Elastic():
     """Interaction with Elasticsearch"""
 
-    def __init__(self, es=None):
-        self.logger = Logger.setup('ES', use_elasticsearch_logger=False)
+    def __init__(self):
+        self.logger = LOGGER
+        self.es = ES
+
+    def init(self, es=None):
+        global ES
+        # avoid running this multiple times
+        if ES is not None:
+            return
+
+        # initialize logger
+        global LOGGER
+        LOGGER = Logger.setup('ES', use_elasticsearch_logger=False)
+        self.logger = LOGGER
 
         # connect
-        if es is None:
-            if 'ELASTICSEARCH_PASSWORD' in instance.config.__dict__:
-                self.es = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)], 
-                        http_auth=(instance.config.ELASTICSEARCH_USERNAME, instance.config.ELASTICSEARCH_PASSWORD))
-            else:
-                self.es = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)])
-        else:
-            self.es = es
+        self._connect(es=es)
+        self.es = ES
 
         # test connection
         if self.test_connection():
             self.logger.info('Successfully connected to ElasticSearch host {}'.format(instance.config.ELASTICSEARCH_HOST) )
         else:
-            self.logger.error('Connection to ElasticSearch host {} not successful'.format(instance.config.ELASTICSEARCH_HOST))
+            self.logger.error('FAILURE: Connection to ElasticSearch host {} not successful'.format(instance.config.ELASTICSEARCH_HOST))
 
+    def _connect(self, es=None):
+        global ES
+        if es is not None:
+            ES = es
+            return
+
+        if 'ELASTICSEARCH_PASSWORD' in instance.config.__dict__:
+            ES = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)], 
+                    http_auth=(instance.config.ELASTICSEARCH_USERNAME, instance.config.ELASTICSEARCH_PASSWORD))
+        else:
+            ES = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)])
+        return
 
     def test_connection(self):
+        """test_connection"""
         return self.es.ping()
 
 

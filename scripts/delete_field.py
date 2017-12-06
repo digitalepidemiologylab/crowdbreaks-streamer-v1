@@ -4,7 +4,7 @@ import sys
 sys.path.append('..')
 from multiprocessing import Pool, current_process
 from logger import Logger
-from elastic_search.elastic import Elastic
+from connections import elastic
 from elasticsearch import helpers
 import requests
 import instance.config
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     logger.info('Starting deletion script...')
 
     # initialize ES
-    es_client = Elastic()
+    es_client = elastic.Elastic()
 
     # global vars
     INDEX = 'project_vaccine_sentiment'
