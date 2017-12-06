@@ -128,7 +128,7 @@ if __name__ == "__main__":
     # global vars
     INDEX = 'project_vaccine_sentiment'
     DOC_TYPE='tweet'
-    MODEL='sent2vec_v1.0'
+    MODEL='sent2vec_v1'
     # NUM_CPUS=4
     # POOL = Pool(processes=NUM_CPUS)
     main()

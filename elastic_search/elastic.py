@@ -11,7 +11,7 @@ class Elastic(object):
 
     """Interaction with Elasticsearch"""
 
-    def __init__(self, es=None, config_path='./../'):
+    def __init__(self, es=None):
         self.logger = Logger.setup('ES', use_elasticsearch_logger=False)
 
         # connect
@@ -79,7 +79,16 @@ class Elastic(object):
         res = self.es.indices.delete(index_name)
         self.logger.info("Index {} successfully deleted".format(index_name))
 
-    def get_sentiment_data(self, index_name, value, field='meta.sentiment.sent2vec_v1.0.label', **options):
+    def delete_field_from_doc(self, index, doc_type, id, field, field_path=None):
+        if field_path is None:
+            path = 'ctx._source'
+        else:
+            path = 'ctx._source.{}'.format(field_path)
+        body = {'script': "{}.remove(\"{}\")".format(path, field)}
+        resp = self.es.update(index=index, doc_type=doc_type, id=id, body=body)
+        return resp
+
+    def get_sentiment_data(self, index_name, value, field='meta.sentiment.sent2vec_v1.label', **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)

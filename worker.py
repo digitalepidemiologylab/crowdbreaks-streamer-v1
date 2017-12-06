@@ -100,7 +100,7 @@ def classify(sentence_vector, model='sent2vec_v1.0'):
         distances = clf.decision_function(input_vec)[0]
     except Exception as e:
         logger.error(e)
-        return None
+        return None, None
     else:
         label_dict = {-1: 'anti-vaccine', 0:'neutral', 1:'pro-vaccine'}
         return label_dict[label], list(distances)
@@ -115,7 +115,7 @@ def vaccine_sentiment_single_request(input_data, logger):
     q_name = queue_name('single_request_{}'.format(uuid.uuid4()))
     text_tokenized = ProcessTweet.tokenize(copy(input_data['text']))
     if text_tokenized is None:
-        return 'unassignable', None
+        return 'undeterminable', None
 
     input_data['text_tokenized'] = text_tokenized.strip()
     input_data['result_queue'] = q_name
@@ -128,7 +128,7 @@ def vaccine_sentiment_single_request(input_data, logger):
     res = json.loads(_res)
 
     if 'sentence_vector' not in res or not isinstance(res['sentence_vector'], list) or len(res['sentence_vector']) < 1:
-        return None, None
+        return 'undeterminable', None
     else:
         return classify(res['sentence_vector'])
 
