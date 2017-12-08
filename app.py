@@ -1,6 +1,7 @@
 from flask import Flask
 import worker, os
 import main
+from pipeline import pipeline
 from connections import elastic, redis
 
 
@@ -23,10 +24,11 @@ def create_app():
 
     # Blueprints
     app.register_blueprint(main.blueprint, url_prefix = '/')
+    app.register_blueprint(pipeline.blueprint, url_prefix = '/pipeline')
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
     # os.system('python worker.py')
-    app.run(use_reloader=False)
+    app.run(use_reloader=True)
