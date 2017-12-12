@@ -60,7 +60,7 @@ class Elastic():
         :tweet: tweet to index
         """
 
-        self.es.index(index='project_'+tweet['project'], id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
+        self.es.index(index=tweet['project'], id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
         self.logger.debug('Tweet with id {} sent to project {}'.format(tweet['id'], tweet['project']))
 
 
