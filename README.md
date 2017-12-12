@@ -74,7 +74,7 @@ bash Anaconda3-5.0.1-Linux-x86_64.sh -b
 ```
 ### Pull repo
 ```
-cd && git clone git clone https://github.com/salathegroup/crowdbreaks-flask-api.git && cd crowdbreaks-flask-api/
+cd && git clone https://github.com/salathegroup/crowdbreaks-flask-api.git && cd crowdbreaks-flask-api/
 conda create --name flask-api
 source activate flask-api
 pip install -r requirements.txt
