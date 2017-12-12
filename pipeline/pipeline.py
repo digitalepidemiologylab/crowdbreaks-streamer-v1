@@ -1,4 +1,4 @@
-from flask import Flask, request, Blueprint, current_app, jsonify, Response
+from flask import Flask, request, Blueprint, jsonify, Response
 from flask import current_app as app
 from basic_auth import requires_auth_func
 import json
@@ -34,6 +34,7 @@ def status():
     cmd = "systemctl status logstash | grep Active | awk '{print $2}'"
     return subprocess.check_output([cmd], shell=True).decode().strip()
 
+
 @blueprint.route('/config', methods=['GET', 'POST'])
 def manage_config():
     if request.method == 'GET':
@@ -45,26 +46,27 @@ def manage_config():
             data = json.load(f)
         return jsonify(data)
     else:
-        config = request.get_json(force=True)
+        config = request.get_json()
         logger.debug("Received configuration: {}".format(config))
 
         if config is None:
             return Response("Configuration empty", status=400, mimetype='text/plain')
 
-        parser = TreetopParser(app.config)
+        parser = TreetopParser(config=app.config)
         required_keys = ['keywords', 'es_index_name', 'lang']
         for d in config:
+            logger.debug('Checking if fields are present in {}'.format(d))
             if not keys_are_present(required_keys, d):
                 logger.error("One or more of the following keywords are not present in the sent configuration: {}".format(required_keys))
                 return Response("Invalid configuration", status=400, mimetype='text/plain')
 
             file_data = parser.create_twitter_input(d['keywords'], d['es_index_name'], d['lang'])
-            f_name = d['slug'] + '.conf'
+            f_name = 'stream-' + d['slug'] + '.conf'
             path = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], f_name)
             with open(path, 'w') as f:
                 f.write(file_data)
 
-        return Response("Successfully updated", status=200, mimetype='text/plain')
+        return Response("Successfully updated configuration files.", status=200, mimetype='text/plain')
  
 
 # helpers
@@ -84,6 +86,7 @@ class TreetopParser():
 
 
     def create_twitter_input(self, keywords, project, lang):
+        print('Entering create_twitter')
         data = ""
         data += self.treetop_key_start('input')
         data += self.treetop_key_start('twitter', nesting_level=1)
