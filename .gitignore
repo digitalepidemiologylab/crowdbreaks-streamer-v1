@@ -19,3 +19,4 @@ instance/
 
 # stuff
 scripts/retrieve_sent_data.py
+pipeline/config
