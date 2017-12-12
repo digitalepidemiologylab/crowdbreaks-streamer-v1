@@ -36,33 +36,44 @@ def status():
 
 @blueprint.route('/config', methods=['GET', 'POST'])
 def manage_config():
-    path = os.path.join(app.root_path, 'pipeline', 'config', 'stream.conf')
-    if not os.path.exists(path):
-        return Response("Path to configuration invalid", status=500, mimetype='text/plain')
     if request.method == 'GET':
+        path = os.path.join(app.root_path, 'pipeline', 'config', 'stream.conf')
+        if not os.path.exists(path):
+            return Response("No configuration file present", status=500, mimetype='text/plain')
         # load config from file
         with open(path, 'r') as f:
             data = json.load(f)
         return jsonify(data)
     else:
-        config = request.get_json()
-        logger.debug(config)
-        with open(path, 'w') as f:
-            data = json.dump(config, f)
+        config = request.get_json(force=True)
+        logger.debug("Received configuration: {}".format(config))
+
+        if config is None:
+            return Response("Configuration empty", status=400, mimetype='text/plain')
 
         parser = TreetopParser(app.config)
-        for d in data:
+        required_keys = ['keywords', 'es_index_name', 'lang']
+        for d in config:
+            if not keys_are_present(required_keys, d):
+                logger.error("One or more of the following keywords are not present in the sent configuration: {}".format(required_keys))
+                return Response("Invalid configuration", status=400, mimetype='text/plain')
+
             file_data = parser.create_twitter_input(d['keywords'], d['es_index_name'], d['lang'])
-            print(file_data)
             f_name = d['slug'] + '.conf'
-            path = os.path.join(app.root_path, 'pipeline', 'config', f_name)
+            path = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], f_name)
             with open(path, 'w') as f:
                 f.write(file_data)
 
         return Response("Successfully updated", status=200, mimetype='text/plain')
  
 
-
+# helpers
+def keys_are_present(keys, obj):
+    """Test if all keys present"""
+    for k in keys:
+        if k not in obj:
+            return False
+    return True
 
 
 class TreetopParser():
@@ -74,19 +85,19 @@ class TreetopParser():
 
     def create_twitter_input(self, keywords, project, lang):
         data = ""
-        data += treetop_key_start('input')
-        data += treetop_key_start('twitter', nesting_level=1)
-        data += treetop_item('consumer_key', self.config['CONSUMER_KEY'], nesting_level=2)
-        data += treetop_item('consumer_secret', self.config['CONSUMER_SECRET'], nesting_level=2)
-        data += treetop_item('oauth_token', self.config['OAUTH_TOKEN'], nesting_level=2)
-        data += treetop_item('oauth_token_secret', self.config['OAUTH_TOKEN_SECRET'], nesting_level=2)
-        data += treetop_item('keywords', keywords, nesting_level=2)
-        data += treetop_item('languages', lang, nesting_level=2)
-        data += treetop_item('full_tweet', 'true', nesting_level=2, no_quotes=True)
-        data += treetop_item('ignore_retweets', 'true', nesting_level=2, no_quotes=True)
-        data += treetop_item('tags', [project, 'en'], nesting_level=2)
-        data += treetop_key_end(nesting_level=1)
-        data += treetop_key_end(nesting_level=0)
+        data += self.treetop_key_start('input')
+        data += self.treetop_key_start('twitter', nesting_level=1)
+        data += self.treetop_item('consumer_key', self.config['CONSUMER_KEY'], nesting_level=2)
+        data += self.treetop_item('consumer_secret', self.config['CONSUMER_SECRET'], nesting_level=2)
+        data += self.treetop_item('oauth_token', self.config['OAUTH_TOKEN'], nesting_level=2)
+        data += self.treetop_item('oauth_token_secret', self.config['OAUTH_TOKEN_SECRET'], nesting_level=2)
+        data += self.treetop_item('keywords', keywords, nesting_level=2)
+        data += self.treetop_item('languages', lang, nesting_level=2)
+        data += self.treetop_item('full_tweet', 'true', nesting_level=2, no_quotes=True)
+        data += self.treetop_item('ignore_retweets', 'true', nesting_level=2, no_quotes=True)
+        data += self.treetop_item('tags', [project, 'en'], nesting_level=2)
+        data += self.treetop_key_end(nesting_level=1)
+        data += self.treetop_key_end(nesting_level=0)
         return data
 
     def treetop_key_start(self, key, nesting_level=0):
