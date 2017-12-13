@@ -8,6 +8,7 @@ import json
 import pdb
 import subprocess
 import glob
+import ast
 
 blueprint = Blueprint('pipeline', __name__)
 logger = Logger.setup('pipeline')
@@ -43,27 +44,25 @@ def status():
 def manage_config():
     parser = TreetopParser(config=app.config)
     folder_path = app.config['LOGSTASH_CONFIG_PATH']
-    files = glob.glob(folder_path + '/stream_*.conf')
+    files = glob.glob(folder_path + '/stream-*.conf')
     if request.method == 'GET':
         if not os.path.exists(folder_path):
             return Response("Folder {} not present on remote host.".format(app.config['LOGSTASH_CONFIG_PATH']), status=500, mimetype='text/plain')
         # load config from file
         config_data = {}
         for f in files:
-            es_index_name = f.split('/')[-1].split('.conf')[0][7:]
+            slug = f.split('/')[-1].split('.conf')[0][7:]
             parsed_keys = parser.parse_twitter_input(f)
-            config_data[es_index_name] = parsed_keys
+            config_data[slug] = parsed_keys
         return jsonify(config_data)
     else:
         # parse input config
         config = request.get_json()
-        logger.debug("Received configuration: {}".format(config))
-
         if config is None:
             return Response("Configuration empty", status=400, mimetype='text/plain')
 
         # make sure new configuration is valid
-        required_keys = ['keywords', 'es_index_name', 'lang']
+        required_keys = ['keywords', 'es_index_name', 'lang', 'slug']
         for d in config:
             if not keys_are_present(required_keys, d):
                 logger.error("One or more of the following keywords are not present in the sent configuration: {}".format(required_keys))
@@ -79,7 +78,7 @@ def manage_config():
         # write new configs
         for d in config:
             file_data = parser.create_twitter_input(d['keywords'], d['es_index_name'], d['lang'])
-            f_name = 'stream_' + d['es_index_name'] + '.conf'
+            f_name = 'stream-' + d['slug'] + '.conf'
             path = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], f_name)
             with open(path, 'w') as f:
                 f.write(file_data)
@@ -96,7 +95,7 @@ def keys_are_present(keys, obj):
     return True
 
 def validate_data_types(obj):
-    validations = [['keywords', list], ['lang', list], ['es_index_name', str]]
+    validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str]]
     for key, data_type in validations:
         if not isinstance(obj[key], data_type):
             return False
@@ -145,7 +144,7 @@ class TreetopParser():
     def parse_twitter_input(self, f_name):
         """Parser for twitter input files"""
         res = {}
-        fields_to_parse = ['keywords', 'languages']
+        fields_to_parse = ['keywords', 'languages', 'tags']
         f = open(f_name, 'r')
         for l in f.readlines():
             if not '=>' in l:
@@ -155,6 +154,11 @@ class TreetopParser():
             val = val.strip()
 
             if key in fields_to_parse:
-                res[key] = val
+                # parse string to list
+                if key == 'tags':
+                    res['es_index_name'] = ast.literal_eval(val)[0]
+                else:
+                    res[key] = ast.literal_eval(val)
+
         f.close()
         return res
