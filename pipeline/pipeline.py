@@ -9,6 +9,7 @@ import pdb
 import subprocess
 import glob
 import ast
+import time
 
 blueprint = Blueprint('pipeline', __name__)
 logger = Logger.setup('pipeline')
@@ -24,20 +25,48 @@ def index():
 
 @blueprint.route('/start', methods=['GET'])
 def start():
-    pass
+    resp =  change_stream_status('start')
+    if resp == 'unavailable':
+        return Response("Currently not supported on your system.", status=400, mimetype='text/plain')
+    if test_for_status('active'):
+        return Response("Successfully started stream.", status=200, mimetype='text/plain')
+    else:
+        return Response("Starting stream was not successful ", status=400, mimetype='text/plain')
 
 
 @blueprint.route('/stop', methods=['GET'])
 def stop():
-    pass
+    resp =  change_stream_status('stop')
+    if resp == 'unavailable':
+        return Response("Currently not supported on your system.", status=400, mimetype='text/plain')
+    if test_for_status('inactive'):
+        return Response("Successfully stopped stream.", status=200, mimetype='text/plain')
+    else:
+        return Response("Stopping stream was not successful ", status=400, mimetype='text/plain')
+
 
 @blueprint.route('/status', methods=['GET'])
 def status():
+    resp =  change_stream_status('status')
+    return Response(resp, status=200, mimetype='text/plain')
+
+
+def change_stream_status(mode):
     # only available on linux machines
     if sys.platform in ['linux', 'linux2']:
-        cmd = "systemctl status logstash | grep Active | awk '{print $2}'"
+        cmd = "systemctl {} logstash | grep Active | awk '{print $2}'".format(mode)
         return subprocess.check_output([cmd], shell=True).decode().strip()
-    return 'unavailable'
+    else:
+        return 'unavailable'
+
+def test_for_status(status, num_trials=3):
+    # check num_trials times if successfully stopped
+    for i in xrange(num_trials):
+        resp =  change_stream_status('status')
+        if resp == status:
+            return True
+        time.sleep(0.1)
+    return False
 
 
 @blueprint.route('/config', methods=['GET', 'POST'])
