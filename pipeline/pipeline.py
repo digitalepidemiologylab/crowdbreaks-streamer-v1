@@ -25,9 +25,13 @@ def index():
 
 @blueprint.route('/start', methods=['GET'])
 def start():
-    resp =  change_stream_status('start')
-    if resp == 'unavailable':
+    status =  get_stream_status()
+    if status == 'unavailable':
         return Response("Currently not supported on your system.", status=400, mimetype='text/plain')
+    elif status == 'active':
+        return Response("Stream is already running.", status=400, mimetype='text/plain')
+
+    resp =  set_stream_status('start')
     if test_for_status('active'):
         return Response("Successfully started stream.", status=200, mimetype='text/plain')
     else:
@@ -36,33 +40,56 @@ def start():
 
 @blueprint.route('/stop', methods=['GET'])
 def stop():
-    resp =  change_stream_status('stop')
-    if resp == 'unavailable':
+    status =  get_stream_status()
+    if status == 'unavailable':
         return Response("Currently not supported on your system.", status=400, mimetype='text/plain')
+    elif status == 'inactive':
+        return Response("Stream has already stopped.", status=400, mimetype='text/plain')
+
+    resp =  set_stream_status('stop')
     if test_for_status('inactive'):
         return Response("Successfully stopped stream.", status=200, mimetype='text/plain')
     else:
         return Response("Stopping stream was not successful ", status=400, mimetype='text/plain')
 
 
+@blueprint.route('/restart', methods=['GET'])
+def restart():
+    status =  get_stream_status()
+    if status == 'unavailable':
+        return Response("Currently not supported on your system.", status=400, mimetype='text/plain')
+
+    resp =  set_stream_status('restart')
+    if test_for_status('active'):
+        return Response("Successfully restarted stream.", status=200, mimetype='text/plain')
+    else:
+        return Response("Restarting stream was not successful ", status=400, mimetype='text/plain')
+
+
 @blueprint.route('/status', methods=['GET'])
 def status():
-    resp =  change_stream_status('status')
+    resp =  get_stream_status()
     return Response(resp, status=200, mimetype='text/plain')
 
 
-def change_stream_status(mode):
+def set_stream_status(action):
+    cmd = "sudo systemctl {} logstash".format(action)
+    subprocess.call([cmd], shell=True)
+
+
+def get_stream_status():
     # only available on linux machines
     if sys.platform in ['linux', 'linux2']:
-        cmd = "systemctl {} logstash | grep Active | awk '{print $2}'".format(mode)
+        cmd = "systemctl status logstash | grep Active | awk '{print $2}'"
         return subprocess.check_output([cmd], shell=True).decode().strip()
     else:
         return 'unavailable'
 
+
 def test_for_status(status, num_trials=3):
-    # check num_trials times if successfully stopped
-    for i in xrange(num_trials):
-        resp =  change_stream_status('status')
+    # check num_trials times if stream has status
+    for i in range(num_trials):
+        resp =  get_stream_status()
         if resp == status:
             return True
         time.sleep(0.1)
@@ -112,7 +139,7 @@ def manage_config():
             with open(path, 'w') as f:
                 f.write(file_data)
 
-        return Response("Successfully updated configuration files.", status=200, mimetype='text/plain')
+        return Response("Successfully updated configuration files. Make sure to restart stream for changes to be active.", status=200, mimetype='text/plain')
  
 
 # helpers
