@@ -49,16 +49,17 @@ def get_vaccine_data(value):
     return json.dumps(res)
 
 
-@blueprint.route('sentiment/data/all', methods=['GET'])
-def get_all_data():
+@blueprint.route('data/all/<index_name>', methods=['GET'])
+def get_all_data(index_name):
     options = get_params(request.args)
     es = elastic.Elastic()
-    res = es.get_all_agg('project_vaccine_sentiment', **options)
+    res = es.get_all_agg(index_name, **options)
     return json.dumps(res)
 
 
 def get_params(args):
     options = {}
+    # dates must be of format 'yyyy-MM-dd H:m:s'
     options['interval'] = args.get('interval', 'month')
     options['start_date'] = args.get('start_date', 'now-20y')
     options['end_date'] = args.get('end_date', 'now')

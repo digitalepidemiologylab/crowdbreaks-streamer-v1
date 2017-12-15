@@ -139,7 +139,7 @@ class Elastic():
                 'aggs': {'sentiment': {'date_histogram': {
                     'field': 'created_at',
                     'interval': options.get('interval', 'month'),
-                    'format': 'yyyy-MM-dd' }}},
+                    'format': 'yyyy-MM-dd HH:mm:ss' }}},
                 'query': { 'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
@@ -149,7 +149,7 @@ class Elastic():
             return []
 
 
-    def parse_dates(self, *dates, input_format='%Y-%m-%d', output_format='%a %b %d %H:%M:%S %z %Y'):
+    def parse_dates(self, *dates, input_format='%Y-%m-%d %H:%M:%S', output_format='%a %b %d %H:%M:%S %z %Y'):
         """Used to parse for Twitter's unusual created_at date format"""
         res = []
         for d in dates:
