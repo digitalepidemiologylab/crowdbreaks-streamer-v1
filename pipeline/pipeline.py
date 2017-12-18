@@ -31,6 +31,9 @@ def start():
     elif status == 'active':
         return Response("Stream is already running.", status=400, mimetype='text/plain')
 
+    if not validate_output_config():
+        return Response("Invalid configuration", status=400, mimetype='text/plain')
+
     resp =  set_stream_status('start')
     if test_for_status('active'):
         return Response("Successfully started stream.", status=200, mimetype='text/plain')
@@ -58,6 +61,8 @@ def restart():
     status =  get_stream_status()
     if status == 'unavailable':
         return Response("Currently not supported on your system.", status=400, mimetype='text/plain')
+    if not validate_output_config():
+        return Response("Invalid configuration", status=400, mimetype='text/plain')
 
     resp =  set_stream_status('restart')
     if test_for_status('active'):
@@ -136,7 +141,6 @@ def manage_config():
         config_path = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], app.config['LOGSTASH_CONFIG_FILE'])
         if not os.path.isfile(config_path):
             output_file_data = parser.create_output_file()
-            print(output_file_data)
             try:
                 with open(config_path, 'w') as f:
                     f.write(output_file_data)
@@ -168,6 +172,11 @@ def validate_data_types(obj):
         if not isinstance(obj[key], data_type):
             return False
     return True
+
+def validate_output_config():
+    config_path = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], app.config['LOGSTASH_CONFIG_FILE'])
+    return os.path.isfile(config_path)
+
 
 
 class TreetopParser():
