@@ -100,10 +100,11 @@ def test_for_status(status, num_trials=3):
 def manage_config():
     parser = TreetopParser(config=app.config)
     folder_path = app.config['LOGSTASH_CONFIG_PATH']
-    files = glob.glob(folder_path + '/stream-*.conf')
+    files = glob.glob(os.path.join(folder_path, 'stream-*.conf'))
+    if not os.path.exists(folder_path):
+        return Response("Folder {} not present on remote host.".format(folder_path, status=500, mimetype='text/plain'))
+
     if request.method == 'GET':
-        if not os.path.exists(folder_path):
-            return Response("Folder {} not present on remote host.".format(app.config['LOGSTASH_CONFIG_PATH']), status=500, mimetype='text/plain')
         # load config from file
         config_data = {}
         for f in files:
@@ -130,6 +131,17 @@ def manage_config():
         # delete old configs
         for f in files:
             os.remove(f)
+
+        # write logstash filter/output config file, if not present
+        config_path = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], app.config['LOGSTASH_CONFIG_FILE'])
+        if not os.path.isfile(config_path):
+            output_file_data = parser.create_output_file()
+            print(output_file_data)
+            try:
+                with open(config_path, 'w') as f:
+                    f.write(output_file_data)
+            except:
+                return Response("An error occured while writing the file {}".format(config_path), status=400, mimetype='text/plain')
 
         # write new configs
         for d in config:
@@ -218,3 +230,35 @@ class TreetopParser():
 
         f.close()
         return res
+
+    def create_output_file(self):
+        data = ""
+
+        # filter
+        data += self.key_start('filter')
+        data += self.key_start('mutate', nesting_level=1)
+        data += self.item('add_field', '{ "project" => "%{tags[0]}"}', nesting_level=2, no_quotes=True)
+        data += self.item('remove_field', '["tags"]', nesting_level=2, no_quotes=True)
+        data += self.key_end(nesting_level=1)
+        data += self.key_end(nesting_level=0)
+
+        # redis output
+        data += self.key_start('output')
+        data += self.key_start('redis', nesting_level=1)
+        data += self.item('id', 'main-output-plugin', nesting_level=2)
+        data += self.item('host', self.config['REDIS_HOST'], nesting_level=2)
+        data += self.item('port', self.config['REDIS_PORT'], nesting_level=2)
+        data += self.item('db', '0', nesting_level=2, no_quotes=True)
+        data += self.item('data_type', 'channel', nesting_level=2, no_quotes=True)
+        data += self.item('codec', 'json', nesting_level=2)
+        data += self.item('password', self.config['REDIS_PW'], nesting_level=2)
+        data += self.item('key', '{}:{}'.format(self.config['REDIS_NAMESPACE'], self.config['REDIS_LOGSTASH_QUEUE_KEY']) , nesting_level=2)
+        data += self.key_end(nesting_level=1)
+
+        # redis output
+        data += self.key_start('stdout', nesting_level=1)
+        data += self.item('codec', 'line { format => "Collected tweet for project %{project}" }', nesting_level=2, no_quotes=True)
+        data += self.key_end(nesting_level=1)
+        data += self.key_end(nesting_level=0)
+        return data
+
