@@ -144,7 +144,8 @@ def manage_config():
             try:
                 with open(config_path, 'w') as f:
                     f.write(output_file_data)
-            except:
+            except Exception as e:
+                logger.error(e)
                 return Response("An error occured while writing the file {}".format(config_path), status=400, mimetype='text/plain')
 
         # write new configs
@@ -260,7 +261,8 @@ class TreetopParser():
         data += self.item('db', '0', nesting_level=2, no_quotes=True)
         data += self.item('data_type', 'channel', nesting_level=2, no_quotes=True)
         data += self.item('codec', 'json', nesting_level=2)
-        data += self.item('password', self.config['REDIS_PW'], nesting_level=2)
+        if 'REDIS_PW' in self.config:
+            data += self.item('password', self.config['REDIS_PW'], nesting_level=2)
         data += self.item('key', '{}:{}'.format(self.config['REDIS_NAMESPACE'], self.config['REDIS_LOGSTASH_QUEUE_KEY']) , nesting_level=2)
         data += self.key_end(nesting_level=1)
 

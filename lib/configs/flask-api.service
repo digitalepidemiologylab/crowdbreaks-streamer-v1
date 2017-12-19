@@ -6,7 +6,7 @@ After=network.target
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/crowdbreaks-flask-api
-ExecStart=/bin/bash -c 'source /home/ubuntu/anaconda3/bin/activate flask-api && /home/ubuntu/anaconda3/bin/gunicorn --workers 1 --bind unix:myapp.sock -m 007 wsgi:app'
+ExecStart=/bin/bash -c 'source /home/ubuntu/anaconda3/bin/activate flask-api && /home/ubuntu/anaconda3/bin/gunicorn --access-logfile logs/gunicorn_access.log --error-logfile logs/gunicorn_error.log --log-level info --workers 1 --bind unix:myapp.sock -m 007 wsgi:app'
 
 [Install]
 WantedBy=multi-user.target
