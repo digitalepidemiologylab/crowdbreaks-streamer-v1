@@ -1,6 +1,3 @@
-from app import app
-import os
+from app import create_app
 
-if __name__ == "__main__":
-    os.system('python worker.py')
-    # app.run()
+app = create_app()
