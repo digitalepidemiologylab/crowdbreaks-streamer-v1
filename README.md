@@ -26,8 +26,7 @@ Distances are the distances to the hyperplanes for all pairs of classes -1, 0, 1
 # Installation
 ## Development (MacOSX)
 ```
-git clone git@github.com:salathegroup/crowdbreaks-flask-api.git
-cd crowdbreaks-flask-api
+git clone git@github.com:salathegroup/crowdbreaks-flask-api.git && cd crowdbreaks-flask-api
 conda env create -f environment.yml
 source activate crowdbreaks-flask
 
