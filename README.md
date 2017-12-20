@@ -37,19 +37,13 @@ Set up configuration:
 
 * default keys: `config.py`
 
-* secret keys: `instance/config.conf`
+* secret keys: `instance/config.py`
 ```
 mkdir instance
 cp config.py.example ./instance/config.py
-# Set secret keys accordingly...
 ```
+Then set keys in `instance/config.py`.
 
-Other services:
-
-```
-brew install redis
-brew install logstash
-```
 For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-flask-api/wiki/Development)
 
 ## Production EC2 (Ubuntu 16.04)
