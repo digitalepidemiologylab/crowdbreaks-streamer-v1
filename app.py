@@ -2,7 +2,7 @@ from flask import Flask
 import worker, os
 import main
 from pipeline import pipeline
-from connections import elastic, redis
+from extensions import es, redis
 
 
 def create_app():
@@ -14,13 +14,9 @@ def create_app():
     # Secret configs
     app.config.from_pyfile('config.py')
 
-    # Connect to Redis (builds connection pool)
-    r = redis.Redis()
-    r.init()
-
-    # Connect to elasticsearch
-    es = elastic.Elastic()
-    es.init()
+    # Initialize extensions
+    redis.init()
+    es.init_app(app)
 
     # Blueprints
     app.register_blueprint(main.blueprint, url_prefix = '/')

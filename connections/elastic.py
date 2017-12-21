@@ -4,54 +4,68 @@ import os
 import instance.config
 from logger import Logger
 from datetime import datetime, timezone
+from flask import current_app
+from flask import _app_ctx_stack as stack
+import pdb
 
-LOGGER = None
 ES = None
 
 class Elastic():
     """Interaction with Elasticsearch"""
 
-    def __init__(self):
-        self.logger = LOGGER
-        self.es = ES
+    def __init__(self, app=None, logger=None):
+        self.logger = logger
+        self.app = app
+        self.connection = None # only used outside of application context
+        self.config = None
+        if self.logger is None:
+            self.logger = Logger.setup('ES', use_elasticsearch_logger=False)
+        if app is not None:
+            self.init_app(app)
 
-    def init(self, es=None):
-        global ES
-        # avoid running this multiple times
-        if ES is not None:
-            return
-
-        # initialize logger
-        global LOGGER
-        LOGGER = Logger.setup('ES', use_elasticsearch_logger=False)
-        self.logger = LOGGER
-
-        # connect
-        self._connect(es=es)
-        self.es = ES
-
-        # test connection
-        if self.test_connection():
-            self.logger.info('Successfully connected to ElasticSearch host {}'.format(instance.config.ELASTICSEARCH_HOST) )
+    def init_app(self, app):
+        if hasattr(app, 'teardown_appcontext'):
+            app.teardown_appcontext(self.teardown)
         else:
-            self.logger.error('FAILURE: Connection to ElasticSearch host {} not successful'.format(instance.config.ELASTICSEARCH_HOST))
+            app.teardown_request(self.teardown)
 
-    def _connect(self, es=None):
-        global ES
-        if es is not None:
-            ES = es
-            return
+    def teardown(self, exception):
+        ctx = stack.top
+        if hasattr(ctx, 'elasticsearch'):
+            ctx.elasticsearch = None
 
-        if 'ELASTICSEARCH_PASSWORD' in instance.config.__dict__:
-            ES = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)], 
-                    http_auth=(instance.config.ELASTICSEARCH_USERNAME, instance.config.ELASTICSEARCH_PASSWORD))
+    @property
+    def es(self):
+        ctx = stack.top
+        if ctx is not None:
+            if not hasattr(ctx, 'elasticsearch'):
+                ctx.elasticsearch = self._connect()
+            return ctx.elasticsearch
         else:
-            ES = elasticsearch.Elasticsearch(["{}:{}".format(instance.config.ELASTICSEARCH_HOST, instance.config.ELASTICSEARCH_PORT)])
-        return
+            # Running outside of application context (e.g. by using a script)
+            if self.connection is None:
+                self.connection = self._connect()
+            return self.connection
+
+    def _connect(self):
+        try:
+            self.config = current_app.config
+        except RuntimeError:
+            self.config = instance.config.__dict__
+
+        http_auth = None
+        if 'ELASTICSEARCH_PASSWORD' and 'ELASTICSEARCH_USERNAME' in self.config:
+            http_auth=(self.config['ELASTICSEARCH_USERNAME'], self.config['ELASTICSEARCH_PASSWORD'])
+        return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])], http_auth=http_auth)
 
     def test_connection(self):
         """test_connection"""
-        return self.es.ping()
+        test = self.es.ping() 
+        if test:
+            self.logger.info('Successfully connected to Elasticsearch host {}'.format(self.config['ELASTICSEARCH_HOST']))
+        else:
+            self.logger.error('Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
+        return test
 
 
     def index_tweet(self, tweet):
@@ -59,7 +73,6 @@ class Elastic():
 
         :tweet: tweet to index
         """
-
         self.es.index(index=tweet['project'], id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
         self.logger.debug('Tweet with id {} sent to project {}'.format(tweet['id'], tweet['project']))
 
@@ -68,7 +81,6 @@ class Elastic():
         """Put template to ES
         By default uses <project_root>/elastic_search/templates/project_template.json
         """
-
         # read template file
         template_path = os.path.join(os.path.dirname(__file__), template_sub_folder, filename)
         with open(template_path, 'r') as f:
@@ -97,6 +109,9 @@ class Elastic():
             return
         res = self.es.indices.delete(index_name)
         self.logger.info("Index {} successfully deleted".format(index_name))
+
+    def stats(self):
+        return self.es.indices.stats()
 
     def delete_field_from_doc(self, index, doc_type, id, field, field_path=None):
         if field_path is None:
