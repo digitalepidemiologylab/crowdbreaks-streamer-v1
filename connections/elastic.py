@@ -8,8 +8,6 @@ from flask import current_app
 from flask import _app_ctx_stack as stack
 import pdb
 
-ES = None
-
 class Elastic():
     """Interaction with Elasticsearch"""
 

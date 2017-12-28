@@ -16,7 +16,7 @@ logger = Logger.setup('pipeline')
 
 @blueprint.before_request
 def require_auth_all():
-    requires_auth_func()
+    return requires_auth_func()
 
 @blueprint.route('/', methods=['GET'])
 def index():

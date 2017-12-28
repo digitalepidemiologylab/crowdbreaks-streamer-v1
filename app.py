@@ -2,6 +2,7 @@ from flask import Flask
 import worker, os
 import main
 from pipeline import pipeline
+from es_interface import es_interface
 from extensions import es, redis
 
 
@@ -21,6 +22,7 @@ def create_app():
     # Blueprints
     app.register_blueprint(main.blueprint, url_prefix = '/')
     app.register_blueprint(pipeline.blueprint, url_prefix = '/pipeline')
+    app.register_blueprint(es_interface.blueprint, url_prefix = '/elasticsearch')
 
     return app
 

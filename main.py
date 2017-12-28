@@ -61,4 +61,3 @@ def get_params(args):
     options['start_date'] = args.get('start_date', 'now-20y')
     options['end_date'] = args.get('end_date', 'now')
     return options
-
