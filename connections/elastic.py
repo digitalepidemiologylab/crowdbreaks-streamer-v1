@@ -96,9 +96,10 @@ class Elastic():
         existing_indices = list(self.es.indices.get_alias('*').keys())
         if index_name in existing_indices:
             self.logger.warning("Aborted. Index {} already exists. Delete index first.".format(index_name))
-            return
+            return False
         res = self.es.indices.create(index_name)
         self.logger.info("Index {} successfully created".format(index_name))
+        return True
 
     def delete_index(self, index_name):
         existing_indices = list(self.es.indices.get_alias('*').keys())
@@ -108,8 +109,8 @@ class Elastic():
         res = self.es.indices.delete(index_name)
         self.logger.info("Index {} successfully deleted".format(index_name))
 
-    def stats(self):
-        return self.es.indices.stats()
+    def indices_stats(self):
+        return self.es.indices.stats(filter_path=['indices'])
 
     def delete_field_from_doc(self, index, doc_type, id, field, field_path=None):
         if field_path is None:
