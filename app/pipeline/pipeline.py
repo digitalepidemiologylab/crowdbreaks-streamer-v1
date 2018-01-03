@@ -1,8 +1,7 @@
 from flask import Flask, request, Blueprint, jsonify, Response
 from flask import current_app as app
-from basic_auth import requires_auth_func
+from app.basic_auth import requires_auth_func
 import json
-from logger import Logger
 import os, sys
 import json
 import pdb
@@ -10,9 +9,10 @@ import subprocess
 import glob
 import ast
 import time
+import logging
 
 blueprint = Blueprint('pipeline', __name__)
-logger = Logger.setup('pipeline')
+logger = logging.getLogger('pipeline')
 
 @blueprint.before_request
 def require_auth_all():

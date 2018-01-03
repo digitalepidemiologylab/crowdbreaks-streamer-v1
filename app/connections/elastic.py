@@ -1,12 +1,11 @@
 import elasticsearch
 import json
 import os
-import instance.config
-from logger import Logger
+import logging
 from datetime import datetime, timezone
 from flask import current_app
 from flask import _app_ctx_stack as stack
-import pdb
+
 
 class Elastic():
     """Interaction with Elasticsearch"""
@@ -17,7 +16,9 @@ class Elastic():
         self.connection = None # only used outside of application context
         self.config = None
         if self.logger is None:
-            self.logger = Logger.setup('ES', use_elasticsearch_logger=False)
+            # self.logger = Logger.setup('ES')
+            self.logger = logging.getLogger('ES')
+            
         if app is not None:
             self.init_app(app)
 
@@ -49,12 +50,19 @@ class Elastic():
         try:
             self.config = current_app.config
         except RuntimeError:
-            self.config = instance.config.__dict__
+            keys = ['ELASTICSEARCH_HOST', 'ELASTICSEARCH_PORT', 'ELASTICSEARCH_USERNAME', 'ELASTICSEARCH_PASSWORD']
+            if self.config is None:
+                self.config = {}
+            for k in keys:
+                if k not in self.config:
+                    self.config[k] = os.environ.get(k, None)
 
-        http_auth = None
-        if 'ELASTICSEARCH_PASSWORD' and 'ELASTICSEARCH_USERNAME' in self.config:
-            http_auth=(self.config['ELASTICSEARCH_USERNAME'], self.config['ELASTICSEARCH_PASSWORD'])
+        http_auth = (self.config.get('ELASTICSEARCH_USERNAME', None), self.config.get('ELASTICSEARCH_PASSWORD', None))
+
+        if http_auth[0] is None or http_auth[1] is None:
+            return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
         return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])], http_auth=http_auth)
+
 
     def test_connection(self):
         """test_connection"""

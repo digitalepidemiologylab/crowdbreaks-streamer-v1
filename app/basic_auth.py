@@ -1,14 +1,13 @@
 from flask import Response, request
+from flask import current_app as app
 from functools import wraps
-import instance.config
-
 
 
 def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
-    return username == instance.config.BASIC_AUTH_USERNAME and password == instance.config.BASIC_AUTH_PASSWORD
+    return username == app.config['BASIC_AUTH_USERNAME'] and password == app.config['BASIC_AUTH_PASSWORD']
 
 def authenticate():
     """Sends a 401 response that enables basic auth"""

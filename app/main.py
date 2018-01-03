@@ -1,18 +1,17 @@
 from flask import Flask, request, Blueprint
-from basic_auth import requires_auth_func
+from app.basic_auth import requires_auth_func
 import json
-from logger import Logger
-from connections import redis
-from worker import vaccine_sentiment_single_request
-from extensions import es, redis
+from worker.worker import vaccine_sentiment_single_request
+from app.extensions import es, redis
+import logging
 
 
 blueprint = Blueprint('main', __name__)
-logger = Logger.setup('app')
+logger = logging.getLogger('Main')
 
 @blueprint.before_request
 def require_auth_all():
-    requires_auth_func()
+    return requires_auth_func()
 
 
 @blueprint.route('/', methods=['GET'])

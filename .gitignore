@@ -1,5 +1,5 @@
 # secret keys
-instance/
+secrets.sh
 
 # OS stuff
 .DS_Store

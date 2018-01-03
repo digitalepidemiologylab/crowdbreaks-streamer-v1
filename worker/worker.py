@@ -1,17 +1,16 @@
 from multiprocessing import Pool, current_process
-# import redis
 import json
 import config
-from process_tweet import ProcessTweet
+from worker.process_tweet import ProcessTweet
 import time
 from copy import copy
 import pdb
-from logger import Logger
+import logging
 import pickle as pkl
 import os, sys
 import numpy as np
 import uuid
-from connections import redis, elastic
+from app.connections import redis, elastic
 
 def process_from_logstash(tweet):
     redis_conn = redis.Redis()
@@ -176,7 +175,7 @@ if __name__ == '__main__':
     PARALLEL = False
 
     # set up logging
-    logger = Logger.setup('worker', filename='worker.log')
+    logger = logging.getLogger('worker')
     logger.info('Hello from worker logger!')
 
     # Check for classifier file

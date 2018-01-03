@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request, Response
-from basic_auth import requires_auth_func
-from logger import Logger
-from extensions import es
+from app.basic_auth import requires_auth_func
+from app.extensions import es
+import logging
 
 blueprint = Blueprint('es_interface', __name__)
-logger = Logger.setup('ES interface')
+logger = logging.getLogger('ES interface')
 
 
 @blueprint.before_request
