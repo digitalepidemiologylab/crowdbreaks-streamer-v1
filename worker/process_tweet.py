@@ -2,9 +2,10 @@ import pdb
 import math
 from nltk import TweetTokenizer
 import re
+import logging
 
 class ProcessTweet(object):
-    """Wrapper class for processing Tweets """
+    """Wrapper class for functions to process/modify tweets"""
 
     # Fields to extract from tweet object
     KEEP_FIELDS = [ 'id', 
@@ -43,50 +44,54 @@ class ProcessTweet(object):
             ]
 
 
-    def __init__(self):
-        pass
+    def __init__(self, tweet=None):
+        self.tweet = tweet            # initial tweet
+        self.processed_tweet = None   # processed tweet
+        self.logger = logging.getLogger(__name__)
 
-    @classmethod
-    def strip(cls, tweet):
+
+    def strip(self):
         """Strip fields before sending to ElasticSearch 
-
-        :tweet: Tweet object
-        :returns: Stripped tweet
         """
 
         tweet_stripped = {}
-        for key in cls.KEEP_FIELDS:
+        if self.processed_tweet is not None:
+            tweet_stripped = self.processed_tweet
+
+        for key in self.KEEP_FIELDS:
             if isinstance(key, dict):
                 nested_key, nested_values = list(key.items())[0]
-                if nested_key in tweet and tweet[nested_key] is not None:
+                if nested_key in self.tweet and self.tweet[nested_key] is not None:
                     for val in nested_values:
-                        if val in tweet[nested_key] and tweet[nested_key][val] is not None:
+                        if val in self.tweet[nested_key] and self.tweet[nested_key][val] is not None:
                             try:
-                                tweet_stripped[nested_key][val] = tweet[nested_key].get(val, None)
+                                tweet_stripped[nested_key][val] = self.tweet[nested_key].get(val, None)
                             except KeyError:
                                 tweet_stripped[nested_key] = {}
-                                tweet_stripped[nested_key][val] = tweet[nested_key].get(val, None)
+                                tweet_stripped[nested_key][val] = self.tweet[nested_key].get(val, None)
             else:
-                tweet_stripped[key] = tweet.get(key, None)
+                tweet_stripped[key] = self.tweet.get(key, None)
 
-        return tweet_stripped
+        self.processed_tweet = tweet_stripped
 
-    @classmethod
-    def compute_average_location(cls, tweet, target_tweet):
+
+    def compute_average_location(self):
         """Compute average location from bounding box
-
-        :tweet: Tweet object with place field
-        :target_tweet: (Stripped) tweet object to write into
-        :returns: Modified target_tweet
         """
+        if self.tweet is None:
+            return None
 
-        coords = tweet.get('place', {}).get('bounding_box', {}).get('coordinates', None)
+        coords = self.tweet.get('place', {}).get('bounding_box', {}).get('coordinates', None)
 
         if coords is None:
-            return target_tweet
+            return
 
-        av_x = av_y = av_z = 0
+        parsed_coords = []
         for lon_d, lat_d in coords[0]:
+            parsed_coords.append([float(lon_d), float(lat_d)])
+
+        av_x = av_y = av_z = 0.0
+        for lon_d, lat_d in parsed_coords:
             # convert to radian
             lon = lon_d * math.pi / 180.0
             lat = lat_d * math.pi / 180.0
@@ -97,7 +102,7 @@ class ProcessTweet(object):
             av_z += math.sin(lat)
 
         # normalize
-        num_points = len(coords[0])
+        num_points = len(parsed_coords)
         av_x /= num_points
         av_y /= num_points
         av_z /= num_points
@@ -107,48 +112,61 @@ class ProcessTweet(object):
         av_lon = (180 / math.pi) * math.atan2(av_y, av_x)
 
         # calculate approximate radius if polygon is approximated to be a circle (for better estimate, calculate area)
-        max_lat = max([lat for lon, lat in coords[0]])
-        max_lon = max([lon for lon, lat in coords[0]])
+        max_lat = max([lat for lon, lat in parsed_coords])
+        max_lon = max([lon for lon, lat in parsed_coords])
         radius = (abs(av_lon - max_lon) + abs(av_lat - max_lat))/2
 
         # store in target object
-        target_tweet['place']['average_location'] = [av_lon, av_lat]
-        target_tweet['place']['location_radius'] = radius
+        if 'place' not in self.processed_tweet:
+            self.processed_tweet['place'] = {}
+        self.processed_tweet['place']['average_location'] = [av_lon, av_lat]
+        self.processed_tweet['place']['location_radius'] = radius
+        return
 
-        return target_tweet
+    def tokenize(self, text=None, discard_word_length=2):
+        """Tokenize text for sentence embedding
 
-    @classmethod
-    def tokenize(self, tweet, discard_word_length=2):
-        """Prepare tweets for sentence embeddings
-
-        :tweet: input tweet text
+        :text: input text
         :discard_word_length: Discard tweets with less words than this
         :returns: Same tweet with text_tokenized field. Returns None if tweet is invalid.
 
         """
 
+        if text is None:
+            if 'text' in self.tweet:
+                text = self.tweet['text']
+            else:
+                return None
+
         tknzr = TweetTokenizer()
 
         # Replace unnecessary spacings/EOL chars
         try:
-            tweet = tweet.replace('\n', '').replace('\r', '').strip()
+            text = text.replace('\n', '').replace('\r', '').strip()
         except:
             return None
-        tweet = tknzr.tokenize(tweet)
+        text = tknzr.tokenize(text)
 
-        # throw away anything below 2 words
-        if not  discard_word_length < len(tweet) < 110:
+        # throw away anything below certain words length
+        if not discard_word_length < len(text) < 110:
             return None
-        tweet = ' '.join(tweet)
-        tweet = tweet.lower()
+        text = ' '.join(text)
+        text = text.lower()
 
         # replace urls and mentions
-        tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>',tweet)
-        tweet = re.sub('(\@[^\s]+)','<user>',tweet)
+        text = re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>',text)
+        text = re.sub('(\@[^\s]+)','<user>',text)
         try:
-            tweet = tweet.decode('unicode_escape').encode('ascii','ignore')
+            text = text.decode('unicode_escape').encode('ascii','ignore')
         except:
             pass
-        filter(lambda word: ' ' not in word, tweet)
-        return tweet
+        filter(lambda word: ' ' not in word, text)
+        return text.strip()
 
+    def get_processed_tweet(self):
+        if self.tweet is None:
+            return None
+        if self.processed_tweet is None:
+            return self.tweet
+        else:
+            return self.processed_tweet
