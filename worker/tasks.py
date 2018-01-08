@@ -12,7 +12,7 @@ import json
 logger = get_task_logger(__name__)
 
 
-@celery.task(name='cb.process_tweet')
+@celery.task(name='cb.process_tweet', ignore_result=True)
 def process_tweet(tweet):
     """Process incoming tweets (currently task is triggered by logstash)
 
@@ -44,8 +44,6 @@ def process_tweet(tweet):
         processed_tweet = pt.get_processed_tweet() 
         logger.debug('Pushing tweet from project {} (id: {}) to submit queue'.format(processed_tweet['project'], processed_tweet['id']))
         index_tweet_es(processed_tweet)
-
-    return True
 
 
 def index_tweet_es(tweet):

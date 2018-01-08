@@ -50,6 +50,12 @@ LOGGING_CONFIG = {
                 },
             'worker': {
                 'level': logging.DEBUG
+                },
+            'PriorityQueue': {
+                'level': logging.DEBUG
+                },
+            'PrioritySet': {
+                'level': logging.DEBUG
                 }
             },
         'root': {

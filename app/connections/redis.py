@@ -53,5 +53,3 @@ class Redis():
 
     def rpush(self, q, obj):
         self.redis_conn.rpush(q, obj)
-
-
