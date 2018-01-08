@@ -8,6 +8,10 @@ secrets.sh
 *.pyc
 *.pyo
 
+# Pytest
+tests/.cache
+
+
 # Vim
 **/*.swp
 **/*.swo
