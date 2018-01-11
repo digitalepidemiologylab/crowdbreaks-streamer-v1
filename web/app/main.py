@@ -1,9 +1,10 @@
 from flask import Flask, request, Blueprint
 from app.basic_auth import requires_auth_func
 import json
-from worker.worker import vaccine_sentiment_single_request
+# from worker.worker import vaccine_sentiment_single_request
 from app.extensions import es, redis
 import logging
+from app.worker.priority_queue import TweetIdQueue
 
 
 blueprint = Blueprint('main', __name__)
@@ -29,15 +30,27 @@ def test_es():
     return json.dumps(es.test_connection())
 
 
-@blueprint.route('sentiment/vaccine', methods=['POST'])
-def get_vaccine_sentiment():
+@blueprint.route('tweet/<project>', methods=['GET'])
+def get_new_tweet(project):
     data = request.get_json()
-    logger.debug('Incoing request with data {}'.format(data))
-    label, distances = vaccine_sentiment_single_request(data, logger)
-    res = {'label': label, 'distances': distances}
-    logger.debug('Result: {}'.format(label))
-    return json.dumps(res)
+    user_id = None
+    if data is not None and 'user_id' in data:
+        user_id = data['user_id']
+        
+    tid = TweetIdQueue(project)
+    tweet_id = tid.get(user_id=user_id)
+    return tweet_id
 
+
+# @blueprint.route('sentiment/vaccine', methods=['POST'])
+# def get_vaccine_sentiment():
+#     data = request.get_json()
+#     logger.debug('Incoing request with data {}'.format(data))
+#     label, distances = vaccine_sentiment_single_request(data, logger)
+#     res = {'label': label, 'distances': distances}
+#     logger.debug('Result: {}'.format(label))
+#     return json.dumps(res)
+#
 
 @blueprint.route('sentiment/data/<value>', methods=['GET'])
 def get_vaccine_data(value):

@@ -5,7 +5,6 @@ from app.es_interface import es_interface
 from app.extensions import es, redis
 import os
 import warnings
-from config.log_config import LOGGING_CONFIG
 import logging.config
 
 
@@ -15,7 +14,7 @@ def create_app(config=settings.ProdConfig):
     # Configs
     app.config.from_object(config)
     validate_configs()
-    logging.config.dictConfig(LOGGING_CONFIG)
+    logging.config.fileConfig('logging.conf')
 
     # Initialize extensions
     redis.init_app(app)

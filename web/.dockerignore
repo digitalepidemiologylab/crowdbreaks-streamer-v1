@@ -2,11 +2,12 @@
 secrets.list
 
 # OS stuff
-.DS_Store
+**/.DS_Store
 
 # Python
-*.pyc
-*.pyo
+**/*.pyc
+**/*.pyo
+**/__pycache__
 
 # Pytest
 **/.cache
@@ -19,6 +20,3 @@ secrets.list
 
 # logs
 **/*.log
-
-# stuff
-scripts/retrieve_sent_data.py

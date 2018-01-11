@@ -1,4 +1,9 @@
 import logging
+import os
+
+# slightly hackish but should work
+if not os.path.exists('logs'):
+    os.makedirs('logs')
 
 LOGGING_CONFIG = {
         'version': 1,
@@ -56,7 +61,13 @@ LOGGING_CONFIG = {
                 },
             'PrioritySet': {
                 'level': logging.DEBUG
-                }
+                },
+            'gunicorn.access': {
+                'level': logging.DEBUG
+                },
+            'gunicorn.error': {
+                'level': logging.DEBUG
+                },
             },
         'root': {
             'handlers': ['console', 'error_file_handler', 'all_logs_file_handler'],

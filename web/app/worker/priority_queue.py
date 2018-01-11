@@ -2,7 +2,7 @@ import redis
 import pdb
 import os
 import logging.config
-from config.log_config import LOGGING_CONFIG
+# from app.config.log_config import LOGGING_CONFIG
 from random import randint
 
 
@@ -18,7 +18,8 @@ class Redis():
         return self._get_connection()
 
     def _get_connection(self):
-        return redis.StrictRedis(host=self.host, port=self.port, db=self.db)
+        # return redis.StrictRedis(host=self.host, port=self.port, db=self.db)
+        return redis.StrictRedis(host=self.host, port=self.port)
 
     def test_connection(self):
         test = self._r.ping()
@@ -32,13 +33,14 @@ class Redis():
 class PriorityQueue(Redis):
     """For each project keep a priority queue of tweet IDs in Redis to quickly get a new tweet to classify"""
 
-    MAX_QUEUE_LENGTH = 10     # maximum length of queue 
     MAX_ELEMENT_PRINT = 100  # maximum number of items to print when printing an instance of this class
+    MAX_QUEUE_LENGTH = 1000
 
-    def __init__(self, project, namespace='cb', key_namespace='pq', max_queue_length=100):
+    def __init__(self, project, namespace='cb', key_namespace='pq', max_queue_length=1000, **args):
         super().__init__(self)
         # logging
-        logging.config.dictConfig(LOGGING_CONFIG)
+        if os.path.exists('logging.conf'):
+            logging.config.fileConfig('logging.conf')
         self.logger = logging.getLogger('PriorityQueue')
 
         self.project = project
@@ -142,21 +144,30 @@ class PriorityQueue(Redis):
 class TweetIdQueue:
     """Handles Tweet IDs in a priority queue and keeps a record of which user classified what tweet as a set in Redis."""
 
-    PRIORITY_THRESHOLD = 3    # Number of times a tweet will get classified before being removed from the queue
+    def __init__(self, project, namespace='cb', logger=None, priority_threshold=3, **kwargs):
+        """__init__
 
-    def __init__(self, project, namespace='cb', logger=None, priority_threshold=3):
+        :param project: Unique project name (used to name queue)
+        :param namespace: Redis key namespace
+        :param logger: Logger instance
+        :param priority_threshold: Number of times tweet should be labelled before being removed from queue
+        """
         # logging
-        logging.config.dictConfig(LOGGING_CONFIG)
+        if os.path.exists('logging.conf'):
+            logging.config.fileConfig('logging.conf')
         if logger is None:
             self.logger = logging.getLogger('PriorityQueue')
         else:
             self.logger = logger
 
         self.project = project
-        self.pq = PriorityQueue(project, namespace=namespace)
-        self.rset = RedisSet(project, namespace=namespace)
-        self.PRIORITY_THRESHOLD = priority_threshold
+        self.pq = PriorityQueue(project, namespace=namespace, max_queue_length=kwargs.get('max_queue_length', 1000))
+        self.rset = RedisSet(project, namespace=namespace, **kwargs)
+        self.priority_threshold = priority_threshold
 
+    def add(self, tweet_id, priority=0):
+        """Simply adds a new tweet_id to its priority queue"""
+        self.pq.add(tweet_id, priority=priority)
 
     def get(self, user_id=None):
         """Get new tweet to classify for user
@@ -203,7 +214,7 @@ class TweetIdQueue:
 
         # remove from pqueue if below certain threshold
         score = self.pq.get_score(tweet_id)
-        if score >= self.PRIORITY_THRESHOLD:
+        if score >= self.priority_threshold:
             self.pq.remove(tweet_id)
             self.rset.remove(tweet_id)
             self.logger.debug('Priority threshold reached, getting rid of tweet_id {}'.format(tweet_id))
@@ -219,10 +230,11 @@ class TweetIdQueue:
 
 
 class RedisSet(Redis):
-    def __init__(self, project, namespace='cb', key_namespace='tweet_id'):
+    def __init__(self, project, namespace='cb', key_namespace='tweet_id', **args):
         super().__init__(self)
         # logging
-        logging.config.dictConfig(LOGGING_CONFIG)
+        if os.path.exists('logging.conf'):
+            logging.config.fileConfig('logging.conf')
         self.logger = logging.getLogger('RedisSet')
 
         self.project = project

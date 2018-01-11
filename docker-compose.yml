@@ -1,0 +1,7 @@
+# Base docker compose
+version: '3'
+services:
+  web:
+    image: cb-flask:production
+  redis:
+    image: "redis:alpine"

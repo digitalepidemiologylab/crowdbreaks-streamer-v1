@@ -1,5 +1,6 @@
 import redis
 import logging
+import os
 from flask import current_app as app
 
 POOL = None
@@ -47,6 +48,7 @@ class Redis():
 
     def _get_connection(self):
         return redis.StrictRedis(connection_pool=self.pool)
+        # return redis.StrictRedis(host=self.host, port=self.port)
 
     def blpop(self, q_list):
         return self.redis_conn.blpop(q_list)

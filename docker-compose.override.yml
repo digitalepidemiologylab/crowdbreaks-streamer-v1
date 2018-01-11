@@ -1,0 +1,16 @@
+# Development config
+version: '3'
+services:
+  web:
+    image: cb-flask:dev
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - './web/:/home/app'
+    env_file:
+      - secrets.list
+  redis:
+    image: "redis:alpine"

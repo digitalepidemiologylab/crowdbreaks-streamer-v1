@@ -1,0 +1,13 @@
+# Production config
+version: '3'
+services:
+  web:
+    image: cb-flask:1
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.production
+    ports:
+      - "5000:5000"
+    env_file:
+      - secrets.list

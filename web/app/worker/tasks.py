@@ -4,6 +4,7 @@ import time
 import logging
 from copy import copy
 from worker.process_tweet import ProcessTweet
+from worker.priority_queue import TweetIdQueue
 from app.connections import elastic
 import json
 
@@ -16,7 +17,7 @@ logger = get_task_logger(__name__)
 def process_tweet(tweet):
     """Process incoming tweets (currently task is triggered by logstash)
 
-    :param tweet:
+    :param tweet: JSON tweet object
     """
     # Todo: incorporate filter function
 
@@ -29,6 +30,10 @@ def process_tweet(tweet):
         pt.compute_average_location()
         logger.debug('Computed average location {} and average radius {}'.format(pt.processed_tweet['place']['average_location'], 
             pt.processed_tweet['place']['location_radius']))
+
+    # Add tweet into redis-based priority queue (for users to classify)
+    tid = TweetIdQueue(pt.tweet['project'], priority_threshold=3)
+    tid.add(pt.tweet['id'], priority=0)
 
     # If tweet belongs to vaccine sentiment project, tokenize and classify
     if pt.tweet['project'] == 'project_vaccine_sentiment':

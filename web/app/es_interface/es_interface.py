@@ -4,7 +4,7 @@ from app.extensions import es
 import logging
 
 blueprint = Blueprint('es_interface', __name__)
-logger = logging.getLogger('ES interface')
+logger = logging.getLogger('ES_interface')
 
 
 @blueprint.before_request
