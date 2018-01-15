@@ -25,6 +25,9 @@ def create_app(config=settings.ProdConfig):
     app.register_blueprint(pipeline.blueprint, url_prefix = '/pipeline')
     app.register_blueprint(es_interface.blueprint, url_prefix = '/elasticsearch')
 
+    # Pause logstash container if running
+    stop_logstash(app)
+
     return app
 
 
@@ -34,4 +37,16 @@ def validate_configs():
     for r in required_envs:
         if r not in os.environ:
             warnings.warn('Environment variable "{}" needs to be set.'.format(r), RuntimeWarning)
+
+def stop_logstash(app):
+    d = pipeline.DockerWrapper()
+    try:
+        d.pause_container(app.config['LOGSTASH_DOCKER_CONTAINER_NAME'])
+    except Exception as e:
+        app.logger.warning('Something went wrong when trying to pause the logstash container')
+        app.logger.warning(e)
+    else:
+        app.logger.info('Successfully paused logstash container')
+
+
 

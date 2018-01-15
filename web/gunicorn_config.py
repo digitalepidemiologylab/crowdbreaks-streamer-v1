@@ -15,7 +15,8 @@
 #       Must be a positive integer. Generally set in the 64-2048
 #       range.
 #
-bind = '0.0.0.0:5000'
+bind = '0.0.0.0:8000'
+#bind = 'unix:/tmp/gunicorn.sock'
 backlog = 2048
 
 # --------------------------------------------------------------

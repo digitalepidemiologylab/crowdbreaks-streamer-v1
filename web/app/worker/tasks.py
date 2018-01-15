@@ -1,10 +1,10 @@
-from worker.celery_init import celery
+from app.worker.celery_init import celery
 from celery.utils.log import get_task_logger
 import time
 import logging
 from copy import copy
-from worker.process_tweet import ProcessTweet
-from worker.priority_queue import TweetIdQueue
+from app.worker.process_tweet import ProcessTweet
+from app.worker.priority_queue import TweetIdQueue
 from app.connections import elastic
 import json
 

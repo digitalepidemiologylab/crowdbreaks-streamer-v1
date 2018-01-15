@@ -22,3 +22,8 @@ secrets.list
 
 # stuff
 scripts/retrieve_sent_data.py
+
+# logstash configs
+logstash/config/input*.conf
+logstash/config/output.conf
+

@@ -7,7 +7,7 @@ RUN pip3 install -r requirements.txt
 
 COPY . /home/app
 VOLUME ["/home/app"]
-EXPOSE 5000
+EXPOSE 8000
 
 # Production
 # CMD ["gunicorn", "-c", "gunicorn_config.py", "--log-config", "logging.conf", "wsgi:app"]

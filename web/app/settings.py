@@ -17,35 +17,44 @@ class Config(object):
     ELASTICSEARCH_PASSWORD = os.environ.get('ELASTICSEARCH_PASSWORD', None)
 
     # Redis
-    REDIS_HOST='localhost'
-    REDIS_HOST=os.environ.get('REDIS_HOST', 'localhost')
-    REDIS_PORT=os.environ.get('REDIS_PORT', 6379)
-    REDIS_DB=os.environ.get('REDIS_DB', 0)
+    REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+    REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
+    REDIS_DB = os.environ.get('REDIS_DB', 0)
+
+    # Redis queue keys/namespaces
+    REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
+    REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
 
 
     # logstash
-    LOGSTASH_CONFIG_FILE='pipeline.conf'
+    LOGSTASH_OUTPUT_FILE='output.conf'
+    LOGSTASH_FILTER_FILE='filter.conf'
+    LOGSTASH_DOCKER_CONTAINER_NAME='crowdbreaksflaskapi_logstash_1'
+    LOGSTASH_CONFIG_PATH='/logstash/config'
+
+    # Twitter API
+    CONSUMER_KEY = os.environ.get('CONSUMER_KEY')
+    CONSUMER_SECRET = os.environ.get('CONSUMER_SECRET')
+    OAUTH_TOKEN = os.environ.get('OAUTH_TOKEN')
+    OAUTH_TOKEN_SECRET = os.environ.get('OAUTH_TOKEN_SECRET')
 
 
 class ProdConfig(Config):
     """Production configuration."""
     ENV = 'prod'
     DEBUG = False
-    LOGSTASH_CONFIG_PATH='/etc/logstash/conf.d'
 
 
 class StgConfig(Config):
     """Production configuration."""
     ENV = 'stg'
     DEBUG = False
-    LOGSTASH_CONFIG_PATH='/etc/logstash/conf.d'
 
 
 class DevConfig(Config):
     """Development configuration."""
     ENV = 'dev'
     DEBUG = True
-    LOGSTASH_CONFIG_PATH='/Usersc/martin/projects/crowdbreaks-flask-api/pipeline/config'
 
 
 class TestConfig(Config):
