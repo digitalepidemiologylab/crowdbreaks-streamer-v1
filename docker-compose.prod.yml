@@ -5,7 +5,18 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile.production
-    ports:
-      - "8000:8000"
     env_file:
       - secrets.list
+  nginx:
+    build: ./nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - web
+    env_file:
+      - secrets.list
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /etc/nginx/passwd/:/etc/nginx/passwd:ro
+    command: /bin/bash -c "envsubst '$$API_VIRTUALHOST,$$ES_VIRTUALHOST,$$ELASTICSEARCH_HOST,$$ES_BASICAUTH_PASSWD' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/nginx.conf && nginx -g 'daemon off;'"

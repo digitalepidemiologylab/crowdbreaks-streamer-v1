@@ -1,12 +1,6 @@
 # Base docker compose
 version: '3'
 services:
-  # nginx:
-  #   build: ./nginx
-  #   ports:
-  #     - '80:80' # expose 80 on host and sent to 80 in container
-  #   depends_on:
-  #     - web
   web:
     image: cb-flask:production
     depends_on:
@@ -19,7 +13,7 @@ services:
     image: "redis:alpine"
   celery:
     build: ./web
-    command: celery -A app.worker.celery_init worker -Q cb:logstash --loglevel=info
+    command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q cb:logstash --loglevel=info"
     depends_on:
       - redis
     env_file:
