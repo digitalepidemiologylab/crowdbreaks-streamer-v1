@@ -11,13 +11,14 @@ import ast
 import time
 import logging
 import docker
+from app.connections import elastic
 
 blueprint = Blueprint('pipeline', __name__)
-logger = logging.getLogger('pipeline')
 
 @blueprint.before_request
 def require_auth_all():
     return requires_auth_func()
+
 
 @blueprint.route('/', methods=['GET'])
 def index():
@@ -39,6 +40,7 @@ def start():
         return Response("Successfully started stream.", status=200, mimetype='text/plain')
     else:
         return Response("Starting stream was not successful ", status=400, mimetype='text/plain')
+
 
 @blueprint.route('/stop', methods=['GET'])
 def stop():
@@ -96,6 +98,7 @@ def manage_config():
     parser = TreetopParser(config=app.config)
     folder_path = app.config['LOGSTASH_CONFIG_PATH']
     files = glob.glob(os.path.join(folder_path, 'input_stream_*.conf'))
+    logger = logging.getLogger('pipeline')
     if not os.path.exists(folder_path):
         return Response("Folder {} not present on remote host.".format(folder_path), status=500, mimetype='text/plain')
 
@@ -110,7 +113,6 @@ def manage_config():
     else:
         # parse input config
         config = request.get_json()
-        print(config)
 
         if config is None:
             return Response("Configuration empty", status=400, mimetype='text/plain')
@@ -148,6 +150,14 @@ def manage_config():
             with open(path, 'w') as f:
                 f.write(file_data)
 
+        # Create new Elasticsearch index if index doesn't exist already for project
+        es = elastic.Elastic()
+        es_indexes = es.list_indices()
+        for d in config:
+            if d['es_index_name'] not in es_indexes:
+                logger.info('Index "{}" does not yet exist in elasticsearch. Creating new index...'.format(d['es_index_name']))
+                es.create_index(d['es_index_name'])
+                
         return Response("Successfully updated configuration files. Make sure to restart stream for changes to be active.", status=200, mimetype='text/plain')
  
 

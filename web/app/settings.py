@@ -45,12 +45,6 @@ class ProdConfig(Config):
     DEBUG = False
 
 
-class StgConfig(Config):
-    """Production configuration."""
-    ENV = 'stg'
-    DEBUG = False
-
-
 class DevConfig(Config):
     """Development configuration."""
     ENV = 'dev'
