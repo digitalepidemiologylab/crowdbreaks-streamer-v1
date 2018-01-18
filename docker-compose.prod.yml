@@ -5,6 +5,13 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile.production
+
+    volumes:
+      - './web/logs/:/home/app/logs/'
+  celery:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.production
   nginx:
     build: ./nginx
     container_name: nginx

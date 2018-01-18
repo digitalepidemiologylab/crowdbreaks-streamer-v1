@@ -10,7 +10,6 @@ services:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - './logstash/config/:/logstash/config/'
-      - './web/logs/:/var/logs/cb/'
   redis:
     container_name: redis
     image: "redis:alpine"
@@ -22,6 +21,8 @@ services:
       - redis
     env_file:
       - secrets.list
+    volumes:
+      - './web/logs/:/home/app/logs/'
   logstash:
     build: ./logstash
     container_name: logstash

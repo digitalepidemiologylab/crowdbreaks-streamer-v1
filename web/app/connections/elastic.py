@@ -8,15 +8,17 @@ from flask import _app_ctx_stack as stack
 
 
 class Elastic():
-    """Interaction with Elasticsearch"""
+    """Interaction with Elasticsearch
+    """
+
 
     def __init__(self, app=None, logger=None):
         self.logger = logger
         self.app = app
         self.connection = None # only used outside of application context
-        self.config = None
+        self.config = {}
+        self.default_template_name = 'project' # default template name when creating new index
         if self.logger is None:
-            # self.logger = Logger.setup('ES')
             self.logger = logging.getLogger('ES')
             
         if app is not None:
@@ -50,12 +52,8 @@ class Elastic():
         try:
             self.config = current_app.config
         except RuntimeError:
-            keys = ['ELASTICSEARCH_HOST', 'ELASTICSEARCH_PORT', 'ELASTICSEARCH_USERNAME', 'ELASTICSEARCH_PASSWORD']
-            if self.config is None:
-                self.config = {}
-            for k in keys:
-                if k not in self.config:
-                    self.config[k] = os.environ.get(k, None)
+            self.logger.debug('No app context found! Trying to access localhost:9200')
+            self.config = {'ELASTICSEARCH_HOST': 'localhost', 'ELASTICSEARCH_PORT': 9200}
 
         http_auth = (self.config.get('ELASTICSEARCH_USERNAME', None), self.config.get('ELASTICSEARCH_PASSWORD', None))
 
@@ -83,31 +81,53 @@ class Elastic():
         self.logger.debug('Tweet with id {} sent to project {}'.format(tweet['id'], tweet['project']))
 
 
-    def put_template(self, template_name='project', filename='project_template.json', template_sub_folder='templates'):
+    def put_template(self, template_name=None, template_path=None, filename='project_template.json'):
         """Put template to ES
-        By default uses <project_root>/elastic_search/templates/project_template.json
         """
         # read template file
-        template_path = os.path.join(os.path.dirname(__file__), template_sub_folder, filename)
+        if template_name is None:
+            template_name = self.default_template_name
+        if template_path is None:
+            template_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..' ,'config', 'es_templates', filename))
+        if not os.path.exists(template_path):
+            self.logger.error('No project file found under {}'.format(template_path))
+            return
         with open(template_path, 'r') as f:
             template = json.load(f)
         res = self.es.indices.put_template(template_name, body=template)
         self.logger.info("Template {} added to Elasticsearch".format(template_path))
 
 
-    def delete_template(self, template_name):
+    def list_templates(self):
+        templates = self.es.cat.templates(format='json', h=['name'])
+        return [t['name'] for t in templates if not t['name'].startswith('.')]
+
+
+    def delete_template(self, template_name=None):
         """Delete template"""
+        if template_name is None:
+            template_name = self.default_template_name
         res = self.es.indices.delete_template(template_name)
         self.logger.info("Template {} successfully deleted".format(template_name))
 
-    def create_index(self, index_name):
+    def create_index(self, index_name, template_name=None):
+        # abort if index already exists
         existing_indices = list(self.es.indices.get_alias('*').keys())
         if index_name in existing_indices:
             self.logger.warning("Aborted. Index {} already exists. Delete index first.".format(index_name))
             return False
+
+        # add template if not yet exists
+        if template_name is None:
+            template_name = self.default_template_name
+        if template_name not in self.list_templates():
+            self.put_template(template_name=template_name)
+
+        # create new index
         res = self.es.indices.create(index_name)
         self.logger.info("Index {} successfully created".format(index_name))
         return True
+
 
     def delete_index(self, index_name):
         existing_indices = self.list_indices()

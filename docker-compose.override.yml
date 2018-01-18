@@ -6,13 +6,15 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+    # Directly expose port 8000 to localhost (don't go through proxy)
     ports:
       - "8000:8000"
+    # mount entire source code (necessary for live-reloading)
     volumes:
       - './web/:/home/app'
     env_file:
       - secrets.list
-    # debugger support
+    # debugger support (set breakpoint and run 'docker attach web')
     stdin_open: true
     tty: true
   redis:
