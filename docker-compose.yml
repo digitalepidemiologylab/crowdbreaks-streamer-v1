@@ -3,16 +3,20 @@ version: '3'
 services:
   web:
     image: cb-flask:production
+    container_name: web
     depends_on:
       - redis
       - logstash
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - './logstash/config/:/logstash/config/'
+      - './web/logs/:/var/logs/cb/'
   redis:
+    container_name: redis
     image: "redis:alpine"
   celery:
     build: ./web
+    container_name: celery
     command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q cb:logstash --loglevel=info"
     depends_on:
       - redis
@@ -20,6 +24,7 @@ services:
       - secrets.list
   logstash:
     build: ./logstash
+    container_name: logstash
     environment:
       - LOG_LEVEL=info
       - PIPELINE_WORKERS=1

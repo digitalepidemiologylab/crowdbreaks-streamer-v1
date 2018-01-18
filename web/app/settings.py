@@ -29,7 +29,7 @@ class Config(object):
     # logstash
     LOGSTASH_OUTPUT_FILE='output.conf'
     LOGSTASH_FILTER_FILE='filter.conf'
-    LOGSTASH_DOCKER_CONTAINER_NAME='crowdbreaksflaskapi_logstash_1'
+    LOGSTASH_DOCKER_CONTAINER_NAME='logstash'
     LOGSTASH_CONFIG_PATH='/logstash/config'
 
     # Twitter API

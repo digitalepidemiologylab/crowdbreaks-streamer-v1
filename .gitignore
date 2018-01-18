@@ -27,3 +27,5 @@ scripts/retrieve_sent_data.py
 logstash/config/input*.conf
 logstash/config/output.conf
 
+# elasticsearch data folder
+elasticsearch/
