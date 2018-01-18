@@ -12,6 +12,9 @@ services:
       - './web/:/home/app'
     env_file:
       - secrets.list
+    # debugger support
+    stdin_open: true
+    tty: true
   redis:
     image: "redis:alpine"
   elasticsearch:
