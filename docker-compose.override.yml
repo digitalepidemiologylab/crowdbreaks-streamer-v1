@@ -20,10 +20,11 @@ services:
   redis:
     image: "redis:alpine"
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.1.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.1.1
     container_name: elasticsearch
     environment:
       - cluster.name=cb-dev
+      - xpack.security.enabled=false
     ports:
       - 9200:9200
     volumes:

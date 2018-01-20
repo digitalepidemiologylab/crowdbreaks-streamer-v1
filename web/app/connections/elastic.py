@@ -194,6 +194,19 @@ class Elastic():
             return []
 
 
+    def get_random_document_id(self, index_name, doc_type='tweet', seed=None):
+        if seed is None:
+            seed = 42
+        # When upgrading to ES 6 'random_score' requires 'field': '_seq_no'
+        body = {'query': {'function_score': {'functions': [{'random_score': {'seed': str(seed)}}]}}}
+        res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])
+        hits = res['hits']['hits']
+        if len(hits) == 0:
+            self.logger.error('Could not find a random document in index {}'.format(index_name))
+            return None
+        return hits[0]['_source']['id']
+
+
     def parse_dates(self, *dates, input_format='%Y-%m-%d %H:%M:%S', output_format='%a %b %d %H:%M:%S %z %Y'):
         """Used to parse for Twitter's unusual created_at date format"""
         res = []

@@ -206,6 +206,7 @@ class TweetIdQueue:
             return
         
         if not self.pq.exists(tweet_id):
+            # This may happen relatively often when multiple people are working on the same tweet
             self.logger.warning('Key {} does not exist anymore. Aborting.'.format(tweet_id))
             return
 
