@@ -5,6 +5,11 @@ COPY ./requirements.txt /home/app/requirements.txt
 WORKDIR /home/app
 RUN pip3 install -r requirements.txt
 
+# Install fastText
+RUN apt-get update && apt-get install git
+RUN git clone https://github.com/facebookresearch/fastText
+RUN pip3 install ./fastText/
+
 COPY . /home/app
 
 # create unprivileged user

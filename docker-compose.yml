@@ -2,7 +2,7 @@
 version: '3'
 services:
   web:
-    image: cb-flask:production
+    build: ./web
     container_name: web
     depends_on:
       - redis
@@ -10,19 +10,21 @@ services:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - './logstash/config/:/logstash/config/'
+      - './web/bin/:/home/app/bin/'
+      - './web/logs/:/home/app/logs/'
   redis:
     container_name: redis
     image: "redis:alpine"
   celery:
     build: ./web
     container_name: celery
-    command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q cb:logstash --loglevel=info"
+    command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q celery,cb:logstash --loglevel=debug"
     depends_on:
       - redis
     env_file:
       - secrets.list
     volumes:
-      - './web/logs/:/home/app/logs/'
+      - './web/:/home/app'
   logstash:
     build: ./logstash
     container_name: logstash

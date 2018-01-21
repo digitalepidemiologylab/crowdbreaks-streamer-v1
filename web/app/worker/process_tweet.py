@@ -131,7 +131,6 @@ class ProcessTweet(object):
         :returns: Same tweet with text_tokenized field. Returns None if tweet is invalid.
 
         """
-
         if text is None:
             if 'text' in self.tweet:
                 text = self.tweet['text']

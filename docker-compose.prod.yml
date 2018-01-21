@@ -5,9 +5,6 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile.production
-
-    volumes:
-      - './web/logs/:/home/app/logs/'
   celery:
     build:
       context: ./web

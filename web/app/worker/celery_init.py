@@ -7,7 +7,6 @@ def create_celery():
 
     return Celery('tasks', include=['app.worker.tasks'], broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 
-
 celery = create_celery()
 
 

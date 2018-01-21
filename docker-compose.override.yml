@@ -2,10 +2,6 @@
 version: '3'
 services:
   web:
-    image: cb-flask:dev
-    build:
-      context: ./web
-      dockerfile: Dockerfile
     # Directly expose port 8000 to localhost (don't go through proxy)
     ports:
       - "8000:8000"

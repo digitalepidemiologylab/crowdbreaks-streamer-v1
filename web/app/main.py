@@ -1,10 +1,11 @@
 from flask import Flask, request, Blueprint, Response
 from app.basic_auth import requires_auth_func
 import json
-# from worker.worker import vaccine_sentiment_single_request
 from app.extensions import es, redis
 import logging
 from app.worker.priority_queue import TweetIdQueue
+from app.worker.process_tweet import ProcessTweet
+from app.worker.tasks import predict, process_tweet
 import time
 
 
@@ -55,21 +56,29 @@ def add_to_pq(project):
     logger.debug('Incoing request with data {}'.format(data))
     if data is None or 'user_id' not in data or 'tweet_id' not in data:
         logger.error('No user_id was passed when updating ')
-        return Response(None, status=400)
+        return Response(None, status=400, mimetype='text/plain')
     tid = TweetIdQueue(project)
     tid.update(data['tweet_id'], data['user_id'])
     return Response('Update successful.', status=200, mimetype='text/plain')
 
 
-# @blueprint.route('sentiment/vaccine', methods=['POST'])
-# def get_vaccine_sentiment():
-#     data = request.get_json()
-#     logger.debug('Incoing request with data {}'.format(data))
-#     label, distances = vaccine_sentiment_single_request(data, logger)
-#     res = {'label': label, 'distances': distances}
-#     logger.debug('Result: {}'.format(label))
-#     return json.dumps(res)
-#
+@blueprint.route('sentiment/vaccine/', methods=['POST', 'GET'])
+def get_vaccine_sentiment():
+    text = None
+    if request.method == 'POST':
+        data = request.get_json()
+        logger.debug('Incoing request with data {}'.format(data))
+        text = data.get('text', None)
+        if text is None:
+            return Response(None, status=400, mimetype='text/plain')
+    else:
+        text = 'This is just a test string'
+
+    pt = ProcessTweet()
+    text_tokenized = pt.tokenize(text=text)
+    res = predict.delay(text_tokenized).get()
+    return json.dumps(res)
+
 
 @blueprint.route('sentiment/data/<value>', methods=['GET'])
 def get_vaccine_data(value):

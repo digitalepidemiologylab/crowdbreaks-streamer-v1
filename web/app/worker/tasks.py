@@ -6,7 +6,9 @@ from copy import copy
 from app.worker.process_tweet import ProcessTweet
 from app.worker.priority_queue import TweetIdQueue
 from app.connections import elastic
+import fastText
 import json
+import os
 
 
 # logging
@@ -37,11 +39,12 @@ def process_tweet(tweet):
 
     # If tweet belongs to vaccine sentiment project, tokenize and classify
     if pt.tweet['project'] == 'project_vaccine_sentiment':
-        text_tokenized = pt.tokenize(pt.tweet['text'])
+        text_tokenized = pt.tokenize()
         if text_tokenized is not None:
             processed_tweet = pt.get_processed_tweet() 
             logger.info('Tweet will be classified')
             # classify tweet
+            prediction = predict(text_tokenized)
         else:
             logger.debug("Text {} is either too short or could not be properly tokenized.".format(text_tokenized))
         index_tweet_es(pt.get_processed_tweet())
@@ -51,6 +54,12 @@ def process_tweet(tweet):
         index_tweet_es(processed_tweet)
 
 
+@celery.task
+def predict(text, model='fasttext_v1.ftz', num_classes=3):
+    model_path = os.path.join('.', 'bin', 'vaccine_sentiment', model)
+    m = fastText.load_model(model_path)
+    pred = m.predict(text, k=num_classes)
+    return {'labels': list(pred[0]), 'probabilities': list(pred[1])}
 def index_tweet_es(tweet):
     es = elastic.Elastic()
     logger.debug("Indexing tweet with id {} to ES".format(tweet['id']))
