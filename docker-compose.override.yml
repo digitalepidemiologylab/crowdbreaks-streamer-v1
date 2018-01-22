@@ -14,8 +14,6 @@ services:
       - "8000:8000"
     volumes:
       - './web/:/home/app'
-    env_file:
-      - secrets.list
     stdin_open: true
     tty: true
   celery:

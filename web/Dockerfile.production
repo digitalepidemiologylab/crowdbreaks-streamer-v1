@@ -1,6 +1,7 @@
 FROM python:3
 MAINTAINER Martin Müller"martin.muller@epfl.ch"
 
+# Install python dependencies
 COPY ./requirements.txt /home/app/requirements.txt
 WORKDIR /home/app
 RUN pip3 install -r requirements.txt
@@ -10,10 +11,11 @@ RUN apt-get update && apt-get install git
 RUN git clone https://github.com/facebookresearch/fastText
 RUN pip3 install ./fastText/
 
+# Copy files
 COPY . /home/app
 
-# create unprivileged user
+# Create celery user
 RUN adduser --disabled-password --gecos '' celery-user
 
+# Production server
 CMD ["gunicorn", "-c", "gunicorn_config.py", "--log-config", "logging.conf", "wsgi:app"]
-

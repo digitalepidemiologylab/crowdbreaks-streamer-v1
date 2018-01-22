@@ -7,6 +7,8 @@ services:
     depends_on:
       - redis
       - logstash
+    env_file:
+      - secrets.list
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - './logstash/config/:/logstash/config/'
@@ -24,7 +26,7 @@ services:
     env_file:
       - secrets.list
     volumes:
-      - './web/:/home/app'
+      - './web/bin/:/home/app/bin/'
   logstash:
     build: ./logstash
     container_name: logstash
