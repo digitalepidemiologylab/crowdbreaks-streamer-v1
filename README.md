@@ -31,6 +31,10 @@ Make sure docker is running in the background, then run:
 ```
 docker-compose up --build
 ```
+Run tests:
+```
+pytest web/tests
+```
 
 For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-flask-api/wiki/Development)
 
