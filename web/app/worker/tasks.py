@@ -69,7 +69,7 @@ def predict(text, model='fasttext_v1.ftz', num_classes=3):
     m = fastText.load_model(model_path)
     pred = m.predict(text, k=num_classes)
     label_dict = {'__label__-1': 'anti-vaccine', '__label__0':'neutral', '__label__1':'pro-vaccine'}
-    return {'labels': [label_dict[l] for l in pred[0]], 'probabilities': list(pred[1])}
+    return {'labels': [label_dict[l] for l in pred[0]], 'probabilities': list(pred[1]), 'model': model.split('.')[0]}
 
 
 def index_tweet_es(tweet):
