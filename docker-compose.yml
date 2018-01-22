@@ -18,7 +18,7 @@ services:
   celery:
     build: ./web
     container_name: celery
-    command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q celery,cb:logstash --loglevel=debug"
+    command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q celery,cb:logstash --loglevel=info"
     depends_on:
       - redis
     env_file:

@@ -33,6 +33,13 @@ def test_es():
     return json.dumps(es.test_connection())
 
 
+@blueprint.route('test/celery', methods=['GET'])
+def test_celery():
+    tweet = {'text': 'this is just some example text', 'id': int(time.time()*1000), 'project': 'project_vaccine_sentiment', 'place': None}
+    process_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
+    return json.dumps(tweet)
+
+
 @blueprint.route('tweet/new/<project>', methods=['GET'])
 def get_new_tweet(project):
     """"Get new tweet from priority queue"""

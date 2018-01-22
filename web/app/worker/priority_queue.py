@@ -1,9 +1,8 @@
 import redis
 import pdb
 import os
-import logging.config
-# from app.config.log_config import LOGGING_CONFIG
 from random import randint
+import logging
 
 
 class Redis():
@@ -39,8 +38,6 @@ class PriorityQueue(Redis):
     def __init__(self, project, namespace='cb', key_namespace='pq', max_queue_length=1000, **args):
         super().__init__(self)
         # logging
-        if os.path.exists('logging.conf'):
-            logging.config.fileConfig('logging.conf')
         self.logger = logging.getLogger('PriorityQueue')
 
         self.project = project
@@ -110,14 +107,14 @@ class PriorityQueue(Redis):
         lowest_score = items[0][1]
         num_elements = self._r.zcount(self.key, lowest_score, lowest_score)
         if num_elements == 0:
-            self.logger.error('Element with score {} could not be found. Possibly it has been removed before. Aborting.')
+            self.logger.error('Element with score {} could not be found. Possibly it has been removed before. Aborting.'.format(lowest_score))
             return
         elif num_elements == 1:
             self._r.zremrangebyrank(self.key, 0, 0)
         else:
             # multiple elements with the same lowest score, randomly remove one
             rand_index = randint(0, num_elements-1)
-            print('Picked {} as randindex between {} and {}'.format(rand_index, 0, num_elements-1))
+            self.logger.debug('Picked {} as randindex between {} and {}'.format(rand_index, 0, num_elements-1))
             res = self._r.zremrangebyrank(self.key, rand_index, rand_index)
             if res != 1:
                 self.logger.error('Random key could not be deleted because it does not exist anymore')
@@ -153,8 +150,6 @@ class TweetIdQueue:
         :param priority_threshold: Number of times tweet should be labelled before being removed from queue
         """
         # logging
-        if os.path.exists('logging.conf'):
-            logging.config.fileConfig('logging.conf')
         if logger is None:
             self.logger = logging.getLogger('PriorityQueue')
         else:
@@ -191,7 +186,7 @@ class TweetIdQueue:
                 for item, score in item_range:
                     if not self.rset.is_member(item.decode(), user_id):
                         return item.decode()
-            # self.logger.warning('No new tweet could be found for user_id {}'.format(user_id))
+            self.logger.warning('No new tweet could be found for user_id {}'.format(user_id))
 
 
     def update(self, tweet_id, user_id):
@@ -234,8 +229,6 @@ class RedisSet(Redis):
     def __init__(self, project, namespace='cb', key_namespace='tweet_id', **args):
         super().__init__(self)
         # logging
-        if os.path.exists('logging.conf'):
-            logging.config.fileConfig('logging.conf')
         self.logger = logging.getLogger('RedisSet')
 
         self.project = project

@@ -162,7 +162,22 @@ class ProcessTweet(object):
         filter(lambda word: ' ' not in word, text)
         return text.strip()
 
+
+    def add_meta(self, meta):
+        if self.processed_tweet is None:
+            self.logger.error('Cannot add meta to empty tweet.')
+            return
+        if 'meta' not in self.processed_tweet:
+            self.processed_tweet['meta'] = {}
+        if not isinstance(meta, dict):
+            self.logger.error('To be added meta must be a dictionary.')
+
+        # merge with existing meta
+        self.processed_tweet['meta'] = {**self.processed_tweet['meta'], **meta}
+        
+
     def get_processed_tweet(self):
+        """get_processed_tweet"""
         if self.tweet is None:
             return None
         if self.processed_tweet is None:

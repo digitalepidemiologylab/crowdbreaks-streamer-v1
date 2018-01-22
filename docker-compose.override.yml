@@ -1,18 +1,26 @@
 # Development config
+# -----
+# Notes:
+# - Everything in here overwrites docker-compose.yml and is only used when using `docker-compose up`
+# - Do not use nginx proxy: Directly expose port 8000
+# - Mount entire source code under ./web for live-reloading of code (this unfortunately doesn't work for celery, would need a third-party tool, use `docker-compose restart celery`)
+# - For debugging to work 'stdin_open' and 'tty' have to be set. Afterwards one can run `docker attach web` to get access to the pdb debugger
+# - Adding elasticsearch container (in production using AWS ES service) and exposing it under localhost:9200, very old version of ES unfortunately
+# - Adding kibana container which is compatible with ES 5.1.1
 version: '3'
 services:
   web:
-    # Directly expose port 8000 to localhost (don't go through proxy)
     ports:
       - "8000:8000"
-    # mount entire source code (necessary for live-reloading)
     volumes:
       - './web/:/home/app'
     env_file:
       - secrets.list
-    # debugger support (set breakpoint and run 'docker attach web')
     stdin_open: true
     tty: true
+  celery:
+    volumes:
+      - './web/:/home/app'
   redis:
     image: "redis:alpine"
   elasticsearch:
@@ -28,5 +36,15 @@ services:
     depends_on:
       - logstash
       - web
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.1.1
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      - LOGGING_QUIET=true
+    depends_on:
+      - elasticsearch
+
 
 

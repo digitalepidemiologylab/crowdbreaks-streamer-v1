@@ -53,7 +53,8 @@ class Elastic():
             self.config = current_app.config
         except RuntimeError:
             self.logger.debug('No app context found! Trying to access localhost:9200')
-            self.config = {'ELASTICSEARCH_HOST': 'localhost', 'ELASTICSEARCH_PORT': 9200}
+            self.config = { 'ELASTICSEARCH_HOST': os.environ.get('ELASTICSEARCH_HOST', 'localhost'), 
+                    'ELASTICSEARCH_PORT': os.environ.get('ELASTICSEARCH_PORT', 9200) }
 
         http_auth = (self.config.get('ELASTICSEARCH_USERNAME', None), self.config.get('ELASTICSEARCH_PASSWORD', None))
 
