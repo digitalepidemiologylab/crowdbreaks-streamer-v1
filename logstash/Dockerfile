@@ -3,4 +3,3 @@ MAINTAINER Martin Müller "martin.mathias.mueller@gmail.com"
 
 RUN bin/logstash-plugin install logstash-filter-uuid
 RUN rm -f /usr/share/logstash/pipeline/logstash.conf
-
