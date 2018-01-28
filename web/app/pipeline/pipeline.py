@@ -293,8 +293,20 @@ class TreetopParser():
         data += self.item('db', '0', nesting_level=2, no_quotes=True)
         data += self.item('data_type', 'list', nesting_level=2)
         data += self.item('codec', 'json', nesting_level=2)
-        data += self.item('key', '{}:{}'.format(self.config['REDIS_NAMESPACE'], self.config['REDIS_LOGSTASH_QUEUE_KEY']) , nesting_level=2)
+        data += self.item('key', '{}:{}'.format(self.config['REDIS_NAMESPACE'], self.config['REDIS_LOGSTASH_QUEUE_KEY']), nesting_level=2)
         data += self.key_end(nesting_level=1)
+
+	# s3 output
+        if not (self.config['AWS_ACCESS_KEY_ID'] == '' or self.config['AWS_SECRET_ACCESS_KEY'] == '') and 'S3_BUCKET' in self.config:
+            data += self.key_start('s3', nesting_level=1)
+            data += self.item('access_key_id', self.config['AWS_ACCESS_KEY_ID'], nesting_level=2)
+            data += self.item('secret_access_key', self.config['AWS_SECRET_ACCESS_KEY'], nesting_level=2)
+            data += self.item('region', self.config['AWS_REGION'], nesting_level=2)
+            data += self.item('bucket', self.config['S3_BUCKET'], nesting_level=2)
+            data += self.item('prefix', 'tweets/%{project}', nesting_level=2)
+            data += self.item('time_file', '1440', nesting_level=2, no_quotes=True)
+            data += self.item('codec', 'json_lines', nesting_level=2)
+            data += self.key_end(nesting_level=1)
 
         # std output
         # data += self.key_start('stdout', nesting_level=1)

@@ -25,7 +25,6 @@ class Config(object):
     REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
     REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
 
-
     # logstash
     LOGSTASH_OUTPUT_FILE='output.conf'
     LOGSTASH_FILTER_FILE='filter.conf'
@@ -37,6 +36,12 @@ class Config(object):
     CONSUMER_SECRET = os.environ.get('CONSUMER_SECRET')
     OAUTH_TOKEN = os.environ.get('OAUTH_TOKEN')
     OAUTH_TOKEN_SECRET = os.environ.get('OAUTH_TOKEN_SECRET')
+
+    # AWS (for storing in S3)
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+    AWS_REGION = os.environ.get('AWS_REGION', 'eu-central-1')
+    S3_BUCKET = os.environ.get('S3_BUCKET', '')
 
 
 class ProdConfig(Config):

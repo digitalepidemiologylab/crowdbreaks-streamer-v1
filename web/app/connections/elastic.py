@@ -158,12 +158,11 @@ class Elastic():
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
         field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
-
         body = {'size': 0, 
                 'aggs': {'sentiment': {'date_histogram': {
                     'field': 'created_at',
                     'interval': options.get('interval', 'month'),
-                    'format': 'yyyy-MM-dd'}}},
+                    'format': 'yyyy-MM-dd HH:mm:ss'}}},
                 'query': {'bool': {
                     'must': [
                         {'match_phrase': {field: value}},
@@ -171,6 +170,7 @@ class Elastic():
                         ]}}
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
+        print(res)
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
             return res['aggregations']['sentiment']['buckets']
         else:
