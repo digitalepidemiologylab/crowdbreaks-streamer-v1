@@ -153,10 +153,11 @@ class Elastic():
         resp = self.es.update(index=index, doc_type=doc_type, id=id, body=body)
         return resp
 
-    def get_sentiment_data(self, index_name, value, field='meta.sentiment.sent2vec_v1.label', **options):
+    def get_sentiment_data(self, index_name, value, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
+        field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
 
         body = {'size': 0, 
                 'aggs': {'sentiment': {'date_histogram': {
