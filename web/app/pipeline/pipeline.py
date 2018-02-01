@@ -303,7 +303,7 @@ class TreetopParser():
             data += self.item('secret_access_key', self.config['AWS_SECRET_ACCESS_KEY'], nesting_level=2)
             data += self.item('region', self.config['AWS_REGION'], nesting_level=2)
             data += self.item('bucket', self.config['S3_BUCKET'], nesting_level=2)
-            data += self.item('prefix', 'tweets/%{project}', nesting_level=2)
+            data += self.item('prefix', 'tweets/%{project}/', nesting_level=2)
             data += self.item('time_file', '1440', nesting_level=2, no_quotes=True)
             data += self.item('codec', 'json_lines', nesting_level=2)
             data += self.key_end(nesting_level=1)
