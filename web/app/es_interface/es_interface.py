@@ -19,6 +19,11 @@ def index():
 def indices_stats():
     return jsonify(es.indices_stats())
 
+@blueprint.route('/health', methods=['GET'])
+def get_health():
+    return jsonify(es.cluster_health())
+
+
 @blueprint.route('/create', methods=['POST'])
 def create_index():
     params = request.get_json()

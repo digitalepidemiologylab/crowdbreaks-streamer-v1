@@ -73,6 +73,10 @@ class Elastic():
         return test
 
 
+    def cluster_health(self):
+        return self.es.cluster.health()
+
+
     def index_tweet(self, tweet):
         """Index new tweet in index name given by tweet['project']. Will not re-index already existing doc with same ID.
 
