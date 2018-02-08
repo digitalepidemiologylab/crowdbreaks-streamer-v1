@@ -174,7 +174,6 @@ class Elastic():
                         ]}}
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
-        print(res)
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
             return res['aggregations']['sentiment']['buckets']
         else:

@@ -1,29 +1,33 @@
 """
-This script pulls unclassified tweets from Elasticsearch and classifies them using sentence embeddings and an SVM model.
-Run this script from withing <PROJECT_ROOT>/scripts 
+This script pulls unclassified tweets from Elasticsearch and classifies them
+Run this script from within <PROJECT_ROOT>/scripts 
 Make sure to set all global vars first!
+
+This script has to be run on a server with access to Elasticsearch!
 """
 
 import sys 
 sys.path.append('..')
+sys.path.append('../web/')
 from multiprocessing import Pool, current_process
-from logger import Logger
-from connections import elastic
+from web.app.connections import elastic
 from elasticsearch import helpers
 import requests
-import instance.config
 import json
+import logging.config
+from web.app.worker.tasks import predict
+from web.app.worker.process_tweet import ProcessTweet
 
 
 def count_unlabelled():
-    """Counts labelled tweets in index"""
+    """counts labelled tweets in index"""
     body_all = {'query': {'match_all': {}}}
     body_exists = { 'query': {'exists': {'field': 'meta.sentiment.{}'.format(MODEL)}}}
     body_not_exists = { 'query': {'bool': {'must_not': {'exists': {'field': 'meta.sentiment.{}'.format(MODEL)}}}}}
     count_all = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_all)['count'] 
     count_labelled = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_exists)['count'] 
     count_unlabelled = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_not_exists)['count'] 
-    logger.info('Index {} contains a total of {} records of which {} are labelled and {} are unlabelled with model {}'\
+    logger.info('index {} contains a total of {} records of which {} are labelled and {} are unlabelled with model {}'\
             .format(INDEX, count_all, count_labelled, count_unlabelled, MODEL))
     return count_unlabelled
 
@@ -40,8 +44,6 @@ def keys_exists(element, *keys):
 
 def process_document(doc, counter):
     """Single worker task"""
-    logger.debug('Process {}: Processing tweet nr {}'.format(current_process().name, counter))
-
     # make sure doc does not contain sentiment
     model_exists = keys_exists(doc, '_source', 'meta', 'sentiment', MODEL)
     assert(not model_exists)
@@ -50,20 +52,24 @@ def process_document(doc, counter):
     if not keys_exists(doc, '_source', 'text'):
         logger.error('Tweet {} contains no text field'.format(doc['_source']['id']))
         return
-
-    # Make request 
-    post_url = '{}/sentiment/vaccine'.format(instance.config.FLASK_API_HOSTNAME)
-    resp = requests.post(post_url, json={'text': doc['_source']['text']}, auth=(instance.config.FLASK_API_USERNAME, instance.config.FLASK_API_PASSWORD))
-    if resp.status_code == 200:
-        resp = json.loads(resp.text)
-        logger.debug("Predicted label of tweet {} as {}".format(doc['_source']['id'], resp['label']))
-    else:
-        logger.error("Something went wrong when predicting tweet {}".format(doc['_source']['id']))
-        logger.error(resp.text)
+    
+    # Tokenize text
+    pt = ProcessTweet()
+    text_tokenized = pt.tokenize(text=doc['_source']['text'])
+    if text_tokenized is None or text_tokenized == '':
+        logger.warning('Text field of tweet {} cannot be tokenized'.format(doc['_source']['id']))
         return
 
+    # Call worker
+    prediction = predict(text_tokenized, model=MODEL+'.ftz', path_to_model='../web')
+    if prediction['labels'] is None:
+        logger.error("Something went wrong when predicting tweet {}".format(doc['_source']['id']))
+        logger.error("Could not classify text: \"{}\"".format(doc['_source']['text']))
+        return
+    logger.debug("Predicted label of tweet {} as {}".format(doc['_source']['id'], prediction['labels'][0]))
+
     # Update doc
-    body = {'doc': {'meta': {'sentiment': {MODEL: resp}}}}
+    body = {'doc': {'meta': {'sentiment': {MODEL: {'label': prediction['labels'][0], 'probability': prediction['probabilities'][0]}}}}}
     resp = es_client.es.update(index=INDEX, doc_type=DOC_TYPE, id=doc['_id'], body=body)
     if resp['_shards']['failed'] == 0:
         logger.debug("Successfully updated document {}.".format(doc['_source']['id']))
@@ -77,7 +83,6 @@ def run(num_docs):
 
     :param num_docs:
     """
-    """Label unlabelled tweets """
     body = {'query': {'bool': {'must_not': {'exists': {'field': 'meta.sentiment.{}'.format(MODEL)}}}}, 
             '_source': ['meta.sentiment.{}'.format(MODEL), 'id', 'text'] }
     estimated_time = "{}m".format(num_docs) # should give plenty of time for process to finish
@@ -86,21 +91,10 @@ def run(num_docs):
     for doc in scan:
         count += 1
         logger.debug('Processing doc {}/{}'.format(count, num_docs))
-        # POOL.apply(process_document, args=(doc, count))
         process_document(doc, count)
 
 
-def test_connection_flask_api():
-    r = requests.get(instance.config.FLASK_API_HOSTNAME, auth=(instance.config.FLASK_API_USERNAME, instance.config.FLASK_API_PASSWORD))
-    if r.status_code == 200:
-        logger.info('Successfully connected to {}'.format(instance.config.FLASK_API_HOSTNAME))
-    else:
-        logger.error('Could not connect to {}'.format(instance.config.FLASK_API_HOSTNAME))
-
 def main():
-    # Test connection
-    test_connection_flask_api()
-
     # Count unlabelled tweets in db
     num_docs = count_unlabelled()
 
@@ -119,16 +113,16 @@ def main():
 
 if __name__ == "__main__":
     # logging
-    logger = Logger.setup('script')
+    logging.config.fileConfig('script_logging.conf')
+    logger = logging.getLogger('script')
     logger.info('Starting classify tweets script...')
 
     # initialize ES
     es_client = elastic.Elastic()
+    es_client.test_connection()
 
     # global vars
     INDEX = 'project_vaccine_sentiment'
     DOC_TYPE='tweet'
-    MODEL='sent2vec_v1'
-    # NUM_CPUS=4
-    # POOL = Pool(processes=NUM_CPUS)
+    MODEL='fasttext_v1'
     main()
