@@ -60,7 +60,8 @@ class Elastic():
 
         if http_auth[0] is None or http_auth[1] is None:
             return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
-        return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])], http_auth=http_auth)
+        return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])], 
+                http_auth=http_auth, timeout=30, max_retries=10, retry_on_timeout=True)
 
 
     def test_connection(self):
