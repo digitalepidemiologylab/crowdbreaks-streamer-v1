@@ -53,6 +53,18 @@ class TestPriorityQueue:
         tid_q.update('321', 'user_a')
         assert tid_q.get(user_id='user_a') == '123'
         assert tid_q.get() == '321'  # empty user_id gives highest priority element
+
+    def test_removal_tweet(self, tid_q):
+        tid_q.pq.add('321', priority=1)
+        tid_q.pq.add('123', priority=0)
+        tid_q.update('321', 'user_a')
+        assert len(tid_q.pq) == 2
+        tid_q.remove('321')
+        tid_q.remove('21')
+        assert len(tid_q.pq) == 1
+        assert tid_q.rset.num_members('321') == 0
+        assert tid_q.rset.num_members('123') == 0
+
         
 
 if __name__ == "__main__":

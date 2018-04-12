@@ -219,8 +219,12 @@ class TweetIdQueue:
 
     def remove(self, tweet_id):
         """Remove a tweet from Redis set and PQueue"""
-        self.logger.debug('Removing tweet_id {} from priority queue and redis set'.format(tweet_id))
-        self.pq.remove(tweet_id)
+        if self.pq.exists(tweet_id):
+            self.logger.debug('Removing tweet_id {} from priority queue'.format(tweet_id))
+            self.pq.remove(tweet_id)
+        else:
+            self.logger.debug('Tweet_id {} not found in priority queue, therefore not removed'.format(tweet_id))
+
         self.rset.remove(tweet_id)
 
     def flush(self):
