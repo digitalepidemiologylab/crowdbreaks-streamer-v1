@@ -60,7 +60,7 @@ def get_new_tweet(project):
 def add_to_pq(project):
     """Update priority score in queue and remember that a user has already classified a tweet"""
     data = request.get_json()
-    logger.debug('Incoing request with data {}'.format(data))
+    logger.debug('Incoming request with data {}'.format(data))
     if data is None or 'user_id' not in data or 'tweet_id' not in data:
         logger.error('No user_id was passed when updating ')
         return Response(None, status=400, mimetype='text/plain')
@@ -69,12 +69,25 @@ def add_to_pq(project):
     return Response('Update successful.', status=200, mimetype='text/plain')
 
 
+@blueprint.route('tweet/remove/<project>', methods=['POST'])
+def remove_from_pq(project):
+    """Remove a tweet which is now private"""
+    data = request.get_json()
+    logger.debug('Incoming request with data {}'.format(data))
+    if data is None or 'tweet_id' not in data:
+        logger.error('No tweet_id was passed when updating')
+        return Response(None, status=400, mimetype='text/plain')
+    tid = TweetIdQueue(project)
+    tid.remove(data['tweet_id'])
+    return Response('Successfully removed.', status=200, mimetype='text/plain')
+
+
 @blueprint.route('sentiment/vaccine/', methods=['POST', 'GET'])
 def get_vaccine_sentiment():
     text = None
     if request.method == 'POST':
         data = request.get_json()
-        logger.debug('Incoing request with data {}'.format(data))
+        logger.debug('Incoming request with data {}'.format(data))
         text = data.get('text', None)
         if text is None:
             return Response(None, status=400, mimetype='text/plain')

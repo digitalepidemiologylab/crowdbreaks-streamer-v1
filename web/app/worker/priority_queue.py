@@ -211,13 +211,17 @@ class TweetIdQueue:
         # remove from pqueue if below certain threshold
         score = self.pq.get_score(tweet_id)
         if score >= self.priority_threshold:
-            self.pq.remove(tweet_id)
-            self.rset.remove(tweet_id)
-            self.logger.debug('Priority threshold reached, getting rid of tweet_id {}'.format(tweet_id))
+            self.remove(tweet_id)
             return
 
         # add user to set of tweet_id
         self.rset.add(tweet_id, user_id)
+
+    def remove(self, tweet_id):
+        """Remove a tweet from Redis set and PQueue"""
+        self.logger.debug('Removing tweet_id {} from priority queue and redis set'.format(tweet_id))
+        self.pq.remove(tweet_id)
+        self.rset.remove(tweet_id)
 
     def flush(self):
         """Self-destroy and clean up all keys"""
