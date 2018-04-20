@@ -7,6 +7,7 @@
 # - For debugging to work 'stdin_open' and 'tty' have to be set. Afterwards one can run `docker attach web` to get access to the pdb debugger
 # - Adding elasticsearch container (in production using AWS ES service) and exposing it under localhost:9200, very old version of ES unfortunately
 # - Adding kibana container which is compatible with ES 5.1.1
+# - ES and Kibana both come with x-pack (no oss version is available), in the future run a Docker file with `RUN elasticsearch-plugin remove x-pack` after pulling the image
 version: '3'
 services:
   web:
@@ -27,6 +28,9 @@ services:
     environment:
       - cluster.name=cb-dev
       - xpack.security.enabled=false
+      - xpack.monitoring.enabled=false
+      - xpack.graph.enabled=false
+      - xpack.watcher.enabled=false
     ports:
       - 9200:9200
     volumes:
@@ -40,9 +44,10 @@ services:
     ports:
       - 5601:5601
     environment:
-      - LOGGING_QUIET=true
+      - LOGGING_QUIET=false
+      - XPACK_GRAPH_ENABLED=false
+      - XPACK_MONITORING_ENABLED=false
+      - XPACK_REPORTING_ENABLED=false
+      - XPACK_SECURITY_ENABLED=false
     depends_on:
       - elasticsearch
-
-
-
