@@ -47,6 +47,3 @@ def stop_logstash(app):
         app.logger.warning(e)
     else:
         app.logger.info('Successfully paused logstash container')
-
-
-
