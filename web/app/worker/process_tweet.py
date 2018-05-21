@@ -174,8 +174,8 @@ class ProcessTweet(object):
 
         # merge with existing meta
         self.processed_tweet['meta'] = {**self.processed_tweet['meta'], **meta}
-        
 
+        
     def get_processed_tweet(self):
         """get_processed_tweet"""
         if self.tweet is None:

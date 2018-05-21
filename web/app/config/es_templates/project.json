@@ -1,6 +1,7 @@
 {
   "template" : "project*",
   "version" : 1,
+  "order": 0,
   "settings" : {
     "index.refresh_interval" : "5s"
   },

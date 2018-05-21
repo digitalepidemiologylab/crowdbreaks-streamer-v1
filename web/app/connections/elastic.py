@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone
 from flask import current_app
 from flask import _app_ctx_stack as stack
+import glob
 
 
 class Elastic():
@@ -87,14 +88,15 @@ class Elastic():
         self.logger.debug('Tweet with id {} sent to project {}'.format(tweet['id'], tweet['project']))
 
 
-    def put_template(self, template_name=None, template_path=None, filename='project_template.json'):
+    def put_template(self, filename='project.json', template_path=None):
         """Put template to ES
         """
         # read template file
-        if template_name is None:
-            template_name = self.default_template_name
+        template_name = os.path.basename(filename).split('.json')[0]
         if template_path is None:
             template_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..' ,'config', 'es_templates', filename))
+        else:
+            template_path = os.path.abspath(os.path.join(template_path, filename))
         if not os.path.exists(template_path):
             self.logger.error('No project file found under {}'.format(template_path))
             return
@@ -103,16 +105,19 @@ class Elastic():
         res = self.es.indices.put_template(template_name, body=template)
         self.logger.info("Template {} added to Elasticsearch".format(template_path))
 
+    def put_mapping(self, index_name, filename):
+        mapping_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..' ,'config', 'es_mappings', filename))
+        with open(mapping_path) as f:
+            mapping = json.load(f)
+        res = self.es.indices.put_mapping(index=index_name, doc_type='tweet', body=mapping)
+        self.logger.info("Mapping {} added to Elasticsearch index {}".format(mapping_path, index_name))
 
     def list_templates(self):
         templates = self.es.cat.templates(format='json', h=['name'])
         return [t['name'] for t in templates if not t['name'].startswith('.')]
 
-
-    def delete_template(self, template_name=None):
+    def delete_template(self, template_name):
         """Delete template"""
-        if template_name is None:
-            template_name = self.default_template_name
         res = self.es.indices.delete_template(template_name)
         self.logger.info("Template {} successfully deleted".format(template_name))
 
@@ -123,17 +128,23 @@ class Elastic():
             self.logger.warning("Aborted. Index {} already exists. Delete index first.".format(index_name))
             return False
 
-        # add template if not yet exists
-        if template_name is None:
-            template_name = self.default_template_name
-        if template_name not in self.list_templates():
-            self.put_template(template_name=template_name)
+        # add templates
+        self.add_all_templates()
 
         # create new index
         res = self.es.indices.create(index_name)
         self.logger.info("Index {} successfully created".format(index_name))
         return True
 
+    def add_all_templates(self):
+        """Add missing templates from es_templates folder"""
+        # add templates
+        template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..' ,'config', 'es_templates'))
+        template_files = glob.glob(os.path.join(template_dir, '*.json'))
+        for template_file in template_files:
+            template_name = os.path.basename(template_file).split('.json')[0]
+            if template_name not in self.list_templates():
+                res = self.put_template(filename=template_file)
 
     def delete_index(self, index_name):
         existing_indices = self.list_indices()
