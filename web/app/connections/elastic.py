@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from flask import current_app
 from flask import _app_ctx_stack as stack
 import glob
+import certifi
 
 
 class Elastic():
@@ -53,17 +54,18 @@ class Elastic():
         try:
             self.config = current_app.config
         except RuntimeError:
-            self.logger.debug('No app context found! Trying to access localhost:9200')
+            self.logger.debug('No app context found!')
             self.config = { 'ELASTICSEARCH_HOST': os.environ.get('ELASTICSEARCH_HOST', 'localhost'), 
                     'ELASTICSEARCH_PORT': os.environ.get('ELASTICSEARCH_PORT', 9200) }
 
-        http_auth = (self.config.get('ELASTICSEARCH_USERNAME', None), self.config.get('ELASTICSEARCH_PASSWORD', None))
+        if not self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
+            self.logger.info('Connecting to non-local host {}...'.format(self.config['ELASTICSEARCH_HOST']))
+            uname, pw = 'ELASTICSEARCH_USERNAME', 'ELASTICSEARCH_PASSWORD'
+            http_auth = (self.config.get(uname, os.environ.get(uname, None)), self.config.get(pw, os.environ.get(pw, None)))
+            return elasticsearch.Elasticsearch(["{}".format(self.config['ELASTICSEARCH_HOST'])], http_auth=http_auth,
+                    ca_certs=certifi.where(), timeout=30, max_retries=10, retry_on_timeout=True)
 
-        if http_auth[0] is None or http_auth[1] is None:
-            return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
-        return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])], 
-                http_auth=http_auth, timeout=30, max_retries=10, retry_on_timeout=True)
-
+        return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
 
     def test_connection(self):
         """test_connection"""
@@ -188,6 +190,29 @@ class Elastic():
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
             return res['aggregations']['sentiment']['buckets']
+        else:
+            return []
+
+    def get_geo_sentiment(self, index_name, **options):
+        start_date = options.get('start_date', 'now-20y')
+        end_date = options.get('end_date', 'now')
+        s_date, e_date = self.parse_dates(start_date, end_date)
+        field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
+        body = {
+                'size': options.get('limit', 1000),
+                '_source': ['place.average_location', field],
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'exists': {'field': 'place.average_location'}},
+                            {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
+                            ]
+                        }
+                    }
+                }
+        res = self.es.search(index=index_name, body=body, filter_path=['hits.hits._source'])
+        if keys_exist(res, 'hits', 'hits'):
+            return res['hits']['hits']
         else:
             return []
 
