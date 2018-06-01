@@ -38,7 +38,7 @@ class Config(object):
     OAUTH_TOKEN = os.environ.get('OAUTH_TOKEN')
     OAUTH_TOKEN_SECRET = os.environ.get('OAUTH_TOKEN_SECRET')
 
-    # AWS (for storing in S3)
+    # AWS (for storing in S3, accessing Elasticsearch)
     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
     AWS_REGION = os.environ.get('AWS_REGION', 'eu-central-1')

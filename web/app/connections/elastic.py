@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from flask import current_app
 from flask import _app_ctx_stack as stack
 import glob
-import certifi
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 
 
 class Elastic():
@@ -55,17 +55,20 @@ class Elastic():
             self.config = current_app.config
         except RuntimeError:
             self.logger.debug('No app context found!')
-            # self.config = { 'ELASTICSEARCH_HOST': os.environ.get('ELASTICSEARCH_HOST', 'localhost'), 
-            #         'ELASTICSEARCH_PORT': os.environ.get('ELASTICSEARCH_PORT', 9200) }
-            return elasticsearch.Elasticsearch(["{}:{}".format(os.environ.get('ELASTICSEARCH_HOST', 'localhost'), os.environ.get('ELASTICSEARCH_PORT', 9200))])
+            self.config['ELASTICSEARCH_HOST'] = os.environ.get('ELASTICSEARCH_HOST', 'localhost')
+            self.config['ELASTICSEARCH_PORT'] = os.environ.get('ELASTICSEARCH_PORT', 80)
+            if  self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
+                # Access Elasticsearch locally
+                return elasticsearch.Elasticsearch(["{}:{}".format(es_host, os.environ.get('ELASTICSEARCH_PORT', 9200))])
+            self.config['AWS_ACCESS_KEY_ID'] = os.environ.get('AWS_ACCESS_KEY_ID')
+            self.config['AWS_SECRET_ACCESS_KEY'] = os.environ.get('AWS_SECRET_ACCESS_KEY')
+            self.config['AWS_REGION'] = os.environ.get('AWS_REGION')
 
-        # if not self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
-        #     self.logger.info('Connecting to non-local host {}...'.format(self.config['ELASTICSEARCH_HOST']))
-        #     uname, pw = 'ELASTICSEARCH_USERNAME', 'ELASTICSEARCH_PASSWORD'
-        #     http_auth = (self.config.get(uname, os.environ.get(uname, None)), self.config.get(pw, os.environ.get(pw, None)))
-        return elasticsearch.Elasticsearch(["{}".format(self.config['ELASTICSEARCH_HOST'])], ca_certs=certifi.where(), timeout=30, max_retries=10, retry_on_timeout=True)
-
-        # return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
+        auth = AWSRequestsAuth(aws_access_key=self.config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=self.config['AWS_SECRET_ACCESS_KEY'],
+                aws_host=self.config['ELASTICSEARCH_HOST'], aws_region=self.config['AWS_REGION'], aws_service='es')
+        return elasticsearch.Elasticsearch(host=self.config['ELASTICSEARCH_HOST'], port=int(self.config['ELASTICSEARCH_PORT']),
+                connection_class=elasticsearch.RequestsHttpConnection,
+                http_auth=auth)
 
     def test_connection(self):
         """test_connection"""
