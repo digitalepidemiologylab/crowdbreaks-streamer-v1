@@ -55,17 +55,17 @@ class Elastic():
             self.config = current_app.config
         except RuntimeError:
             self.logger.debug('No app context found!')
-            self.config = { 'ELASTICSEARCH_HOST': os.environ.get('ELASTICSEARCH_HOST', 'localhost'), 
-                    'ELASTICSEARCH_PORT': os.environ.get('ELASTICSEARCH_PORT', 9200) }
+            # self.config = { 'ELASTICSEARCH_HOST': os.environ.get('ELASTICSEARCH_HOST', 'localhost'), 
+            #         'ELASTICSEARCH_PORT': os.environ.get('ELASTICSEARCH_PORT', 9200) }
+            return elasticsearch.Elasticsearch(["{}:{}".format(os.environ.get('ELASTICSEARCH_HOST', 'localhost'), os.environ.get('ELASTICSEARCH_PORT', 9200))])
 
-        if not self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
-            self.logger.info('Connecting to non-local host {}...'.format(self.config['ELASTICSEARCH_HOST']))
-            uname, pw = 'ELASTICSEARCH_USERNAME', 'ELASTICSEARCH_PASSWORD'
-            http_auth = (self.config.get(uname, os.environ.get(uname, None)), self.config.get(pw, os.environ.get(pw, None)))
-            return elasticsearch.Elasticsearch(["{}".format(self.config['ELASTICSEARCH_HOST'])], http_auth=http_auth,
-                    ca_certs=certifi.where(), timeout=30, max_retries=10, retry_on_timeout=True)
+        # if not self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
+        #     self.logger.info('Connecting to non-local host {}...'.format(self.config['ELASTICSEARCH_HOST']))
+        #     uname, pw = 'ELASTICSEARCH_USERNAME', 'ELASTICSEARCH_PASSWORD'
+        #     http_auth = (self.config.get(uname, os.environ.get(uname, None)), self.config.get(pw, os.environ.get(pw, None)))
+        return elasticsearch.Elasticsearch(["{}".format(self.config['ELASTICSEARCH_HOST'])], ca_certs=certifi.where(), timeout=30, max_retries=10, retry_on_timeout=True)
 
-        return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
+        # return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
 
     def test_connection(self):
         """test_connection"""

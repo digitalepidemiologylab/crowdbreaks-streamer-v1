@@ -22,4 +22,4 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
       - /etc/nginx/passwd/:/etc/nginx/passwd:ro
-    command: /bin/bash -c "envsubst '$$API_VIRTUALHOST,$$ES_VIRTUALHOST,$$ELASTICSEARCH_HOST,$$ES_BASICAUTH_PASSWD' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/nginx.conf && nginx -g 'daemon off;'"
+    command: /bin/bash -c "envsubst '$$API_VIRTUALHOST,$$KIBANA_VIRTUALHOST,$$KIBANA_HOST' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/nginx.conf && nginx -g 'daemon off;'"
