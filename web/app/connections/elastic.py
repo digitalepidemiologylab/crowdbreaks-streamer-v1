@@ -56,10 +56,10 @@ class Elastic():
         except RuntimeError:
             self.logger.debug('No app context found!')
             self.config['ELASTICSEARCH_HOST'] = os.environ.get('ELASTICSEARCH_HOST', 'localhost')
-            self.config['ELASTICSEARCH_PORT'] = os.environ.get('ELASTICSEARCH_PORT', 80)
+            self.config['ELASTICSEARCH_PORT'] = os.environ.get('ELASTICSEARCH_PORT', 9200)
             if  self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
                 # Access Elasticsearch locally
-                return elasticsearch.Elasticsearch(["{}:{}".format(es_host, os.environ.get('ELASTICSEARCH_PORT', 9200))])
+                return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
             self.config['AWS_ACCESS_KEY_ID'] = os.environ.get('AWS_ACCESS_KEY_ID')
             self.config['AWS_SECRET_ACCESS_KEY'] = os.environ.get('AWS_SECRET_ACCESS_KEY')
             self.config['AWS_REGION'] = os.environ.get('AWS_REGION')
@@ -239,11 +239,8 @@ class Elastic():
             return []
 
 
-    def get_random_document_id(self, index_name, doc_type='tweet', seed=None):
-        if seed is None:
-            seed = 42
-        # When upgrading to ES 6 'random_score' requires 'field': '_seq_no'
-        body = {'query': {'function_score': {'functions': [{'random_score': {'seed': str(seed)}}]}}}
+    def get_random_document_id(self, index_name, doc_type='tweet'):
+        body = {'query': {'function_score': {'functions': [{'random_score': {}}]}}}
         res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])
         hits = res['hits']['hits']
         if len(hits) == 0:

@@ -1,5 +1,5 @@
 {
-  "template" : "project*",
+  "index_patterns" : ["project*"],
   "version" : 1,
   "order": 0,
   "settings" : {
@@ -7,9 +7,6 @@
   },
   "mappings" : {
     "tweet" : {
-      "_all": {
-        "enabled": false
-      },
       "dynamic": false,
       "properties": {
         "@timestamp" : {

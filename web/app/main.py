@@ -49,7 +49,7 @@ def get_new_tweet(project):
     if tweet_id is None:
         logger.error('Could not get tweet id from priority queue. Getting random tweet from ES instead.')
         # get a random tweet instead
-        tweet_id = es.get_random_document_id(project, seed=int(time.time()*1000))
+        tweet_id = es.get_random_document_id(project)
         if tweet_id is None:
             logger.error('Could not get random tweet from elasticsearch.')
             return Response(None, status=400, mimetype='text/plain')

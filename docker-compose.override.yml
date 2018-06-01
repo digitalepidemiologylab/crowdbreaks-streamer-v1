@@ -5,9 +5,7 @@
 # - Do not use nginx proxy: Directly expose port 8000
 # - Mount entire source code under ./web for live-reloading of code (this unfortunately doesn't work for celery, would need a third-party tool, use `docker-compose restart celery`)
 # - For debugging to work 'stdin_open' and 'tty' have to be set. Afterwards one can run `docker attach web` to get access to the pdb debugger
-# - Adding elasticsearch container (in production using AWS ES service) and exposing it under localhost:9200, very old version of ES unfortunately
-# - Adding kibana container which is compatible with ES 5.1.1
-# - ES and Kibana both come with x-pack (no oss version is available), in the future run a Docker file with `RUN elasticsearch-plugin remove x-pack` after pulling the image
+# - Adding elasticsearch container (in production using AWS ES service) and exposing it under localhost:9200
 version: '3'
 services:
   web:
@@ -23,14 +21,10 @@ services:
   redis:
     image: "redis:alpine"
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.1.1
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.4
     container_name: elasticsearch
     environment:
       - cluster.name=cb-dev
-      - xpack.security.enabled=false
-      - xpack.monitoring.enabled=false
-      - xpack.graph.enabled=false
-      - xpack.watcher.enabled=false
     ports:
       - 9200:9200
     volumes:
@@ -39,15 +33,11 @@ services:
       - logstash
       - web
   kibana:
-    image: docker.elastic.co/kibana/kibana:5.1.1
+    image: docker.elastic.co/kibana/kibana-oss:6.2.4
     container_name: kibana
     ports:
       - 5601:5601
     environment:
-      - LOGGING_QUIET=false
-      - XPACK_GRAPH_ENABLED=false
-      - XPACK_MONITORING_ENABLED=false
-      - XPACK_REPORTING_ENABLED=false
-      - XPACK_SECURITY_ENABLED=false
+      - LOGGING_QUIET=true
     depends_on:
       - elasticsearch
