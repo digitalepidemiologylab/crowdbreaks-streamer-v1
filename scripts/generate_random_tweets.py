@@ -64,7 +64,7 @@ def generate_fake_tweet():
 
     if INDEX == 'project_vaccine_sentiment':
         predictions = {0: 'pro-vaccine', 1: 'anti-vaccine', 2:'neutral'}
-        sentiment = {str(MODEL.split('.')[0]): {'label': predictions[random.randint(0,2)], 'probability': random.random(), 'val': random.uniform(-1,1)}}
+        sentiment = {str(MODEL.split('.')[0]): {'label': predictions[random.randint(0,2)], 'probability': random.random(), 'label_val': int(random.randint(-1,1))}}
         t['meta'] = {'sentiment': sentiment}
         t['sentiment'] = sentiment
     return t

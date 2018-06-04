@@ -49,7 +49,7 @@ def process_tweet(tweet, send_to_es=True, use_pq=True, debug=True):
             # classify tweet
             model = 'fasttext_v1.ftz'
             prediction = predict(text_tokenized, model=model)
-            meta = {'sentiment': {str(model.split('.')[0]): {'label': prediction['labels'][0], 'probability': prediction['probabilities'][0]}}}
+            meta = {'sentiment': {str(model.split('.')[0]): {'label': prediction['labels'][0], 'label_val': prediction['label_vals'][0], 'probability': prediction['probabilities'][0]}}}
             logger.debug('meta: {}'.format(meta))
             pt.add_meta(meta)
         else:
@@ -68,8 +68,9 @@ def predict(text, model='fasttext_v1.ftz', num_classes=3, path_to_model='.'):
     model_path = os.path.join(os.path.abspath(path_to_model), 'bin', 'vaccine_sentiment', model)
     m = fastText.load_model(model_path)
     pred = m.predict(text, k=num_classes)
-    label_dict = {'__label__-1': 'anti-vaccine', '__label__0':'neutral', '__label__1':'pro-vaccine'}
-    return {'labels': [label_dict[l] for l in pred[0]], 'probabilities': list(pred[1]), 'model': model.split('.')[0]}
+    label_dict = {'__label__-1': ['anti-vaccine', -1], '__label__0': ['neutral', 0], '__label__1': ['pro-vaccine', 1]}
+    return { 'labels': [label_dict[l][0] for l in pred[0]], 'label_vals': [label_dict[l][1] for l in pred[0]],
+            'probabilities': list(pred[1]), 'model': model.split('.')[0]}
 
 
 def index_tweet_es(tweet):
