@@ -58,7 +58,7 @@ def process_document(doc, counter):
     return
 
 
-def run(num_docs):
+def run():
     """run
 
     :param num_docs:
@@ -66,30 +66,14 @@ def run(num_docs):
     default_exist = {'exists': {'field': 'meta.sentiment.{}.label'.format(MODEL)}}
     body_not_exists = {'bool': {'must_not': {'exists': {'field': 'meta.sentiment.{}.label_val'.format(MODEL)}}, 'must': default_exist}}
     body = { 'query': body_not_exists, '_source': ['meta.sentiment.{}.label'.format(MODEL), 'id'] }
-    estimated_time = "{}m".format(num_docs) # should give plenty of time for process to finish
+    estimated_time = "{}m".format(24*60) # should give plenty of time for process to finish
     scan = helpers.scan(es_client.es, scroll=estimated_time, query=body, index=INDEX)
     count = 0
+    num_docs = count_to_be_updated()
     for doc in scan:
         count += 1
         logger.debug('Processing doc {}/{}'.format(count, num_docs))
         process_document(doc, count)
-
-
-def main():
-    # Count unlabelled tweets in db
-    num_docs = count_to_be_updated()
-
-    if num_docs == 0:
-        logger.info('No work available... exiting')
-        sys.exit()
-
-    # Run script 
-    yes_no = input('Would you like to update all tweets (n={}) (y/n)?'.format(num_docs))
-    if yes_no == 'y':
-        logger.info('Start labelling tweets...')
-        run(num_docs)
-    else:
-        logger.info('OK good night!')
 
 
 if __name__ == "__main__":
@@ -98,7 +82,6 @@ if __name__ == "__main__":
     logger = logging.getLogger('script')
     logger.info('Starting classify tweets script...')
 
-    # initialize ES
     es_client = elastic.Elastic()
     if not es_client.test_connection():
         logger.error('Could not connect to Elasticsearch. Exiting.')
@@ -108,4 +91,25 @@ if __name__ == "__main__":
     DOC_TYPE='tweet'
     MODEL='fasttext_v1'
     LABEL_DICT = {'pro-vaccine': 1, 'anti-vaccine':-1, 'neutral': 0}
-    main()
+
+    # Count unlabelled tweets in db
+    num_docs = count_to_be_updated()
+
+    if num_docs == 0:
+        logger.info('No work available... exiting')
+        sys.exit()
+
+    # Run script 
+    yes_no = input('Would you like to update all tweets (n={}) (y/n)?'.format(num_docs))
+    if not yes_no == 'y':
+        logger.info('OK good night!')
+        sys.exit()
+
+    # initialize ES
+    num_connection_retrails = 5
+    for i in range(num_connection_retrails):
+        try:
+            es_client = elastic.Elastic()
+            run()
+        except:
+            pass
