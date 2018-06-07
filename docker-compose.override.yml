@@ -39,5 +39,7 @@ services:
       - 5601:5601
     environment:
       - LOGGING_QUIET=true
+    volumes:
+      - './kibana/config:/usr/share/kibana/config'
     depends_on:
       - elasticsearch
