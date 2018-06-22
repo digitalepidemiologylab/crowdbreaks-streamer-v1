@@ -7,6 +7,8 @@ from app.worker.priority_queue import TweetIdQueue
 from app.worker.process_tweet import ProcessTweet
 from app.worker.tasks import predict, process_tweet
 import time
+from statsmodels.nonparametric.smoothers_lowess import lowess
+import numpy as np
 
 
 blueprint = Blueprint('main', __name__)
@@ -23,14 +25,11 @@ def index():
     return "hello world!!!"
 
 
+#################################################################
+# TESTS
 @blueprint.route('test/redis', methods=['GET'])
 def test_redis():
     return json.dumps(redis.test_connection())
-
-
-@blueprint.route('test/es', methods=['GET'])
-def test_es():
-    return json.dumps(es.test_connection())
 
 
 @blueprint.route('test/celery', methods=['GET'])
@@ -39,7 +38,8 @@ def test_celery():
     process_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
     return json.dumps(tweet)
 
-
+#################################################################
+# TWEET ID HANDLING
 @blueprint.route('tweet/new/<project>', methods=['GET'])
 def get_new_tweet(project):
     """"Get new tweet from priority queue"""
@@ -81,7 +81,16 @@ def remove_from_pq(project):
     tid.remove(data['tweet_id'])
     return Response('Successfully removed.', status=200, mimetype='text/plain')
 
+#################################################################
+# All data
+@blueprint.route('data/all/<index_name>', methods=['GET'])
+def get_all_data(index_name):
+    options = get_params(request.args)
+    res = es.get_all_agg(index_name, **options)
+    return json.dumps(res)
 
+#################################################################
+# Sentiment data
 @blueprint.route('sentiment/vaccine/', methods=['POST', 'GET'])
 def get_vaccine_sentiment():
     text = None
@@ -104,20 +113,38 @@ def get_vaccine_sentiment():
 def get_vaccine_data(value):
     options = get_params(request.args)
     res = es.get_sentiment_data('project_vaccine_sentiment', value, **options)
+    for d in res:
+        if d['doc_count'] == 0:
+            d['doc_count'] = 'null'
     return json.dumps(res)
 
 
-@blueprint.route('data/all/<index_name>', methods=['GET'])
-def get_all_data(index_name):
+@blueprint.route('sentiment/average', methods=['GET'])
+def get_average_sentiment():
     options = get_params(request.args)
-    res = es.get_all_agg(index_name, **options)
-    return json.dumps(res)
+    res = es.get_av_sentiment('project_vaccine_sentiment', **options)
+    res_lowess = compute_loess(res)
+    return json.dumps(res_lowess)
 
 
 def get_params(args):
     options = {}
-    # dates must be of format 'yyyy-MM-dd H:m:s'
+    # dates must be of format 'yyyy-MM-dd HH:mm:ss'
     options['interval'] = args.get('interval', 'month')
     options['start_date'] = args.get('start_date', 'now-20y')
     options['end_date'] = args.get('end_date', 'now')
     return options
+
+def compute_loess(data):
+    y = np.array([d['avg_sentiment']['value'] for d in data])
+    x = np.array([d['key'] for d in data])
+    lowess_fit = lowess(y, x, frac=0.1, is_sorted=True, return_sorted=False)
+    data_new = []
+    for i, d in enumerate(data):
+        if np.isnan(lowess_fit[i]):
+            # needed for Ruby to be able to parse NaN values
+            d['avg_sentiment']['value_smoothed'] = 'null'
+        else: 
+            d['avg_sentiment']['value_smoothed'] = lowess_fit[i]
+        data_new.append(d)
+    return data_new

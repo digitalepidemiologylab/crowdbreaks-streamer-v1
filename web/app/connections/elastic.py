@@ -174,27 +174,75 @@ class Elastic():
         resp = self.es.update(index=index, doc_type=doc_type, id=id, body=body)
         return resp
 
+
+    #################################################################
+    # Sentiment data
     def get_sentiment_data(self, index_name, value, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
         field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
         body = {'size': 0, 
-                'aggs': {'sentiment': {'date_histogram': {
-                    'field': 'created_at',
-                    'interval': options.get('interval', 'month'),
-                    'format': 'yyyy-MM-dd HH:mm:ss'}}},
-                'query': {'bool': {
-                    'must': [
-                        {'match_phrase': {field: value}},
-                        {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
-                        ]}}
+                'aggs': {
+                    'sentiment': {
+                        'date_histogram': {
+                            'field': 'created_at',
+                            'interval': options.get('interval', 'month'),
+                            'format': 'yyyy-MM-dd HH:mm:ss'
+                            }
+                        }
+                    },
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'match_phrase': {field: value}},
+                            {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
+                            ]
+                        }
+                    }
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
             return res['aggregations']['sentiment']['buckets']
         else:
             return []
+
+    def get_av_sentiment(self, index_name, **options):
+        start_date = options.get('start_date', 'now-20y')
+        end_date = options.get('end_date', 'now')
+        s_date, e_date = self.parse_dates(start_date, end_date)
+        field = 'meta.sentiment.{}'.format(options.get('model', 'fasttext_v1'))
+        body = {'size': 0, 
+                'aggs': {
+                    'avg_sentiment': {
+                        'date_histogram': {
+                            'field': 'created_at',
+                            'interval': options.get('interval', 'month'),
+                            'format': 'yyyy-MM-dd HH:mm:ss'
+                            },
+                        'aggs': {
+                            'avg_sentiment': {
+                                'avg': {
+                                    'field': '{}.label_val'.format(field)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
+                            ]
+                        }
+                    }
+                }
+        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.avg_sentiment'])
+        if keys_exist(res, 'aggregations', 'avg_sentiment', 'buckets'):
+            return res['aggregations']['avg_sentiment']['buckets']
+        else:
+            return []
+
 
     def get_geo_sentiment(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')
@@ -220,16 +268,22 @@ class Elastic():
             return []
 
 
+    #################################################################
+    # All data
     def get_all_agg(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
 
         body = {'size': 0, 
-                'aggs': {'sentiment': {'date_histogram': {
-                    'field': 'created_at',
-                    'interval': options.get('interval', 'month'),
-                    'format': 'yyyy-MM-dd HH:mm:ss' }}},
+                'aggs': {
+                    'sentiment': {
+                        'date_histogram': {
+                            'field': 'created_at',
+                            'interval': options.get('interval', 'month'),
+                            'format': 'yyyy-MM-dd HH:mm:ss' }
+                        }
+                    },
                 'query': { 'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
@@ -239,6 +293,8 @@ class Elastic():
             return []
 
 
+    #################################################################
+    # Misc
     def get_random_document_id(self, index_name, doc_type='tweet'):
         body = {'query': {'function_score': {'functions': [{'random_score': {}}]}}}
         res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])

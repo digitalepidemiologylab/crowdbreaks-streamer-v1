@@ -35,3 +35,4 @@ websocket-client==0.46.0
 Werkzeug==0.12.2
 aws-requests-auth==0.4.1
 pybind11==2.2.3
+statsmodels==0.8.0
