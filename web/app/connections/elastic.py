@@ -248,14 +248,15 @@ class Elastic():
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
-        field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
+        field = 'meta.sentiment.{}.label_val'.format(options.get('model', 'fasttext_v1'))
         body = {
-                'size': options.get('limit', 1000),
+                'size': options.get('limit', 10000),
                 '_source': ['place.average_location', field],
                 'query': {
                     'bool': {
                         'must': [
                             {'exists': {'field': 'place.average_location'}},
+                            {'exists': {'field': field}},
                             {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
                             ]
                         }

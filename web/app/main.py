@@ -126,6 +126,12 @@ def get_average_sentiment():
     res_lowess = compute_loess(res)
     return json.dumps(res_lowess)
 
+@blueprint.route('sentiment/geo', methods=['GET'])
+def get_geo_sentiment():
+    options = get_params(request.args)
+    res = es.get_geo_sentiment('project_vaccine_sentiment', **options)
+    return json.dumps(res)
+
 
 def get_params(args):
     options = {}
