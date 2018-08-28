@@ -30,7 +30,6 @@ services:
     volumes:
       - './elasticsearch/data:/usr/share/elasticsearch/data'
     depends_on:
-      - logstash
       - web
   kibana:
     image: docker.elastic.co/kibana/kibana-oss:6.2.4

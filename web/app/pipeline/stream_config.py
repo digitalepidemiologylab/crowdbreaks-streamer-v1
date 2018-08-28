@@ -23,12 +23,13 @@ class StreamConfig():
 
     def read(self):
         config_path = self._get_config_path()
-        if config_path is None:
-            self.logger.error('Cannot read stream config file.')
+        if config_path is None or not os.path.isfile(config_path):
+            self.logger.error('Cannot find stream config file.')
             return
         with open(config_path, 'r') as f:
             config = json.load(f)
-        return config
+            return config
+
 
     def is_valid(self):
         if self.config is None:

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # stop any running docker containers...
 sudo docker stop $(sudo docker ps -a -q)
 

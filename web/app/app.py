@@ -25,9 +25,9 @@ def create_app(config=settings.ProdConfig):
     app.register_blueprint(pipeline.blueprint, url_prefix = '/pipeline')
     app.register_blueprint(es_interface.blueprint, url_prefix = '/elasticsearch')
 
-    # Pause logstash container if running
-    if app.config['PAUSE_LOGSTASH_ON_STARTUP'] == '1':
-        stop_logstash(app)
+    # Pause stream container if running
+    if app.config['PAUSE_STREAM_ON_STARTUP'] == '1':
+        stop_stream(app)
 
     return app
 
@@ -39,13 +39,13 @@ def validate_configs():
         if r not in os.environ:
             warnings.warn('Environment variable "{}" needs to be set.'.format(r), RuntimeWarning)
 
-def stop_logstash(app):
+def stop_stream(app):
     d = pipeline.DockerWrapper()
-    if d.container_status(app.config['LOGSTASH_DOCKER_CONTAINER_NAME']) == 'running':
+    if d.container_status(app.config['STREAM_DOCKER_CONTAINER_NAME']) == 'running':
         try:
-            d.pause_container(app.config['LOGSTASH_DOCKER_CONTAINER_NAME'])
+            d.pause_container(app.config['STREAM_DOCKER_CONTAINER_NAME'])
         except Exception as e:
-            app.logger.warning('Something went wrong when trying to pause the logstash container.')
+            app.logger.warning('Something went wrong when trying to pause the stream container.')
             app.logger.warning(e)
         else:
-            app.logger.info('Successfully paused logstash container')
+            app.logger.info('Successfully paused stream container')

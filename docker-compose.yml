@@ -6,12 +6,12 @@ services:
     container_name: web
     depends_on:
       - redis
-      - logstash
+      - stream
     env_file:
       - secrets.list
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-      - './logstash/config/:/logstash/config/'
+      - './stream/config/:/stream/config/'
       - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
   redis:
@@ -27,15 +27,8 @@ services:
       - secrets.list
     volumes:
       - './web/bin/:/home/app/bin/'
-  logstash:
-    build: ./logstash
-    container_name: logstash
-    environment:
-      - LOG_LEVEL=info
-      - PIPELINE_WORKERS=1
+  stream:
+    build: ./stream
+    container_name: stream
     volumes:
-      - './logstash/config/:/usr/share/logstash/pipeline/:ro'
-    depends_on:
-      - redis
-      - celery
-
+      - './stream/:/home/app'

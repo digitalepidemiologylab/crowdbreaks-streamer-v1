@@ -1,5 +1,5 @@
 FROM python:3
-MAINTAINER Martin Müller"martin.muller@epfl.ch"
+MAINTAINER Martin Müller "martin.muller@epfl.ch"
 
 # Install python dependencies
 COPY ./requirements.txt /home/app/requirements.txt

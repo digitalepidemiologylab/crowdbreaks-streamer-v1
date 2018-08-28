@@ -12,7 +12,6 @@ import logging
 from app.connections import elastic
 from app.pipeline.docker_wrapper import DockerWrapper
 from app.pipeline.stream_config import StreamConfig
-from app.pipeline.logstash_config import LogstashConfig
 
 blueprint = Blueprint('pipeline', __name__)
 
@@ -29,14 +28,14 @@ def index():
 @blueprint.route('/start', methods=['GET'])
 def start():
     d = DockerWrapper()
-    logstash_container_name = app.config['LOGSTASH_DOCKER_CONTAINER_NAME'] 
-    status = d.container_status(logstash_container_name)
+    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
+    status = d.container_status(stream_container_name)
     if status == 'running':
         return Response("Stream has already started.", status=400, mimetype='text/plain')
-    if not logstash_config_files_exist():
+    if not stream_config_files_exist():
         return Response("Invalid configuration", status=400, mimetype='text/plain')
-    d.unpause_container(logstash_container_name)
-    status = d.container_status(logstash_container_name)
+    d.unpause_container(stream_container_name)
+    status = d.container_status(stream_container_name)
     if status == 'running':
         return Response("Successfully started stream.", status=200, mimetype='text/plain')
     else:
@@ -46,13 +45,13 @@ def start():
 @blueprint.route('/stop', methods=['GET'])
 def stop():
     d = DockerWrapper()
-    logstash_container_name = app.config['LOGSTASH_DOCKER_CONTAINER_NAME'] 
-    status = d.container_status(logstash_container_name)
+    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
+    status = d.container_status(stream_container_name)
     if status != 'running':
         return Response("Stream has already stopped.", status=400, mimetype='text/plain')
     d = DockerWrapper()
-    d.pause_container(logstash_container_name)
-    status = d.container_status(logstash_container_name)
+    d.pause_container(stream_container_name)
+    status = d.container_status(stream_container_name)
     if status != 'running':
         return Response("Successfully stopped stream.", status=200, mimetype='text/plain')
     else:
@@ -62,14 +61,15 @@ def stop():
 @blueprint.route('/restart', methods=['GET'])
 def restart():
     d = DockerWrapper()
-    logstash_container_name = app.config['LOGSTASH_DOCKER_CONTAINER_NAME'] 
-    status = d.container_status(logstash_container_name)
+    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
+    status = d.container_status(stream_container_name)
+    print(stream_container_name)
     
-    if not logstash_config_files_exist():
+    if not stream_config_files_exist():
         return Response("Invalid configuration", status=400, mimetype='text/plain')
 
-    d.restart_container(logstash_container_name)
-    status = d.container_status(logstash_container_name)
+    d.restart_container(stream_container_name)
+    status = d.container_status(stream_container_name)
     if status == 'running':
         return Response("Successfully restarted stream.", status=200, mimetype='text/plain')
     else:
@@ -85,8 +85,8 @@ def status_all():
 @blueprint.route('/status/<container_name>')
 def status_container(container_name):
     d = DockerWrapper()
-    if container_name == 'logstash':
-        container_name = app.config['LOGSTASH_DOCKER_CONTAINER_NAME']
+    if container_name == 'stream':
+        container_name = app.config['STREAM_DOCKER_CONTAINER_NAME']
     try:
         resp = d.container_status(container_name)
     except:
@@ -98,8 +98,6 @@ def status_container(container_name):
 def manage_config():
     logger = logging.getLogger('pipeline')
     stream_config = StreamConfig(config=request.get_json(), app_config=app.config)
-    # logstash_config = LogstashConfig(app_config=app.config)
-    # logstash_config.read()
 
     if request.method == 'GET':
         config_data = stream_config.read()
@@ -125,7 +123,8 @@ def manage_config():
  
 
 # helpers
-def logstash_config_files_exist():
-    config_path_filter = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], app.config['LOGSTASH_FILTER_FILE'])
-    config_path_output = os.path.join(app.config['LOGSTASH_CONFIG_PATH'], app.config['LOGSTASH_OUTPUT_FILE'])
-    return os.path.isfile(config_path_filter) and os.path.isfile(config_path_output)
+def stream_config_files_exist():
+    # config_path_filter = os.path.join(app.config['STREAM_CONFIG_PATH'], app.config['STREAM_FILTER_FILE'])
+    # config_path_output = os.path.join(app.config['STREAM_CONFIG_PATH'], app.config['STREAM_OUTPUT_FILE'])
+    # return os.path.isfile(config_path_filter) and os.path.isfile(config_path_output)
+    return True

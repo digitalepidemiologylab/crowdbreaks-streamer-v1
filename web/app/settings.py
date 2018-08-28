@@ -27,15 +27,10 @@ class Config(object):
     REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
 
     # stream config
-    STREAM_CONFIG_FILE='twitter_streams.json'
-
-    # logstash
-    LOGSTASH_INPUT_FILE='input.conf'
-    LOGSTASH_OUTPUT_FILE='output.conf'
-    LOGSTASH_FILTER_FILE='filter.conf'
-    LOGSTASH_DOCKER_CONTAINER_NAME='logstash'
-    LOGSTASH_CONFIG_PATH='/logstash/config'
-    PAUSE_LOGSTASH_ON_STARTUP = os.environ.get('PAUSE_LOGSTASH_ON_STARTUP', '1')
+    STREAM_CONFIG_FILE='twitter_stream.json'
+    STREAM_CONFIG_PATH='/stream/config'
+    PAUSE_STREAM_ON_STARTUP = os.environ.get('PAUSE_STREAM_ON_STARTUP', '1')
+    STREAM_DOCKER_CONTAINER_NAME='stream'
 
     # Twitter API
     CONSUMER_KEY = os.environ.get('CONSUMER_KEY')
