@@ -7,6 +7,7 @@ class Config(object):
 
     APP_DIR = os.path.abspath(os.path.dirname(__file__))  # This directory
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir))
+    CONFIG_PATH = os.path.abspath(os.path.join(APP_DIR, 'config'))
     BASIC_AUTH_USERNAME = os.environ.get('BASIC_AUTH_USERNAME')
     BASIC_AUTH_PASSWORD = os.environ.get('BASIC_AUTH_PASSWORD')
 
@@ -25,7 +26,11 @@ class Config(object):
     REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
     REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
 
+    # stream config
+    STREAM_CONFIG_FILE='twitter_streams.json'
+
     # logstash
+    LOGSTASH_INPUT_FILE='input.conf'
     LOGSTASH_OUTPUT_FILE='output.conf'
     LOGSTASH_FILTER_FILE='filter.conf'
     LOGSTASH_DOCKER_CONTAINER_NAME='logstash'
