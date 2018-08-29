@@ -5,12 +5,19 @@ class DockerWrapper():
     For this to work mount a volume containing docker.sock in docker-compose. 
     """
 
+    # Timout before killing container
+    TIMEOUT = 1
+
     def __init__(self):
         pass
 
     @property
     def client(self):
         return docker.from_env()
+
+    def stop_container(self, container_name):
+        container = self.client.containers.get(container_name)
+        container.stop(timeout=self.TIMEOUT)
 
     def pause_container(self, container_name):
         container = self.client.containers.get(container_name)
@@ -26,7 +33,7 @@ class DockerWrapper():
 
     def restart_container(self, container_name):
         container = self.client.containers.get(container_name)
-        container.restart()
+        container.restart(timeout=self.TIMEOUT)
 
     def list_containers(self):
         return [{'name': c.name, 'status': c.status} for c in self.client.containers.list()]

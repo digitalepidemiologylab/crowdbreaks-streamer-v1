@@ -31,6 +31,10 @@ web/bin/
 logstash/config/input*.conf
 logstash/config/output.conf
 
+# stream configs
+web/app/config/stream
+
+
 # twitter stream config
 
 # elasticsearch data folder

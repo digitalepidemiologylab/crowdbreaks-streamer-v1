@@ -23,12 +23,11 @@ class Config(object):
     REDIS_DB = os.environ.get('REDIS_DB', 0)
 
     # Redis queue keys/namespaces
-    REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
-    REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
+    # REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
+    # REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
 
     # stream config
-    STREAM_CONFIG_FILE='twitter_stream.json'
-    STREAM_CONFIG_PATH='/stream/config'
+    STREAM_CONFIG_FILE_PATH = os.path.join('stream', 'twitter_stream.json')
     PAUSE_STREAM_ON_STARTUP = os.environ.get('PAUSE_STREAM_ON_STARTUP', '1')
     STREAM_DOCKER_CONTAINER_NAME='stream'
 

@@ -30,7 +30,6 @@ class StreamConfig():
             config = json.load(f)
             return config
 
-
     def is_valid(self):
         if self.config is None:
             return False, Response("Configuration empty", status=400, mimetype='text/plain')
@@ -43,7 +42,6 @@ class StreamConfig():
                 self.logger.error("One or more of the following configurations is of wrong type: {}".format(d))
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
         return True, None
-
 
     # private methods
     def _keys_are_present(self, obj):
@@ -71,7 +69,7 @@ class StreamConfig():
 
     def _get_config_path(self):
         if self.app_config is not None:
-            return os.path.join(self.app_config['CONFIG_PATH'], self.app_config['STREAM_CONFIG_FILE'])
+            return os.path.join(self.app_config['CONFIG_PATH'], self.app_config['STREAM_CONFIG_FILE_PATH'])
         else:
             self.logger.error('No app config provided. Config path not available.')
             return None

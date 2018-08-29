@@ -20,7 +20,7 @@ services:
   celery:
     build: ./web
     container_name: celery
-    command: su -m celery-user -c "celery -A app.worker.celery_init worker -Q celery,cb:logstash --loglevel=info"
+    command: su -m celery-user -c "celery -A app.worker.celery_init worker --loglevel=info"
     depends_on:
       - redis
     env_file:
@@ -28,7 +28,10 @@ services:
     volumes:
       - './web/bin/:/home/app/bin/'
   stream:
-    build: ./stream
+    build: ./web
     container_name: stream
+    command: python run_stream.py
     volumes:
-      - './stream/:/home/app'
+      - './web/logs/:/home/app/logs/'
+    env_file:
+      - secrets.list

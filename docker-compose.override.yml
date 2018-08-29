@@ -18,6 +18,9 @@ services:
   celery:
     volumes:
       - './web/:/home/app'
+  stream:
+    volumes:
+      - './web/:/home/app'
   redis:
     image: "redis:alpine"
   elasticsearch:

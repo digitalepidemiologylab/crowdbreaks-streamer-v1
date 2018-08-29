@@ -11,9 +11,9 @@ import json
 import os
 
 
-@celery.task(name='cb.process_tweet', ignore_result=True)
+@celery.task(ignore_result=True)
 def process_tweet(tweet, send_to_es=True, use_pq=True, debug=True):
-    """Process incoming tweets (currently task is triggered by logstash)
+    """Process incoming tweets
 
     :param tweet: JSON tweet object
     """
