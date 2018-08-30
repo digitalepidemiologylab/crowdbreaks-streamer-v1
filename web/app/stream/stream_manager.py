@@ -17,14 +17,3 @@ class StreamManager():
     def stop(self):
         self.logger.info('Stopping stream...')
         self.stream.disconnect()
-    
-
-    # private methods
-    def _get_pooled_config(self):
-        config = self.read()
-        res = {'keywords': set(), 'lang': set()}
-        for stream in config:
-            res['keywords'].update(stream['keywords'])
-            res['lang'].update(stream['lang'])
-        return res
-

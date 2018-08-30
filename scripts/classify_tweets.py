@@ -15,8 +15,8 @@ from elasticsearch import helpers
 import requests
 import json
 import logging.config
-from web.app.worker.tasks import predict
-from web.app.worker.process_tweet import ProcessTweet
+from web.app.stream.tasks import predict
+from web.app.utils.process_tweet import ProcessTweet
 
 
 def count_unlabelled():

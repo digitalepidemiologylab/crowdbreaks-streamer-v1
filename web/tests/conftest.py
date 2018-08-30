@@ -1,7 +1,7 @@
 import pytest
 import sys, os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from app.worker.priority_queue import PriorityQueue, TweetIdQueue, RedisSet
+from app.utils.priority_queue import PriorityQueue, TweetIdQueue, RedisSet
 
 
 # vars global to test env

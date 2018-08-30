@@ -4,7 +4,7 @@ from app.stream.errors import ERROR_CODES
 import json
 import time
 import re
-from app.stream.tasks import process_tweet, send_to_s3
+from app.stream.tasks import handle_tweet, send_to_s3
 
 
 class Listener(StreamListener):
@@ -17,10 +17,10 @@ class Listener(StreamListener):
     def on_status(self, status):
         # Prints the text of the tweet
         tweet = status._json
-        # process_tweet(tweet, send_to_es=False, use_pq=False)
-        text = self._get_text(tweet)
-        self.logger.debug(text)
-        self.logger.info('----------')
+        handle_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
+        # text = self._get_text(tweet)
+        # self.logger.debug(text)
+        # self.logger.info('----------')
         return True
 
     def on_error(self, status_code):

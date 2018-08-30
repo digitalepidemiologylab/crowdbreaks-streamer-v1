@@ -1,14 +1,19 @@
-from flask import Flask, request, Blueprint, Response
+from flask import Flask, request, Blueprint, Response, jsonify
+from flask import current_app as app
 from app.basic_auth import requires_auth_func
 import json
 from app.extensions import es, redis
 import logging
-from app.worker.priority_queue import TweetIdQueue
-from app.worker.process_tweet import ProcessTweet
-from app.worker.tasks import predict, process_tweet
+from app.utils.priority_queue import TweetIdQueue
+from app.utils.process_tweet import ProcessTweet
+from app.stream.tasks import predict, handle_tweet
 import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
+import os
+
+
+from app.utils.reverse_tweet_matcher import ReverseTweetMatcher
 
 
 blueprint = Blueprint('main', __name__)
@@ -34,9 +39,13 @@ def test_redis():
 
 @blueprint.route('test/celery', methods=['GET'])
 def test_celery():
-    tweet = {'text': 'this is just some example text', 'id': int(time.time()*1000), 'project': 'project_vaccine_sentiment', 'place': None}
-    process_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
-    return json.dumps(tweet)
+    with open(os.path.join(app.config['CONFIG_PATH'], 'example_data', 'tweet.json'), 'r') as f:
+        tweet = json.load(f)
+
+    # handle_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
+    rtm = ReverseTweetMatcher(tweet=tweet)
+    logger.info(rtm.get_candidates())
+    return jsonify(tweet)
 
 #################################################################
 # TWEET ID HANDLING

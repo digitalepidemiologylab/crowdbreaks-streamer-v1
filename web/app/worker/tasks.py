@@ -3,8 +3,8 @@ from celery.utils.log import get_task_logger
 import time
 import logging
 from copy import copy
-from app.worker.process_tweet import ProcessTweet
-from app.worker.priority_queue import TweetIdQueue
+from app.utils.process_tweet import ProcessTweet
+from app.utils.priority_queue import TweetIdQueue
 from app.extensions import es
 import fastText
 import json
@@ -60,18 +60,6 @@ def process_tweet(tweet, send_to_es=True, use_pq=True, debug=True):
     if send_to_es:
         logger.debug('Sending tweet with id {} to ES'.format(processed_tweet['id']))
         index_tweet_es(processed_tweet)
-
-
-@celery.task
-def predict(text, model='fasttext_v1.ftz', num_classes=3, path_to_model='.'):
-    logger = get_task_logger(__name__)
-    model_path = os.path.join(os.path.abspath(path_to_model), 'bin', 'vaccine_sentiment', model)
-    m = fastText.load_model(model_path)
-    pred = m.predict(text, k=num_classes)
-    label_dict = {'__label__-1': ['anti-vaccine', -1], '__label__0': ['neutral', 0], '__label__1': ['pro-vaccine', 1]}
-    return { 'labels': [label_dict[l][0] for l in pred[0]], 'label_vals': [label_dict[l][1] for l in pred[0]],
-            'probabilities': list(pred[1]), 'model': model.split('.')[0]}
-
 
 def index_tweet_es(tweet):
     logger = get_task_logger(__name__)
