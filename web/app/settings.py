@@ -21,10 +21,8 @@ class Config(object):
     REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
     REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
     REDIS_DB = os.environ.get('REDIS_DB', 0)
-
-    # Redis queue keys/namespaces
-    # REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
-    # REDIS_LOGSTASH_QUEUE_KEY = os.environ.get('REDIS_LOGSTASH_QUEUE_KEY', 'logstash')
+    REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
+    REDIS_STREAM_QUEUE_KEY = os.environ.get('REDIS_STREAM_QUEUE_KEY', 'stream')
 
     # stream config
     STREAM_CONFIG_FILE_PATH = os.path.join('stream', 'twitter_stream.json')

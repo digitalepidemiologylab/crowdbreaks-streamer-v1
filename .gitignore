@@ -34,6 +34,10 @@ logstash/config/output.conf
 # stream configs
 web/app/config/stream
 
+# celery binaries
+celerybeat-schedule
+celerybeat-schedule.db
+
 
 # twitter stream config
 

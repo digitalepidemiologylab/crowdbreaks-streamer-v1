@@ -6,14 +6,11 @@ from app.extensions import es, redis
 import logging
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.process_tweet import ProcessTweet
-from app.stream.tasks import predict, handle_tweet
+from app.stream.tasks import predict, handle_tweet, send_to_s3
 import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
 import os
-
-
-from app.utils.reverse_tweet_matcher import ReverseTweetMatcher
 
 
 blueprint = Blueprint('main', __name__)
@@ -41,11 +38,8 @@ def test_redis():
 def test_celery():
     with open(os.path.join(app.config['CONFIG_PATH'], 'example_data', 'tweet.json'), 'r') as f:
         tweet = json.load(f)
-
-    # handle_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
-    rtm = ReverseTweetMatcher(tweet=tweet)
-    logger.info(rtm.get_candidates())
-    return jsonify(tweet)
+    handle_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
+    return 'testing celery'
 
 #################################################################
 # TWEET ID HANDLING

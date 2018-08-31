@@ -27,10 +27,20 @@ services:
       - secrets.list
     volumes:
       - './web/bin/:/home/app/bin/'
+  celery-beat:
+    build: ./web
+    container_name: celery-beat
+    command: celery -A app.worker.celery_init beat --loglevel=info
+    depends_on:
+      - celery
+    env_file:
+      - secrets.list
   stream:
     build: ./web
     container_name: stream
     command: python run_stream.py
+    depends_on:
+      - redis
     volumes:
       - './web/logs/:/home/app/logs/'
     env_file:
