@@ -11,9 +11,9 @@ services:
       - secrets.list
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-      - './stream/config/:/stream/config/'
       - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
+      - './web/app/config/:/home/app/app/config/'
   redis:
     container_name: redis
     image: "redis:alpine"
@@ -27,6 +27,8 @@ services:
       - secrets.list
     volumes:
       - './web/bin/:/home/app/bin/'
+      - './web/logs/:/home/app/logs/'
+      - './web/app/config/:/home/app/app/config/'
   celery-beat:
     build: ./web
     container_name: celery-beat
@@ -36,6 +38,10 @@ services:
       - celery
     env_file:
       - secrets.list
+    volumes:
+      - './web/bin/:/home/app/bin/'
+      - './web/logs/:/home/app/logs/'
+      - './web/app/config/:/home/app/app/config/'
   stream:
     build: ./web
     container_name: stream
@@ -43,6 +49,8 @@ services:
     depends_on:
       - redis
     volumes:
+      - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
+      - './web/app/config/:/home/app/app/config/'
     env_file:
       - secrets.list

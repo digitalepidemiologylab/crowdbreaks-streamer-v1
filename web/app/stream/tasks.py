@@ -75,7 +75,7 @@ def send_to_s3(debug=False):
         stream_config = stream_config_reader.get_config_by_project(project)
         tweets = b'\n'.join(s3_handler.pop_all(key))  # create json lines byte string
         now = datetime.datetime.now()
-        s3_key = 'tweets/{}/{}/tweets-{}-{}.jsonl'.format(stream_config['es_index_name'], now.strftime("%Y-%m-%d"), str(uuid.uuid4()), now.strftime("%Y%m%d%H%M%S"))
+        s3_key = 'tweets/{}/{}/tweets-{}-{}.jsonl'.format(stream_config['es_index_name'], now.strftime("%Y-%m-%d"), now.strftime("%Y%m%d%H%M%S"), str(uuid.uuid4()))
         # @future me: It would probably be a good idea to compress data before upload...
         if s3_handler.upload_to_s3(tweets, s3_key):
             logging.info('Successfully uploaded file {} to S3'.format(s3_key))
