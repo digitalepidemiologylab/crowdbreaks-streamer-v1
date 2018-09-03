@@ -24,8 +24,8 @@ class StreamConfig():
     def read(self):
         config_path = self._get_config_path()
         if config_path is None or not os.path.isfile(config_path):
-            self.logger.error('Cannot find stream config file.')
-            return
+            self.logger.warning('Cannot find stream config file.')
+            return []
         with open(config_path, 'r') as f:
             config = json.load(f)
             return config
@@ -75,4 +75,3 @@ class StreamConfig():
         else:
             self.logger.error('No app config provided. Config path not available.')
             return None
-

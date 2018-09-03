@@ -4,7 +4,7 @@ import json
 
 
 class StreamConfigReader():
-    """Read twitter stream configuration"""
+    """Read twitter stream configuration while not in app context (e.g. in celery tasks)"""
 
     def __init__(self):
         self.config_path = self._get_config_path()
@@ -20,6 +20,8 @@ class StreamConfigReader():
         return res
 
     def read(self):
+        if not os.path.isfile(self.config_path):
+            return []
         with open(self.config_path, 'r') as f:
             config = json.load(f)
         return config
