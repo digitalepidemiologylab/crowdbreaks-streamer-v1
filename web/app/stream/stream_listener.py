@@ -1,10 +1,10 @@
+from app.stream.errors import ERROR_CODES
+from app.stream.tasks import handle_tweet
 from tweepy import StreamListener
 import logging
-from app.stream.errors import ERROR_CODES
 import json
 import time
 import re
-from app.stream.tasks import handle_tweet, send_to_s3
 
 
 class Listener(StreamListener):
@@ -15,12 +15,8 @@ class Listener(StreamListener):
         self.rate_error_count = 0
  
     def on_status(self, status):
-        # Prints the text of the tweet
         tweet = status._json
-        handle_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
-        # text = self._get_text(tweet)
-        # self.logger.debug(text)
-        # self.logger.info('----------')
+        handle_tweet.delay(tweet)
         return True
 
     def on_error(self, status_code):
@@ -48,25 +44,3 @@ class Listener(StreamListener):
 
     def on_warning(self, notice):
         self.logger.warning(notice)
-
-
-    # private methods
-    def _get_text(self, tweet):
-        if 'retweeted_status' in tweet:
-            prefix = self._get_retweet_prefix(tweet)
-            return prefix + self._get_full_text(tweet['retweeted_status'])
-        else:
-            return self._get_full_text(tweet)
-
-    def _get_full_text(self, tweet):
-        if 'extended_tweet' in tweet:
-            return tweet['extended_tweet']['full_text']
-        else:
-            return tweet['text']
-
-    def _get_retweet_prefix(self, tweet):
-        m = re.match(r'^RT (@\w+): ', tweet['text'])
-        try:
-            return m[0]
-        except TypeError:
-            return ''

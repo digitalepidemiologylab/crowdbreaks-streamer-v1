@@ -5,21 +5,24 @@ from app.stream.stream_manager import StreamManager
 import time
 import logging.config
 from app.settings import Config
+import signal
 
+run = True
+stream = None
 
 def main():
     """Here we instantiate the stream manager, listener and connect to the Twitter streaming API."""
+    global stream
     # setting things up...
     logger = logging.getLogger('stream')
     listener = Listener()
     auth = get_auth()
-
     # wait for a bit before connecting, in case container will be paused
     logger.debug('Streaming container is ready, sleeping for a bit...')
     time.sleep(10)
     time_last_error = None
     error_count = 0
-    while True:
+    while run:
         logger.debug('Trying to connect to Twitter API...')
         try: 
             stream = StreamManager(auth, listener)
@@ -30,10 +33,17 @@ def main():
             error += 1
             time_new_error = time.time()
             time_last_error = wait_some_time(time_last_error, time_new_error)
-
             # consider switching auth keys here...
             # send out email...
+        time.sleep(4)
+    logger.info('Shutting down...')
 
+def handler_stop_signals(signum, frame):
+    global run
+    global stream
+    run = False
+    if stream is not None:
+        stream.stop()
 
 def wait_some_time(time_last_error, time_new_error):
     if time_last_error is None:
@@ -63,4 +73,5 @@ def get_auth():
 if __name__ == '__main__':
     # logging config
     logging.config.fileConfig('logging.conf')
+    signal.signal(signal.SIGTERM, handler_stop_signals)
     main()

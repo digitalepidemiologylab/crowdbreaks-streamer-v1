@@ -20,4 +20,4 @@ EXPOSE 8000
 RUN adduser --disabled-password --gecos '' celery-user
 
 # development server:
-CMD ["python", "run.py"]
+CMD ["python3", "run.py"]

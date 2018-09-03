@@ -38,7 +38,7 @@ def test_redis():
 def test_celery():
     with open(os.path.join(app.config['CONFIG_PATH'], 'example_data', 'tweet.json'), 'r') as f:
         tweet = json.load(f)
-    handle_tweet.delay(tweet, send_to_es=False, use_pq=False, debug=True)
+    handle_tweet(tweet, send_to_es=False, use_pq=False, debug=True)
     return 'testing celery'
 
 #################################################################

@@ -10,7 +10,7 @@ class StreamConfig():
         self.app_config = app_config
         self.config = config
         self.logger = logging.getLogger('pipeline')
-        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug']
+        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode']
 
     def write(self):
         config_path = self._get_config_path()
@@ -33,15 +33,17 @@ class StreamConfig():
     def is_valid(self):
         if self.config is None:
             return False, Response("Configuration empty", status=400, mimetype='text/plain')
-
         for d in self.config:
             if not self._keys_are_present(d):
-                self.logger.error("One or more of the following keywords are not present in the sent configuration: {}".format(required_keys))
+                self.logger.error("One or more of the following keywords are not present in the sent configuration: {}".format(self.required_keys))
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
             if not self._validate_data_types(d):
                 self.logger.error("One or more of the following configurations is of wrong type: {}".format(d))
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
         return True, None
+
+    def get_es_index_names(self):
+        return [d['es_index_name'] for d in self.config]
 
     # private methods
     def _keys_are_present(self, obj):

@@ -13,7 +13,6 @@ class Elastic():
     """Interaction with Elasticsearch
     """
 
-
     def __init__(self, app=None, logger=None):
         self.logger = logger
         self.app = app
@@ -79,19 +78,16 @@ class Elastic():
             self.logger.error('Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
         return test
 
-
     def cluster_health(self):
         return self.es.cluster.health()
 
-
-    def index_tweet(self, tweet):
+    def index_tweet(self, tweet, index_name):
         """Index new tweet in index name given by tweet['project']. Will not re-index already existing doc with same ID.
 
         :tweet: tweet to index
         """
-        self.es.index(index=tweet['project'], id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
-        self.logger.debug('Tweet with id {} sent to project {}'.format(tweet['id'], tweet['project']))
-
+        self.es.index(index=index_name, id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
+        self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
 
     def put_template(self, filename='project.json', template_path=None):
         """Put template to ES
@@ -140,6 +136,12 @@ class Elastic():
         res = self.es.indices.create(index_name)
         self.logger.info("Index {} successfully created".format(index_name))
         return True
+
+    def update_es_indices(self, indices):
+        current_indices = self.list_indices()
+        for idx in indices:
+            if idx not in current_indices:
+                self.create_index(idx)
 
     def add_all_templates(self):
         """Add missing templates from es_templates folder"""

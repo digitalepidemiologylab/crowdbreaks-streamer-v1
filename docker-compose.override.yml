@@ -18,9 +18,13 @@ services:
   celery:
     volumes:
       - './web/:/home/app'
+    depends_on:
+      - elasticsearch
   celery-beat:
     volumes:
       - './web/:/home/app'
+    depends_on:
+      - elasticsearch
   stream:
     volumes:
       - './web/:/home/app'

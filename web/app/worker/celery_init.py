@@ -7,7 +7,7 @@ def create_celery():
     CELERY_RESULT_BACKEND=os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379')
 
     return Celery('tasks',
-            include=['app.worker.tasks', 'app.stream.tasks'],
+            include=['app.stream.tasks'],
             broker=CELERY_BROKER_URL,
             backend=CELERY_RESULT_BACKEND)
 

@@ -7,7 +7,7 @@ class ReverseTweetMatcher(object):
     """Tries to reverse match a tweet object given a set of keyword lists and languages."""
 
     def __init__(self, tweet=None):
-        self.is_retweeet = False
+        self.is_retweet = self._is_retweet(tweet)
         self.tweet = self._get_tweet(tweet)
         self.logger = logging.getLogger(__name__)
         self.stream_config_reader = StreamConfigReader()
@@ -107,11 +107,12 @@ class ReverseTweetMatcher(object):
         return ''.join(t)
         
     def _get_tweet(self, tweet):
-        if 'retweeted_status' in tweet:
-            self.is_retweet = True
-            # if retweeted status, we only care about the information inside the retweeted status
+        if self.is_retweet:
             return tweet['retweeted_status']
         else:
             return tweet
 
+
+    def _is_retweet(self, tweet):
+        return 'retweeted_status' in tweet
 

@@ -30,7 +30,8 @@ services:
   celery-beat:
     build: ./web
     container_name: celery-beat
-    command: celery -A app.worker.celery_init beat --loglevel=info
+    # leave --pidfile empty so that celery doesn't create one
+    command: celery -A app.worker.celery_init beat --loglevel=info --pidfile=
     depends_on:
       - celery
     env_file:
@@ -38,7 +39,7 @@ services:
   stream:
     build: ./web
     container_name: stream
-    command: python run_stream.py
+    command: python3 run_stream.py
     depends_on:
       - redis
     volumes:

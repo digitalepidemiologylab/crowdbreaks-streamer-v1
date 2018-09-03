@@ -10,8 +10,10 @@ import glob
 import time
 import logging
 from app.connections import elastic
-from app.pipeline.docker_wrapper import DockerWrapper
+from app.utils.docker_wrapper import DockerWrapper
 from app.pipeline.stream_config import StreamConfig
+from app.stream.stream_config_reader import StreamConfigReader
+from app.extensions import es
 
 blueprint = Blueprint('pipeline', __name__)
 
@@ -30,8 +32,10 @@ def start():
     status = d.container_status(stream_container_name)
     if status == 'running':
         return Response("Stream has already started.", status=400, mimetype='text/plain')
-    if not stream_config_file_exists():
-        return Response("Invalid configuration", status=400, mimetype='text/plain')
+    stream_config = StreamConfigReader()
+    is_valid, response_invalid = stream_config.validate_streaming_config()
+    if not is_valid:
+        return Response(response_invalid, status=400, mimetype='text/plain')
     d.unpause_container(stream_container_name)
     status = d.container_status(stream_container_name)
     if status == 'running':
@@ -57,8 +61,10 @@ def restart():
     d = DockerWrapper()
     stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
     status = d.container_status(stream_container_name)
-    if not stream_config_file_exists():
-        return Response("Invalid configuration", status=400, mimetype='text/plain')
+    stream_config = StreamConfigReader()
+    is_valid, response_invalid = stream_config.validate_streaming_config()
+    if not is_valid:
+        return Response(response_invalid, status=400, mimetype='text/plain')
     if status != 'running':
         return Response("Can only restart a running stream.", status=400, mimetype='text/plain')
     d.stop_container(stream_container_name)
@@ -93,27 +99,17 @@ def manage_config():
     logger = logging.getLogger('pipeline')
     stream_config = StreamConfig(config=request.get_json(), app_config=app.config)
     if request.method == 'GET':
+        # read streaming config
         config_data = stream_config.read()
         return jsonify(config_data)
     else:
+        # write streaming config
         # make sure new configuration is valid
         is_valid, resp = stream_config.is_valid()
         if not is_valid:
             return resp
         # write everything to config
         stream_config.write()
-        # Create new Elasticsearch index if index doesn't exist already for project
-        # es = elastic.Elastic()
-        # es_indexes = es.list_indices()
-        # for d in config:
-        #     if d['es_index_name'] not in es_indexes:
-        #         logger.info('Index "{}" does not yet exist in elasticsearch. Creating new index...'.format(d['es_index_name']))
-        #         es.create_index(d['es_index_name'])
-                
+        # Create new Elasticsearch indices if needed
+        es.update_es_indices(stream_config.get_es_index_names())
         return Response("Successfully updated configuration files. Make sure to restart stream for changes to be active.", status=200, mimetype='text/plain')
- 
-
-# helpers
-def stream_config_file_exists():
-    config_file_path = os.path.join(app.config['CONFIG_PATH'], app.config['STREAM_CONFIG_FILE_PATH'])
-    return os.path.isfile(config_file_path)
