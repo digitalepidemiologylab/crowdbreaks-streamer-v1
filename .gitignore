@@ -27,15 +27,9 @@ scripts/retrieve_sent_data.py
 # binaries
 web/bin/
 
-# stream configs
-web/app/config/stream
-
 # celery binaries
 celerybeat-schedule
 celerybeat-schedule.db
-
-
-# twitter stream config
 
 # elasticsearch data folder
 elasticsearch/
