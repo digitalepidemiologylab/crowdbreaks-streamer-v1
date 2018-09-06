@@ -28,8 +28,6 @@ services:
   stream:
     volumes:
       - './web/:/home/app'
-  redis:
-    image: "redis:alpine"
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.4
     container_name: elasticsearch

@@ -17,6 +17,8 @@ services:
   redis:
     container_name: redis
     image: "redis:alpine"
+    volumes:
+      - './:/data'
   celery:
     build: ./web
     container_name: celery
