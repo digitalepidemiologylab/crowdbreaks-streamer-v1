@@ -49,12 +49,14 @@ class StreamStatusMailer(Mailer):
 
     def get_body_daily(self):
         today = datetime.now().strftime("%Y-%m-%d")
+        projects_stats, total_count = self._get_projects_stats()
         html_text = """\
             <html>
               <head></head>
                 <body>
                     <h2>Crowdbreaks stream status</h2>
                     Date: {date}<br>
+                    Total this week: {total_count}<br>
                     Number of tweets by project:<br>
                     {projects_stats}
                     <h2>Error log (past 7 days)</h2>
@@ -62,7 +64,7 @@ class StreamStatusMailer(Mailer):
                 </body>
             </html>
 
-        """.format(date=today, projects_stats=self._get_projects_stats(), errors=self._get_error_log(5), subtype='html')
+        """.format(date=today, total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
         return html_text
 
     def _get_projects_stats(self, start_day=None, end_day=None, num_days=7):
@@ -73,14 +75,19 @@ class StreamStatusMailer(Mailer):
             start_day = end_day - timedelta(days=num_days)
         stats = ''
         dates = list(redis_s3_queue.daterange(start_day, end_day))
+        total = 0
         for stream in stream_config_reader.read():
             project = stream['es_index_name']
             project_slug = stream['slug']
             stats += "<h3>{}</h3>".format(project)
+            total_by_project = 0
             for d in dates:
                 count = redis_s3_queue.get_daily_counts(project_slug, d)
                 stats += '{}: {}<br>'.format(d, count)
-        return stats
+                total += count
+                total_by_project += count
+            stats += 'Total: {}<br>'.format(total_by_project)
+        return stats, total
 
     def _get_error_log(self, n=1, num_days=7):
         error_log = os.path.join(self.config.PROJECT_ROOT, 'logs', 'error.log')
