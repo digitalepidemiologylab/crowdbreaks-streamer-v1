@@ -33,3 +33,6 @@ celerybeat-schedule.db
 
 # elasticsearch data folder
 elasticsearch/
+
+# Redis
+dump.rdb

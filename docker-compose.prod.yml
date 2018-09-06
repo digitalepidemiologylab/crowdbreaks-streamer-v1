@@ -5,6 +5,9 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile.production
+  redis:
+    volumes:
+      - '.:/data'
   celery:
     build:
       context: ./web
