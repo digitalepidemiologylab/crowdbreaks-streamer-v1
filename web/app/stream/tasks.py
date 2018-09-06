@@ -43,7 +43,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
         if use_pq and not rtm.is_retweet:
             # add to Tweet ID queue for crowd labelling
             logger.debug('Add tweet to priority queue...')
-            tid = TweetIdQueue(project, priority_threshold=3)
+            tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
             tid.add(tweet['id'], priority=0)
         if send_to_es and stream_config['storage_mode'] in ['s3-es', 's3-es-no-retweets']:
             if rtm.is_retweet and stream_config['storage_mode'] == 's3-es-no-retweets':
