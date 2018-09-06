@@ -1,0 +1,18 @@
+FROM python:3
+MAINTAINER Martin Müller "martin.muller@epfl.ch"
+
+# Install python dependencies
+COPY ./requirements.txt /home/test-app/requirements.txt
+WORKDIR /home/test-app
+RUN pip3 install -r requirements.txt
+
+# Install fastText
+RUN apt-get update && apt-get install git
+RUN git clone https://github.com/facebookresearch/fastText
+RUN pip3 install ./fastText/
+
+# Copy files
+COPY . /home/test-app
+
+# development server:
+CMD pytest

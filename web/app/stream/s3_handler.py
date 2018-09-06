@@ -9,34 +9,8 @@ class S3Handler():
 
     def __init__(self):
         self.config = Config()
-        self.redis = redis.Redis(host=self.config.REDIS_HOST, port=self.config.REDIS_PORT, db=self.config.REDIS_DB)
-        if not self.redis.ping():
-            raise Exception("Could not connect to Redis instance on {}.".format(self.config.REDIS_HOST))
         self.bucket = self.config.S3_BUCKET
         self.logger = logging.getLogger(__name__)
-
-    def queue_key(self, project):
-        return "{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.config.REDIS_STREAM_QUEUE_KEY, project)
-
-    def push_to_queue(self, tweet, project):
-        self.redis.rpush(self.queue_key(project), tweet)
-
-    def pop_from_queue(self, project):
-        return self.redis.lpop(self.queue_key(project))
-
-    def pop_all(self, key):
-        pipe = self.redis.pipeline()
-        res = pipe.lrange(key, 0, -1).delete(key).execute()
-        return res[0]
-
-    def num_elements_in_queue(self, key):
-        return self.redis.llen(key)
-
-    def find_projects_in_queue(self):
-        keys = []
-        for key in self.redis.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.config.REDIS_STREAM_QUEUE_KEY)):
-            keys.append(key)
-        return keys
 
     def upload_to_s3(self, content, key):
         try: 
@@ -49,6 +23,24 @@ class S3Handler():
 
     def list_buckets(self):
         return self._s3_client.list_buckets()
+
+    def iter_items(self, prefix=''):
+        return self._s3_client.list_objects(Bucket=self.bucket, Prefix=prefix)['Contents']
+
+    def rename(self, old_key, new_key):
+        copy_source = {'Bucket': self.bucket, 'Key': old_key}
+        key = self.bucket + '/' + new_key
+        self._s3_client.copy_object(Bucket=self.bucket, CopySource=copy_source, Key=new_key)
+        self.delete(old_key)
+
+    def delete(self, key):
+        self._s3_client.delete_object(Bucket=self.bucket, Key=key)
+
+    def read(self, key):
+        return self._s3_client.get_object(Bucket=self.bucket, Key=key)['Body'].read().decode()
+
+    def read_line(self, key):
+        return self._s3_client.get_object(Bucket=self.bucket, Key=key)['Body'].read().splitlines()
         
     # private methods
 

@@ -4,7 +4,6 @@ import pdb
 
 
 class TestPriorityQueue:
-
     def test_add(self, pq):
         test_val = '123456' 
         pq.add(test_val)
@@ -82,4 +81,6 @@ class TestPriorityQueue:
 
 
 if __name__ == "__main__":
+    # if running outside of docker, make sure redis is running on localhost
+    import os; os.environ["REDIS_HOST"] = "localhost"
     pytest.main()

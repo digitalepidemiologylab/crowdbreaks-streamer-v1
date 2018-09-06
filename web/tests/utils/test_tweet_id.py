@@ -68,5 +68,6 @@ class TestPriorityQueue:
         
 
 if __name__ == "__main__":
-    # pytest.main(['-s'])
+    # if running outside of docker, make sure redis is running on localhost
+    import os; os.environ["REDIS_HOST"] = "localhost"
     pytest.main()

@@ -1,0 +1,18 @@
+# Test docker compose
+version: '3'
+services:
+  redis_test:
+    container_name: redis_test
+    image: "redis:alpine"
+  web_test:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.test
+    container_name: web_test
+    depends_on:
+      - redis_test
+    env_file:
+      - secrets.list
+    environment:
+      - REDIS_HOST=redis_test
+

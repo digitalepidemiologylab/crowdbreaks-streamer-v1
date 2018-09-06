@@ -27,4 +27,6 @@ class TestRedisSet:
 
 
 if __name__ == "__main__":
+    # if running outside of docker, make sure redis is running on localhost
+    import os; os.environ["REDIS_HOST"] = "localhost"
     pytest.main()

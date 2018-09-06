@@ -34,7 +34,7 @@ def create_app(config=settings.ProdConfig):
 
 def validate_configs():
     required_envs = ['BASIC_AUTH_USERNAME', 'BASIC_AUTH_PASSWORD', 'ELASTICSEARCH_HOST', 'ELASTICSEARCH_PORT',
-            'CONSUMER_KEY', 'CONSUMER_SECRET', 'OAUTH_TOKEN', 'OAUTH_TOKEN_SECRET']
+            'CONSUMER_KEY', 'CONSUMER_SECRET', 'OAUTH_TOKEN', 'OAUTH_TOKEN_SECRET', 'ENV']
     for r in required_envs:
         if r not in os.environ:
             warnings.warn('Environment variable "{}" needs to be set.'.format(r), RuntimeWarning)

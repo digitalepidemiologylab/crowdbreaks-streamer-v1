@@ -6,7 +6,7 @@ from app.extensions import es, redis
 import logging
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.process_tweet import ProcessTweet
-from app.stream.tasks import predict, handle_tweet, send_to_s3
+from app.stream.tasks import predict, handle_tweet
 import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np

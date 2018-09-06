@@ -1,7 +1,7 @@
 import sys, os
 sys.path.append('..')
 sys.path.append('../web/')
-from s3_handler import S3Handler
+from app.stream.s3_handler import S3Handler
 import re
 import uuid
 import json
