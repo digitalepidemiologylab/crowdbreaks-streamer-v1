@@ -30,10 +30,14 @@ source scripts/download_binaries.sh
 Make sure docker is running in the background, then run:
 ```
 docker-compose up --build
+# or
+source build_development.sh
 ```
 Run tests:
 ```
-pytest web/tests
+pytest web/tests      # make sure all dependencies are installed and ENV vars are set
+# or
+source build_test.sh  # runs everything in docker, no setup necessary
 ```
 
 For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-flask-api/wiki/Development)
