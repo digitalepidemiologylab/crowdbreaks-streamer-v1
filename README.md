@@ -1,4 +1,4 @@
-# Crowdbreaks Flask API 
+# Crowdbreaks API 
 
 Intended to be used for stream processing, interaction with ElasticSearch, and endpoints for running ML tasks (such as vaccine sentiments).
 
@@ -20,7 +20,7 @@ resp.json()
 # Installation
 ## Development
 ```
-git clone git@github.com:salathegroup/crowdbreaks-flask-api.git && cd crowdbreaks-flask-api
+git clone git@github.com:salathegroup/crowdbreaks-api.git && cd crowdbreaks-api
 cp secrets.list.example secrets.list
 ```
 Then set environment variables in `secrets.list`. Afterwards download model binaries using:
@@ -40,14 +40,14 @@ pytest web/tests      # make sure all dependencies are installed and ENV vars ar
 source build_test.sh  # runs everything in docker, no setup necessary
 ```
 
-For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-flask-api/wiki/Development)
+For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-api/wiki/Development)
 
 ## Production EC2 (Ubuntu 16.04)
 After setting env variables, run:
 ```
 source build_production.sh
 ```
-For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-flask-api/wiki/Deployment)
+For more info read the [wiki](https://github.com/salathegroup/crowdbreaks-api/wiki/Deployment)
 
 
 # Vaccine sentiment tracking
