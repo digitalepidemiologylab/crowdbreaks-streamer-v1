@@ -56,8 +56,7 @@ class StreamStatusMailer(Mailer):
                 <body>
                     <h2>Crowdbreaks stream status</h2>
                     Date: {date}<br>
-                    Total this week: {total_count}<br>
-                    Number of tweets by project:<br>
+                    Total this week: {total_count:,}<br>
                     {projects_stats}
                     <h2>Error log (past 7 days)</h2>
                     {errors}
@@ -83,10 +82,10 @@ class StreamStatusMailer(Mailer):
             total_by_project = 0
             for d in dates:
                 count = redis_s3_queue.get_daily_counts(project_slug, d)
-                stats += '{}: {}<br>'.format(d, count)
+                stats += '{}: {:,}<br>'.format(d, count)
                 total += count
                 total_by_project += count
-            stats += 'Total: {}<br>'.format(total_by_project)
+            stats += 'Total: {:,}<br>'.format(total_by_project)
         return stats, total
 
     def _get_error_log(self, n=1, num_days=7):
@@ -104,7 +103,7 @@ class StreamStatusMailer(Mailer):
                     output += line
             output += '</pre>'
         return output
-
+    
     def send_status(self):
         if self.msg is None:
             raise Exception('Cannot send empty Email')
