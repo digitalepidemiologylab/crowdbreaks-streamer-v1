@@ -22,15 +22,14 @@ celery.conf.beat_schedule = {
             },
         'email-daily': {
             'task': 'stream-status-daily',
-            'schedule': crontab(hour=10, minute=0) # run every day at 10:00
+            'schedule': crontab(hour=8, minute=0) # runs every day at 10:00 CEST (9:00 CET)
             },
         'email-weekly': {
             'task': 'stream-status-weekly',
-            'schedule': crontab(day_of_week=1, hour=10, minute=0) # on mondays 10:00
+            'schedule': crontab(day_of_week=1, hour=8, minute=0) # runs at 10:00 CEST (9:00 CET) on Mondays
             }
         }
-celery.conf.timezone = 'CET'
-
+celery.conf.timezone = 'UTC'
 
 if __name__ == "__main__":
     celery.start()
