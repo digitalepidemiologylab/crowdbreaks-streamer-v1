@@ -41,7 +41,7 @@ def send_to_s3(debug=False):
 def stream_status_daily(debug=False):
     config = Config()
     logger = get_logger(debug)
-    if config.SEND_EMAILS == '1' and config.ENV == 'prd':
+    if (config.SEND_EMAILS == '1' and config.ENV == 'prd') or config.ENV == 'test-email':
         mailer = StreamStatusMailer(status_type='daily')
         body = mailer.get_body_daily()
         mailer.compose_message(body)
@@ -57,7 +57,7 @@ def stream_status_daily(debug=False):
 def stream_status_weekly(debug=False):
     config = Config()
     logger = get_logger(debug)
-    if config.SEND_EMAILS == '1' and config.ENV == 'prd':
+    if (config.SEND_EMAILS == '1' and config.ENV == 'prd') or config.ENV == 'test-email':
         mailer = StreamStatusMailer(status_type='weekly')
         body = mailer.get_body_daily()
         mailer.compose_message(body)

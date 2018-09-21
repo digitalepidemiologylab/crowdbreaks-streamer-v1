@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from app.stream.stream_config_reader import StreamConfigReader
 from app.stream.redis_s3_queue import RedisS3Queue
 import os
+import re
 import subprocess
 
 class Mailer():
@@ -88,19 +89,27 @@ class StreamStatusMailer(Mailer):
             stats += 'Total: {:,}<br>'.format(total_by_project)
         return stats, total
 
-    def _get_error_log(self, n=1, num_days=7):
+    def _get_error_log(self, n=1, num_days=7, max_length=30):
         error_log = os.path.join(self.config.PROJECT_ROOT, 'logs', 'error.log')
         output = ''
         if os.path.isfile(error_log):
-            proc = subprocess.Popen(['tail', '-n', str(n), error_log], stdout=subprocess.PIPE)
+            # Use tail in order to prevent going through the full error log
+            proc = subprocess.Popen(['tail', '-n', str(max_length), error_log], stdout=subprocess.PIPE)
             lines = proc.stdout.readlines()
             output += '<pre>'
             ignore_beyond = datetime.now() - timedelta(days=num_days)
             for line in lines:
                 line = line.decode()
-                date = datetime.strptime(line[:10], '%Y-%m-%d')
-                if date > ignore_beyond:
-                    output += line
+                # find timestamp in current error log line
+                match = re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', line)
+                if not match is None:
+                    try:
+                        date = datetime.strptime(match[0], '%Y-%m-%d %H:%M:%S')
+                    except:
+                        # discard line if date cannot be parsed
+                        continue
+                    if date > ignore_beyond:
+                        output += line
             output += '</pre>'
         return output
     
