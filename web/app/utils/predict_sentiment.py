@@ -47,4 +47,3 @@ class PredictSentiment:
             pass
         filter(lambda word: ' ' not in word, text)
         return text.strip()
-

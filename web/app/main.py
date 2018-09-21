@@ -5,7 +5,7 @@ import json
 from app.extensions import es, redis
 import logging
 from app.utils.priority_queue import TweetIdQueue
-from app.utils.process_tweet import ProcessTweet
+from app.utils.predict_sentiment import PredictSentiment
 from app.stream.tasks import predict, handle_tweet
 import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
@@ -95,7 +95,7 @@ def get_all_data(index_name):
 #################################################################
 # Sentiment data
 @blueprint.route('sentiment/vaccine/', methods=['POST', 'GET'])
-def get_vaccine_sentiment():
+def get_vaccine_sentiment(model='fasttext_v1.ftz'):
     text = None
     if request.method == 'POST':
         data = request.get_json()
@@ -106,10 +106,9 @@ def get_vaccine_sentiment():
     else:
         text = 'This is just a test string'
 
-    pt = ProcessTweet()
-    text_tokenized = pt.tokenize(text=text)
-    res = predict.delay(text_tokenized).get()
-    return json.dumps(res)
+    ps = PredictSentiment()
+    prediction = ps.predict(text, model=model)
+    return json.dumps(prediction)
 
 
 @blueprint.route('sentiment/data/<value>', methods=['GET'])
