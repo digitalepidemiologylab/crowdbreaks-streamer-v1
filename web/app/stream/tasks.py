@@ -33,7 +33,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
     stream_config_reader = StreamConfigReader()
     for project in candidates:
         stream_config = stream_config_reader.get_config_by_project(project)
-        if stream_config['storage_mode'] == 'test':
+        if stream_config['storage_mode'] == 'test_mode':
             logger.debug('Running in test mode. Not sending to S3 or ES.')
             return
         # add tracking info
