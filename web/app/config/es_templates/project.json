@@ -42,6 +42,9 @@
         "lang": {
           "type": "keyword"
         },
+        "is_retweet": {
+          "type": "boolean"
+        },
         "user": {
           "properties": {
             "name": {
