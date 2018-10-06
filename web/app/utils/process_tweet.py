@@ -48,9 +48,15 @@ class ProcessTweet(object):
         self.logger = logging.getLogger(__name__)
         self.project = project
 
+    @property
+    def is_retweet(self):
+        return 'retweeted_status' in self.tweet
+
     def process(self):
         # reduce to only certain fields
         self.strip()
+        # add is_retweet field
+        self.add_retweet_info()
         # compute average location from bounding box (reducing storage on ES)
         if self.tweet['place'] is not None and self.tweet['place']['bounding_box'] is not None:
             self.compute_average_location()
@@ -138,6 +144,11 @@ class ProcessTweet(object):
             self.logger.error('To be added meta must be a dictionary.')
         # merge with existing meta
         self.processed_tweet['meta'] = {**self.processed_tweet['meta'], **meta}
+
+    def add_retweet_info(self):
+        if self.tweet is None:
+            return
+        self.processed_tweet['is_retweet'] = self.is_retweet
         
     def get_processed_tweet(self):
         """get_processed_tweet"""
@@ -152,7 +163,7 @@ class ProcessTweet(object):
     # private methods
 
     def _get_text(self):
-        if 'retweeted_status' in self.tweet:
+        if self.is_retweet:
             prefix = self._get_retweet_prefix()
             return prefix + self._get_full_text(self.tweet['retweeted_status'])
         else:
