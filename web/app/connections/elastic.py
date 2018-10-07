@@ -182,8 +182,28 @@ class Elastic():
     def get_sentiment_data(self, index_name, value, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
+        include_retweets = options.get('include_retweets', False)
         s_date, e_date = self.parse_dates(start_date, end_date)
+        # Time range condition
+        query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
+        # Sentiment label condition
         field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
+        if value == '*':
+            # match all three labels
+            match_phrase_conditions = []
+            for label_value in ['pro-vaccine', 'anti-vaccine', 'neutral']:
+                match_phrase_conditions.append({'match_phrase': {field: label_value}})
+            query_conditions.append({'bool': {'should': match_phrase_conditions}})
+        else:
+            query_conditions.append({'match_phrase': {field: value}})
+        # Include retweets condition
+        if not include_retweets:
+            exclude_retweets_query = [
+                    {'bool': {'must_not': [{'exists': {'field': 'is_retweet'}}]}}, # if field does not exist it is not a retweet, OR ...
+                    {'bool': {'must': [{'exists': {'field': 'is_retweet'}}, {'term': {'is_retweet': False}}]}} # if is_retweet field exists it has to be False
+                ]
+            query_conditions.append({'bool': {'should': exclude_retweets_query}}) # needs to exclude retweets condition
+        # full query
         body = {'size': 0, 
                 'aggs': {
                     'sentiment': {
@@ -194,14 +214,7 @@ class Elastic():
                             }
                         }
                     },
-                'query': {
-                    'bool': {
-                        'must': [
-                            {'match_phrase': {field: value}},
-                            {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
-                            ]
-                        }
-                    }
+                'query': {'bool': {'must': query_conditions}}
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
@@ -213,6 +226,18 @@ class Elastic():
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
+        include_retweets = options.get('include_retweets', False)
+        # Time range condition
+        query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
+        # Include retweets condition
+        if not include_retweets:
+            exclude_retweets_query = [
+                    {'bool': {'must_not': [{'exists': {'field': 'is_retweet'}}]}}, # if field does not exist it is not a retweet, OR ...
+                    {'bool': {'must': [{'exists': {'field': 'is_retweet'}}, {'term': {'is_retweet': False}}]}} # if is_retweet field exists it has to be False
+                ]
+            query_conditions.append({'bool': {'should': exclude_retweets_query}}) # needs to exclude retweets condition
+
+        # full query
         field = 'meta.sentiment.{}'.format(options.get('model', 'fasttext_v1'))
         body = {'size': 0, 
                 'aggs': {
@@ -231,13 +256,7 @@ class Elastic():
                             }
                         }
                     },
-                'query': {
-                    'bool': {
-                        'must': [
-                            {'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
-                            ]
-                        }
-                    }
+                'query': {'bool': {'must': query_conditions}}
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.avg_sentiment'])
         if keys_exist(res, 'aggregations', 'avg_sentiment', 'buckets'):
@@ -277,7 +296,6 @@ class Elastic():
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
-
         body = {'size': 0, 
                 'aggs': {
                     'sentiment': {

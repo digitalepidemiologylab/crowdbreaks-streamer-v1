@@ -105,11 +105,9 @@ def get_vaccine_sentiment(model='fasttext_v1.ftz'):
             return Response(None, status=400, mimetype='text/plain')
     else:
         text = 'This is just a test string'
-
     ps = PredictSentiment()
     prediction = ps.predict(text, model=model)
     return json.dumps(prediction)
-
 
 @blueprint.route('sentiment/data/<value>', methods=['GET'])
 def get_vaccine_data(value):
@@ -119,7 +117,6 @@ def get_vaccine_data(value):
         if d['doc_count'] == 0:
             d['doc_count'] = 'null'
     return json.dumps(res)
-
 
 @blueprint.route('sentiment/average', methods=['GET'])
 def get_average_sentiment():
@@ -134,13 +131,15 @@ def get_geo_sentiment():
     res = es.get_geo_sentiment('project_vaccine_sentiment', **options)
     return json.dumps(res)
 
-
 def get_params(args):
     options = {}
-    # dates must be of format 'yyyy-MM-dd HH:mm:ss'
+    # dates must be of format 'yyyy-MM-dd HH:mm:ss' or 'now-*'
     options['interval'] = args.get('interval', 'month')
     options['start_date'] = args.get('start_date', 'now-20y')
     options['end_date'] = args.get('end_date', 'now')
+    options['include_retweets'] = args.get('include_retweets', False)
+    if isinstance(options['include_retweets'], str):
+        options['include_retweets'] = True if options['include_retweets'] == 'true' else False
     return options
 
 def compute_loess(data):
