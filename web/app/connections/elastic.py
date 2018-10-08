@@ -197,7 +197,9 @@ class Elastic():
         else:
             query_conditions.append({'match_phrase': {field: value}})
         # Include retweets condition
-        if not include_retweets:
+        if include_retweets:
+            query_conditions.append({'exists': {'field': 'is_retweet'}}) # needs to have is_retweet field
+        else:
             exclude_retweets_query = [
                     {'bool': {'must_not': [{'exists': {'field': 'is_retweet'}}]}}, # if field does not exist it is not a retweet, OR ...
                     {'bool': {'must': [{'exists': {'field': 'is_retweet'}}, {'term': {'is_retweet': False}}]}} # if is_retweet field exists it has to be False
@@ -230,7 +232,9 @@ class Elastic():
         # Time range condition
         query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
         # Include retweets condition
-        if not include_retweets:
+        if include_retweets:
+            query_conditions.append({'exists': {'field': 'is_retweet'}}) # needs to have is_retweet field
+        else:
             exclude_retweets_query = [
                     {'bool': {'must_not': [{'exists': {'field': 'is_retweet'}}]}}, # if field does not exist it is not a retweet, OR ...
                     {'bool': {'must': [{'exists': {'field': 'is_retweet'}}, {'term': {'is_retweet': False}}]}} # if is_retweet field exists it has to be False
