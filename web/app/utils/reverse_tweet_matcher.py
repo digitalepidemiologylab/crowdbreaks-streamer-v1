@@ -13,7 +13,7 @@ class ReverseTweetMatcher(object):
         self.stream_config_reader = StreamConfigReader()
         self.relevant_text = ''
 
-    def get_candidates(self):
+    def get_candidates(self, match_based_on_language=True):
         relevant_text = self.fetch_all_relevant_text()
         config = self.stream_config_reader.read()
         if len(config) == 0:
@@ -23,7 +23,7 @@ class ReverseTweetMatcher(object):
             return [config[0]['slug']]
         else:
             # try to match to configs
-            return self._match_to_config(relevant_text, config)
+            return self._match_to_config(relevant_text, config, match_based_on_language)
     
     def fetch_all_relevant_text(self):
         """Here we pool all relevant text within the tweet to do the matching. From the twitter docs:
@@ -58,12 +58,11 @@ class ReverseTweetMatcher(object):
 
     # private methods
 
-    def _match_to_config(self, relevant_text, config):
+    def _match_to_config(self, relevant_text, config, match_based_on_language=True):
         """Match text to config in stream"""
-        # find a match based on languages
         candidates_by_language = set()
-        candidates = set()
-        if 'lang' in self.tweet:
+        if match_based_on_language and 'lang' in self.tweet:
+            # find a match based on languages
             lang = self.tweet['lang']
             for c in config:
                 if lang in c['lang']:
@@ -74,17 +73,26 @@ class ReverseTweetMatcher(object):
                 candidates_by_language.add(c['slug'])
         if len(candidates_by_language) == 1:
             return list(candidates_by_language)
-
-        # multiple matches, find a match based on keywords
+        # multiple possible projects, match based on keywords
+        relevant_text = relevant_text.lower()
+        candidates = set()
         for c in config:
             # Only consider candidates by language
             if c['slug'] not in candidates_by_language:
                 continue
-
-            # find any match for keywords to relevant text
-            if any([keyword.lower() in relevant_text.lower() for keyword in c['keywords']]):
-                candidates.add(c['slug'])
-                continue
+            # else find match for keywords to relevant text
+            keywords = [k.lower().split() for k in c['keywords']]
+            for keyword_list in keywords:
+                if len(keyword_list) == 1:
+                    if keyword_list[0] in relevant_text:
+                        candidates.add(c['slug'])
+                        continue
+                else:
+                    # keywords with more than one word: Check if all words are contained in text
+                    match_result = re.findall(r'{}'.format('|'.join(keyword_list)), relevant_text)
+                    if set(match_result) == set(keyword_list):
+                        candidates.add(c['slug'])
+                        continue
         return list(candidates)
 
     def _fetch_urls(self, obj):
