@@ -11,6 +11,7 @@ from app.extensions import es
 import logging
 import os
 import json
+from helpers import report_error
 
 @celery.task(ignore_result=True)
 def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
@@ -24,7 +25,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
         # Check if can be matched if independent from language
         if len(rtm.get_candidates(match_based_on_language=False)) == 0:
             # Could not match keywords
-            logger.error('ERROR: No matching projects in tweet')
+            report_error(logger, 'ERROR: No matching projects in tweet')
             # store to separate file for later analysis
             config = Config()
             with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', tweet['id_str'] + '.json'), 'w') as f:

@@ -3,6 +3,7 @@ import os
 from random import randint
 import logging
 from app.utils.redis import Redis
+from helpers import report_error
 
 
 class PriorityQueue(Redis):
@@ -72,18 +73,19 @@ class PriorityQueue(Redis):
         if not random_deletion:
             # Just delete lowest priority key
             if self._r.zremrangebyrank(self.key, 0, 0) == 0:
-                self.logger.warning('Tried to remove lowest ranking element but queue is empty.')
+                report_error(self.logger, 'Tried to remove lowest ranking element but queue is empty.', level='warning')
             return
 
         # Remove a random lowest priority key
         items = self._r.zrevrange(self.key, 0, 0, withscores=True)
         if len(items) == 0:
-            self.logger.warning('Tried to remove lowest ranking element but queue is empty.')
+            report_error(self.logger, 'Tried to remove lowest ranking element but queue is empty.', level='warning')
             return
         lowest_score = items[0][1]
         num_elements = self._r.zcount(self.key, lowest_score, lowest_score)
         if num_elements == 0:
-            self.logger.error('Element with score {} could not be found. Possibly it has been removed before. Aborting.'.format(lowest_score))
+            msg = 'Element with score {} could not be found. Possibly it has been removed before. Aborting.'.format(lowest_score)
+            report_error(self.logger, msg)
             return
         elif num_elements == 1:
             self._r.zremrangebyrank(self.key, 0, 0)
@@ -93,13 +95,13 @@ class PriorityQueue(Redis):
             self.logger.debug('Picked {} as randindex between {} and {}'.format(rand_index, 0, num_elements-1))
             res = self._r.zremrangebyrank(self.key, rand_index, rand_index)
             if res != 1:
-                self.logger.error('Random key could not be deleted because it does not exist anymore')
+                report_error(self.logger, 'Random key could not be deleted because it does not exist anymore')
 
 
     def remove(self, item):
         """Remove key by keyname"""
         if self._r.zrem(self.key, item) == 0:
-            self.logger.error('Element {} could not be deleted'.format(item.decode()))
+            report_error(self.logger, 'Element {} could not be deleted'.format(item.decode()))
 
     def get_score(self, val):
         return self._r.zscore(self.key, val)
@@ -150,7 +152,7 @@ class TweetIdQueue:
         if user_id is None:
             item = self.pq.pop()
             if item is None:
-                self.logger.warning('Queue is empty')
+                report_error(self.logger, 'Queue is empty')
                 return None
             else:
                 return item
@@ -162,7 +164,7 @@ class TweetIdQueue:
                 for item, score in item_range:
                     if not self.rset.is_member(item.decode(), user_id):
                         return item.decode()
-            self.logger.warning('No new tweet could be found for user_id {}'.format(user_id))
+            report_error(self.logger, 'No new tweet could be found for user_id {}'.format(user_id))
 
 
     def update(self, tweet_id, user_id):
@@ -173,12 +175,12 @@ class TweetIdQueue:
         :param user_id:
         """
         if not self.pq:
-            self.logger.error('Priority queue does not exist. Aborting.')
+            report_error(self.logger, 'Priority queue does not exist. Aborting.')
             return
         
         if not self.pq.exists(tweet_id):
             # This may happen relatively often when multiple people are working on the same tweet
-            self.logger.warning('Key {} does not exist anymore. Aborting.'.format(tweet_id))
+            report_error(self.logger, 'Key {} does not exist anymore. Aborting.'.format(tweet_id), level='warning')
             return
 
         # Change priority in queue

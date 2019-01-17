@@ -2,6 +2,7 @@ import redis
 from app.settings import Config
 import boto3
 import logging
+from helpers import report_error
 
 
 class S3Handler():
@@ -16,7 +17,7 @@ class S3Handler():
         try: 
             self._s3_client.put_object(Body=content, Bucket=self.bucket, Key=key)
         except Exception as e:
-            self.logger.error(e)
+            report_error(self.logger, e)
             return False
         else:
             return True

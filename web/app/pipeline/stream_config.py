@@ -2,6 +2,7 @@ import json
 import os
 import logging
 from flask import Response
+from helpers import report_error
 
 class StreamConfig():
     """Read and write twitter stream configuration"""
@@ -15,7 +16,7 @@ class StreamConfig():
     def write(self):
         config_path = self._get_config_path()
         if config_path is None or self.config is None:
-            self.logger.error('Cannot write stream config file.')
+            report_error(self.logger, 'Cannot write stream config file.')
             return
         new_config = self._extract_config()
         with open(config_path, 'w') as f:
@@ -24,7 +25,7 @@ class StreamConfig():
     def read(self):
         config_path = self._get_config_path()
         if config_path is None or not os.path.isfile(config_path):
-            self.logger.warning('Cannot find stream config file.')
+            report_error(self.logger, 'Cannot find stream config file.', level='warning')
             return []
         with open(config_path, 'r') as f:
             config = json.load(f)
@@ -35,10 +36,12 @@ class StreamConfig():
             return False, Response("Configuration empty", status=400, mimetype='text/plain')
         for d in self.config:
             if not self._keys_are_present(d):
-                self.logger.error("One or more of the following keywords are not present in the sent configuration: {}".format(self.required_keys))
+                msg = "One or more of the following keywords are not present in the sent configuration: {}".format(self.required_keys)
+                report_error(self.logger, mgs)
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
             if not self._validate_data_types(d):
-                self.logger.error("One or more of the following configurations is of wrong type: {}".format(d))
+                msg = "One or more of the following configurations is of wrong type: {}".format(d)
+                report_error(self.logger, mgs)
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
         return True, None
 
@@ -73,5 +76,5 @@ class StreamConfig():
         if self.app_config is not None:
             return os.path.join(self.app_config['CONFIG_PATH'], self.app_config['STREAM_CONFIG_FILE_PATH'])
         else:
-            self.logger.error('No app config provided. Config path not available.')
+            report_error(self.logger, 'No app config provided. Config path not available.')
             return None

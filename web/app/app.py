@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, got_request_exception
 from app import settings, main
 from app.pipeline import pipeline
 from app.es_interface import es_interface
@@ -6,6 +6,8 @@ from app.extensions import es, redis
 import os
 import warnings
 import logging.config
+import rollbar
+import rollbar.contrib.flask
 
 
 def create_app(config=settings.ProdConfig):
@@ -29,6 +31,10 @@ def create_app(config=settings.ProdConfig):
     if app.config['PAUSE_STREAM_ON_STARTUP'] == '1':
         stop_stream(app)
 
+    # Rollbar
+    if app.config['ENV'] == 'prod':
+        init_rollbar(app)
+
     return app
 
 
@@ -49,3 +55,20 @@ def stop_stream(app):
             app.logger.warning(e)
         else:
             app.logger.info('Successfully paused stream container')
+
+
+def init_rollbar(app):
+    app.logger.info('Initializing Rollbar')
+
+    @app.before_first_request
+    def init_rollbar():
+        """init rollbar module"""
+        print('setting up rollbar')
+        rollbar.init(
+                app.config['ROLLBAR_ACCESS_TOKEN'], # access token
+                'production', # Environment name
+                root=os.path.dirname(os.path.realpath(__file__)), # server root directory, makes tracebacks prettier
+                allow_logging_basic_config=False
+            )
+        # send exceptions from `app` to rollbar, using flask's signal system.
+        got_request_exception.connect(rollbar.contrib.flask.report_exception, app)

@@ -2,6 +2,7 @@ import redis
 import logging
 import os
 from flask import current_app as app
+from helpers import report_error
 
 POOL = None
 
@@ -43,7 +44,7 @@ class Redis():
         if test:
             self.logger.info('Successfully connected to Redis host {}'.format(app.config['REDIS_HOST']) )
         else:
-            self.logger.error('FAILURE: Connection to Redis host {} not successful'.format(app.config['REDIS_HOST']))
+            report_error(self.logger, 'FAILURE: Connection to Redis host {} not successful'.format(app.config['REDIS_HOST']))
         return test
 
     def _get_connection(self):

@@ -7,6 +7,7 @@ from flask import current_app
 from flask import _app_ctx_stack as stack
 import glob
 from aws_requests_auth.aws_auth import AWSRequestsAuth
+from helpers import report_error
 
 
 class Elastic():
@@ -75,7 +76,7 @@ class Elastic():
         if test:
             self.logger.info('Successfully connected to Elasticsearch host {}'.format(self.config['ELASTICSEARCH_HOST']))
         else:
-            self.logger.error('Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
+            report_error(self.logger, 'Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
         return test
 
     def cluster_health(self):
@@ -99,7 +100,7 @@ class Elastic():
         else:
             template_path = os.path.abspath(os.path.join(template_path, filename))
         if not os.path.exists(template_path):
-            self.logger.error('No project file found under {}'.format(template_path))
+            report_error(self.logger, 'No project file found under {}'.format(template_path))
             return
         with open(template_path, 'r') as f:
             template = json.load(f)
@@ -325,7 +326,7 @@ class Elastic():
         res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])
         hits = res['hits']['hits']
         if len(hits) == 0:
-            self.logger.error('Could not find a random document in index {}'.format(index_name))
+            report_error(self.logger, 'Could not find a random document in index {}'.format(index_name))
             return None
         return hits[0]['_source']['id']
 
@@ -340,7 +341,7 @@ class Elastic():
             try:
                 d_date = datetime.strptime(d, input_format)
             except:
-                self.logger.error('Date {} is not of format {}. Using "now" instead'.format(d, input_format))
+                report_error(self.logger, 'Date {} is not of format {}. Using "now" instead'.format(d, input_format))
                 res.append('now')
             else:
                 d_date = d_date.replace(tzinfo=timezone.utc)

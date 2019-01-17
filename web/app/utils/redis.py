@@ -1,6 +1,7 @@
 import redis
 import logging
 import os
+from helpers import report_error
 
 class Redis():
     def __init__(self, logger=None):
@@ -18,5 +19,5 @@ class Redis():
         if test:
             self.logger.info('Successfully connected to Redis host {}:{}'.format(self.host, self.port))
         else:
-            self.logger.error('FAILURE: Connection to Redis host {}:{} not successful'.format(self.host, self.port))
+            report_error(self.logger, 'FAILURE: Connection to Redis host {}:{} not successful'.format(self.host, self.port))
         return test

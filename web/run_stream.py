@@ -1,4 +1,4 @@
-import os
+import os, sys
 from tweepy import OAuthHandler, TweepError
 from app.stream.stream_listener import Listener
 from app.stream.stream_manager import StreamManager
@@ -6,6 +6,8 @@ import time
 import logging.config
 from app.settings import Config
 import signal
+import rollbar
+from helpers import report_error
 
 run = True
 stream = None
@@ -29,12 +31,11 @@ def main():
             stream.start()
         except TweepError as e:
             stream.stop()
-            logger.error(e)
+            report_error(logger, e)
             error += 1
             time_new_error = time.time()
             time_last_error = wait_some_time(time_last_error, time_new_error)
             # consider switching auth keys here...
-            # send out email...
         time.sleep(4)
     logger.info('Shutting down...')
 
@@ -70,8 +71,22 @@ def get_auth():
     return auth
 
 
+def rollbar_init():
+    config = Config()
+    if config.ENV == 'prod':
+        rollbar.init(config.ROLLBAR_ACCESS_TOKEN, # access token
+                    'production', # Environment name
+                    root=os.path.dirname(os.path.realpath(__file__)), # server root directory, makes tracebacks prettier
+                    allow_logging_basic_config=False)
+
+
 if __name__ == '__main__':
     # logging config
     logging.config.fileConfig('logging.conf')
     signal.signal(signal.SIGTERM, handler_stop_signals)
-    main()
+    rollbar_init()
+    config = Config()
+    try:
+        main()
+    except:
+        rollbar.report_exc_info(sys.exc_info())

@@ -53,6 +53,9 @@ class Config(object):
     EMAIL_STREAM_STATUS_DAILY = os.environ.get('EMAIL_STREAM_STATUS_DAILY', '')
     EMAIL_STREAM_STATUS_WEEKLY = os.environ.get('EMAIL_STREAM_STATUS_WEEKLY', '')
 
+    # Rollbar
+    ROLLBAR_ACCESS_TOKEN = os.environ.get('ROLLBAR_ACCESS_TOKEN', '')
+
 
 class ProdConfig(Config):
     """Production configuration."""

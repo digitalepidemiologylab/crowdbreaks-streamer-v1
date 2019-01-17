@@ -37,3 +37,5 @@ pybind11==2.2.3
 statsmodels==0.8.0
 git+git://github.com/tweepy/tweepy@2efe385fc69385b57733f747ee62e6be12a1338b#egg=tweepy
 boto3==1.8.5
+rollbar==0.14.6
+blinker==1.4

@@ -2,6 +2,7 @@ import math
 import re
 import logging
 from app.utils.predict_sentiment import PredictSentiment
+from helpers import report_error
 
 class ProcessTweet(object):
     """Wrapper class for functions to process/modify tweets"""
@@ -136,12 +137,12 @@ class ProcessTweet(object):
 
     def add_meta(self, meta):
         if self.processed_tweet is None:
-            self.logger.error('Cannot add meta to empty tweet.')
+            self.error('Cannot add meta to empty tweet.')
             return
         if 'meta' not in self.processed_tweet:
             self.processed_tweet['meta'] = {}
         if not isinstance(meta, dict):
-            self.logger.error('To be added meta must be a dictionary.')
+            self.error('To be added meta must be a dictionary.')
         # merge with existing meta
         self.processed_tweet['meta'] = {**self.processed_tweet['meta'], **meta}
 
@@ -159,6 +160,8 @@ class ProcessTweet(object):
         else:
             return self.processed_tweet
 
+    def error(self, msg):
+        report_error(self.logger, msg)
 
     # private methods
 

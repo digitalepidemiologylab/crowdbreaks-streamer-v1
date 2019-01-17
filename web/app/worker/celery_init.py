@@ -2,6 +2,8 @@ import os
 from celery import Celery
 import redis
 from celery.schedules import crontab
+from celery.signals import task_failure
+import rollbar
 
 def create_celery():
     CELERY_BROKER_URL=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379'),
@@ -13,6 +15,14 @@ def create_celery():
             backend=CELERY_RESULT_BACKEND)
 
 celery = create_celery()
+
+# Rollbar init
+if os.environ.get('ENV') == 'prod':
+    rollbar.init(os.environ.get('ROLLBAR_ACCESS_TOKEN', '', 'production'))
+
+@task_failure.connect
+def handle_task_failure(**kw):
+    rollbar.report_exc_info(extra_data=kw)
 
 # beat schedule
 celery.conf.beat_schedule = {

@@ -5,6 +5,7 @@ import logging
 import json
 import time
 import re
+from helpers import report_error
 
 
 class Listener(StreamListener):
@@ -21,26 +22,24 @@ class Listener(StreamListener):
 
     def on_error(self, status_code):
         if status_code in ERROR_CODES: 
-            self.logger.error('Error {}: {} {}'.format(status_code, ERROR_CODES[status_code]['text'], ERROR_CODES[status_code]['description']))
+            msg = 'Error {}: {} {}'.format(status_code, ERROR_CODES[status_code]['text'], ERROR_CODES[status_code]['description'])
+            report_error(self.logger, msg)
             if status_code == 420:
-                self.logger.error('Waiting for a bit...')
+                self.logger.info('Waiting for a bit...')
                 self.rate_error_count += 1
                 # wait at least 15min
                 time.sleep(self.rate_error_count*15*60)
             else:
-                self.logger.error('Received unknown error code {}'.format(status_code))
+                report_error(self.logger, 'Received unknown error code {}'.format(status_code))
         return True # To continue listening
 
     def on_timeout(self):
-        self.logger.error('Timeout...')
+        report_error(self.logger, 'Stream listener has timed out')
         return True # To continue listening
 
     def on_connect(self):
         self.rate_error_count = 0  # Reset error count
         self.logger.info('Successfully connected to Twitter Streaming API.')
-
-    def on_timeout(self):
-        self.logger.info('Streaming connection timed out.')
 
     def on_warning(self, notice):
         self.logger.warning(notice)

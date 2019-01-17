@@ -11,6 +11,7 @@ import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
 import os
+from helpers import report_error
 
 
 blueprint = Blueprint('main', __name__)
@@ -50,11 +51,12 @@ def get_new_tweet(project):
     tid = TweetIdQueue(project)
     tweet_id = tid.get(user_id=user_id)
     if tweet_id is None:
-        logger.error('Could not get tweet id from priority queue. Getting random tweet from ES instead.')
+        msg = 'Could not get tweet id from priority queue. Getting random tweet from ES instead.'
+        report_error(logger, mgs)
         # get a random tweet instead
         tweet_id = es.get_random_document_id(project)
         if tweet_id is None:
-            logger.error('Could not get random tweet from elasticsearch.')
+            report_error(logger, 'Could not get random tweet from elasticsearch.')
             return Response(None, status=400, mimetype='text/plain')
     return Response(str(tweet_id), status=200, mimetype='text/plain')
 
@@ -65,7 +67,7 @@ def add_to_pq(project):
     data = request.get_json()
     logger.debug('Incoming request with data {}'.format(data))
     if data is None or 'user_id' not in data or 'tweet_id' not in data:
-        logger.error('No user_id was passed when updating ')
+        report_error(logger, 'No user_id was passed when updating ')
         return Response(None, status=400, mimetype='text/plain')
     tid = TweetIdQueue(project)
     tid.update(data['tweet_id'], data['user_id'])
@@ -78,7 +80,7 @@ def remove_from_pq(project):
     data = request.get_json()
     logger.debug('Incoming request with data {}'.format(data))
     if data is None or 'tweet_id' not in data:
-        logger.error('No tweet_id was passed when updating')
+        report_error(logger, 'No tweet_id was passed when updating')
         return Response(None, status=400, mimetype='text/plain')
     tid = TweetIdQueue(project)
     tid.remove(data['tweet_id'])
