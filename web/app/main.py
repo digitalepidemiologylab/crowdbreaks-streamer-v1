@@ -22,7 +22,6 @@ logger = logging.getLogger('Main')
 def require_auth_all():
     return requires_auth_func()
 
-
 @blueprint.route('/', methods=['GET'])
 def index():
     return "hello world!!!"

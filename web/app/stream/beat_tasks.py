@@ -50,23 +50,22 @@ def stream_status_daily(debug=False):
         logger.info('Not sending emails in this configuration.')
     # clear redis count cache
     redis_queue = RedisS3Queue()
-    redis_queue.clear_daily_counts(older_than=90)
+    redis_queue.clear_counts(older_than=90)
 
-# EMAIL TASKS
 @celery.task(name='stream-status-weekly', ignore_result=True)
 def stream_status_weekly(debug=False):
     config = Config()
     logger = get_logger(debug)
     if (config.SEND_EMAILS == '1' and config.ENV == 'prd') or config.ENV == 'test-email':
         mailer = StreamStatusMailer(status_type='weekly')
-        body = mailer.get_body_daily()
+        body = mailer.get_body_weekly()
         mailer.compose_message(body)
         mailer.send_status()
     else:
         logger.info('Not sending emails in this configuration.')
     # clear redis count cache
     redis_queue = RedisS3Queue()
-    redis_queue.clear_daily_counts(older_than=90)
+    redis_queue.clear_counts(older_than=90)
 
 # ------------------------------------------
 # Helper functions

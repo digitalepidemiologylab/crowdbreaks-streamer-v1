@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 class RedisS3Queue(Redis):
     """
     Handles a queue of tweets for each project to be uploaded to S3 by a celery beat task. 
-    Additionally it keeps track of daily counts for stats.
+    Additionally it keeps track of daily and hourly counts for stats.
     """
     def __init__(self):
         super().__init__()
@@ -18,11 +18,11 @@ class RedisS3Queue(Redis):
     def queue_key(self, project):
         return "{}:{}:{}".format(self.namespace, self.config.REDIS_STREAM_QUEUE_KEY, project)
 
-    def count_key(self, project, day):
-        return "{}:{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.counts_namespace, project, day)
+    def count_key(self, project, day, hour):
+        return "{}:{}:{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.counts_namespace, project, day, hour)
 
     def push(self, tweet, project):
-        self.update_daily_counts(project)
+        self.update_counts(project)
         self._r.rpush(self.queue_key(project), tweet)
 
     def pop(self, project):
@@ -46,34 +46,46 @@ class RedisS3Queue(Redis):
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.config.REDIS_STREAM_QUEUE_KEY)):
             self._r.delete(key)
 
-    def get_daily_counts(self, project, day=None):
+    def get_counts(self, project, day=None, hour=None):
         if day is None:
             day = self._get_today()
-        key = self.count_key(project, day)
-        counts = self._r.get(key)
-        if counts is None:
-            return 0
-        else:
-            return int(counts.decode())
+        if hour is not None:
+            key = self.count_key(project, day, hour)
+            counts = self._r.get(key)
+            if counts is None:
+                return 0
+            else:
+                return int(counts.decode())
+        # if hour is not given, return daily counts
+        hour = self._get_hour()
+        counts = 0
+        for h in self.hour_range(0, 24):
+            key = self.count_key(project, day, h)
+            c = self._r.get(key)
+            if c is not None:
+                counts += int(c.decode())
+        return counts
 
-    def update_daily_counts(self, project, day=None, incr=1):
+    def update_counts(self, project, day=None, hour=None, incr=1):
         if day is None:
             day = self._get_today()
-        counts = self.get_daily_counts(project, day)
-        key = self.count_key(project, day)
+        if hour is None:
+            hour = self._get_hour()
+        counts = self.get_counts(project, day, hour)
+        key = self.count_key(project, day, hour)
         self._r.set(key, counts + incr)
     
-    def clear_daily_counts(self, older_than=90):
+    def clear_counts(self, older_than=90):
         """Clear all keys for project older than `older_than` days"""
         end_day = datetime.now()
         start_day = end_day - timedelta(days=older_than)
         except_dates = list(self.daterange(start_day, end_day))
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.counts_namespace)):
-            day = key.decode().split(':')[-1]
+            day = key.decode().split(':')[-2]
             if day not in except_dates:
                 self._r.delete(key)
 
-    def clear_all_daily_counts(self):
+    def clear_all_counts(self):
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.counts_namespace)):
             self._r.delete(key)
 
@@ -81,8 +93,12 @@ class RedisS3Queue(Redis):
         for n in range(int((date2 - date1).days) + 1):
             yield (date1 + timedelta(n)).strftime('%Y-%m-%d')
 
+    def hour_range(self, start_hour, end_hour):
+        for n in range(start_hour, end_hour):
+            yield str(n).zfill(2)
+
     def clear(self):
-        self.clear_all_daily_counts()
+        self.clear_all_counts()
         self.clear_queue()
 
 
@@ -91,3 +107,7 @@ class RedisS3Queue(Redis):
     def _get_today(self):
         now = datetime.now()
         return now.strftime("%Y-%m-%d")
+
+    def _get_hour(self):
+        now = datetime.now()
+        return now.strftime("%H")

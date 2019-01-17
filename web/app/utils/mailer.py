@@ -49,6 +49,25 @@ class StreamStatusMailer(Mailer):
         self.msg.attach(MIMEText(body, 'html'))
 
     def get_body_daily(self):
+        today = datetime.now()
+        projects_stats, total_count = self._get_projects_stats(start_day=today, end_day=today, hourly=True)
+        html_text = """\
+            <html>
+              <head></head>
+                <body>
+                    <h2>Crowdbreaks stream status</h2>
+                    Date: {date}<br>
+                    Total today: {total_count:,}<br>
+                    {projects_stats}
+                    <h2>Error log (past 7 days)</h2>
+                    {errors}
+                </body>
+            </html>
+
+        """.format(date=today.strftime("%Y-%m-%d"), total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
+        return html_text
+
+    def get_body_weekly(self):
         today = datetime.now().strftime("%Y-%m-%d")
         projects_stats, total_count = self._get_projects_stats()
         html_text = """\
@@ -67,7 +86,7 @@ class StreamStatusMailer(Mailer):
         """.format(date=today, total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
         return html_text
 
-    def _get_projects_stats(self, start_day=None, end_day=None, num_days=7):
+    def _get_projects_stats(self, start_day=None, end_day=None, num_days=7, hourly=False):
         stream_config_reader = StreamConfigReader()
         redis_s3_queue = RedisS3Queue()
         if start_day is None or end_day is None:
@@ -82,8 +101,13 @@ class StreamStatusMailer(Mailer):
             stats += "<h3>{}</h3>".format(project)
             total_by_project = 0
             for d in dates:
-                count = redis_s3_queue.get_daily_counts(project_slug, d)
-                stats += '{}: {:,}<br>'.format(d, count)
+                if hourly:
+                    for h in redis_s3_queue.hour_range(0, 24):
+                        count = redis_s3_queue.get_counts(project_slug, d, h)
+                        stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, h, count)
+                else:
+                    count = redis_s3_queue.get_counts(project_slug, d)
+                    stats += '{}: {:,}<br>'.format(d, count)
                 total += count
                 total_by_project += count
             stats += 'Total: {:,}<br>'.format(total_by_project)
