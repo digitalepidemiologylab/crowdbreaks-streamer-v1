@@ -33,13 +33,17 @@ def index():
 def test_redis():
     return json.dumps(redis.test_connection())
 
-
 @blueprint.route('test/celery', methods=['GET'])
 def test_celery():
     with open(os.path.join(app.config['CONFIG_PATH'], 'example_data', 'tweet.json'), 'r') as f:
         tweet = json.load(f)
     handle_tweet(tweet, send_to_es=False, use_pq=False, debug=True)
     return 'testing celery'
+
+@blueprint.route('test/rollbar', methods=['GET'])
+def test_rollbar():
+    report_error(logger, 'test error')
+    return 'error reported'
 
 #################################################################
 # TWEET ID HANDLING
