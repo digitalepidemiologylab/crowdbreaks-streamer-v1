@@ -105,11 +105,13 @@ class StreamStatusMailer(Mailer):
                     for h in redis_s3_queue.hour_range(0, 24):
                         count = redis_s3_queue.get_counts(project_slug, d, h)
                         stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, h, count)
+                        total += count
+                        total_by_project += count
                 else:
                     count = redis_s3_queue.get_counts(project_slug, d)
                     stats += '{}: {:,}<br>'.format(d, count)
-                total += count
-                total_by_project += count
+                    total += count
+                    total_by_project += count
             stats += 'Total: {:,}<br>'.format(total_by_project)
         return stats, total
 

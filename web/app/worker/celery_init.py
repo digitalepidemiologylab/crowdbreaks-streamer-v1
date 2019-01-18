@@ -18,7 +18,7 @@ celery = create_celery()
 
 # Rollbar init
 if os.environ.get('ENV') == 'prd':
-    rollbar.init(os.environ.get('ROLLBAR_ACCESS_TOKEN', '', 'production'))
+    rollbar.init(os.environ.get('ROLLBAR_ACCESS_TOKEN', ''), 'production')
 
 @task_failure.connect
 def handle_task_failure(**kw):
