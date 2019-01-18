@@ -73,7 +73,7 @@ def get_auth():
 
 def rollbar_init():
     config = Config()
-    if config.ENV == 'prod':
+    if config.ENV == 'prd':
         rollbar.init(config.ROLLBAR_ACCESS_TOKEN, # access token
                     'production', # Environment name
                     root=os.path.dirname(os.path.realpath(__file__)), # server root directory, makes tracebacks prettier

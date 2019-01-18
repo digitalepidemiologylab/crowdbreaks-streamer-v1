@@ -12,6 +12,7 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
 import os
 from helpers import report_error
+from app.utils.mailer import StreamStatusMailer
 
 
 blueprint = Blueprint('main', __name__)
@@ -44,6 +45,12 @@ def test_celery():
 def test_rollbar():
     report_error(logger, 'test error')
     return 'error reported'
+
+@blueprint.route('test/email', methods=['GET'])
+def test_email():
+    mailer = StreamStatusMailer(status_type='daily')
+    body = mailer.get_body_daily()
+    return body
 
 #################################################################
 # TWEET ID HANDLING

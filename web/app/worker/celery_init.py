@@ -17,7 +17,7 @@ def create_celery():
 celery = create_celery()
 
 # Rollbar init
-if os.environ.get('ENV') == 'prod':
+if os.environ.get('ENV') == 'prd':
     rollbar.init(os.environ.get('ROLLBAR_ACCESS_TOKEN', '', 'production'))
 
 @task_failure.connect

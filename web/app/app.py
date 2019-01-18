@@ -32,7 +32,7 @@ def create_app(config=settings.ProdConfig):
         stop_stream(app)
 
     # Rollbar
-    if app.config['ENV'] == 'prod':
+    if app.config['ENV'] == 'prd':
         init_rollbar(app)
 
     return app
