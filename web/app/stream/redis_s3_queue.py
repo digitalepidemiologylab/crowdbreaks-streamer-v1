@@ -2,6 +2,7 @@ from app.settings import Config
 from app.utils.redis import Redis
 import redis
 from datetime import datetime, timedelta
+from itertools import cycle, dropwhile
 
 
 class RedisS3Queue(Redis):
@@ -59,7 +60,7 @@ class RedisS3Queue(Redis):
         # if hour is not given, return daily counts
         hour = self._get_hour()
         counts = 0
-        for h in self.hour_range(0, 24):
+        for h in self.full_day_hour_range():
             key = self.count_key(project, day, h)
             c = self._r.get(key)
             if c is not None:
@@ -89,12 +90,17 @@ class RedisS3Queue(Redis):
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.counts_namespace)):
             self._r.delete(key)
 
-    def daterange(self, date1, date2):
-        for n in range(int((date2 - date1).days) + 1):
-            yield (date1 + timedelta(n)).strftime('%Y-%m-%d')
+    def daterange(self, date1, date2, hourly=False):
+        while date1 <= date2:
+            if hourly:
+                yield date1.strftime('%Y-%m-%d:%H')
+                date1 += timedelta(hours=1)
+            else:
+                yield date1.strftime('%Y-%m-%d')
+                date1 += timedelta(days=1)
 
-    def hour_range(self, start_hour, end_hour):
-        for n in range(start_hour, end_hour):
+    def full_day_hour_range(self):
+        for n in range(0, 24):
             yield str(n).zfill(2)
 
     def clear(self):
