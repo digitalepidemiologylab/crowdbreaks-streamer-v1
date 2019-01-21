@@ -43,7 +43,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
         # add tracking info
         tweet['_tracking_info'] = stream_config_reader.get_tracking_info(project)
         # queue up on Redis for subsequent upload
-        redis_queue.push(tweet, project)
+        redis_queue.push(json.dumps(tweet).encode(), project)
         if use_pq and not rtm.is_retweet:
             # add to Tweet ID queue for crowd labelling
             logger.debug('Add tweet to priority queue...')

@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.6
 MAINTAINER Martin Müller "martin.muller@epfl.ch"
 
 # Install python dependencies
