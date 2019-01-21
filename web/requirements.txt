@@ -15,7 +15,6 @@ docker-pycreds==0.4.0
 docopt==0.4.0
 docutils==0.14
 elasticsearch==6.3.1
-fasttext==0.8.22
 Flask==1.0.2
 Flask-Cors==3.0.7
 gunicorn==19.9.0
@@ -49,7 +48,7 @@ scipy==1.2.0
 singledispatch==3.4.0.3
 six==1.12.0
 statsmodels==0.9.0
-tweepy==3.6.0
+git+git://github.com/tweepy/tweepy@2efe385fc69385b57733f747ee62e6be12a1338b#egg=tweepy
 urllib3==1.24.1
 vine==1.2.0
 websocket-client==0.54.0
