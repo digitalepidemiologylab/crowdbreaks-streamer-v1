@@ -6,15 +6,15 @@ from app.stream.redis_s3_queue import RedisS3Queue
 
 
 # vars global to test env
-def pytest_namespace():
-    return {'max_queue_length': 10,
-            'priority_threshold': 5}
-
+# def pytest_namespace():
+#     return {'max_queue_length': 10,
+#             'priority_threshold': 5}
+#
 
 # session fixtures
 @pytest.fixture(scope='session')
 def pq():
-    pq = PriorityQueue('test_project', namespace='test', **pytest.__dict__)
+    pq = PriorityQueue('test_project', namespace='test', max_queue_length=10)
     yield pq
     pq.self_remove()
 
@@ -26,7 +26,7 @@ def rs():
 
 @pytest.fixture(scope='session')
 def tid_q():
-    tid_q = TweetIdQueue('test_project', namespace='test', **pytest.__dict__)
+    tid_q = TweetIdQueue('test_project', namespace='test', priority_threshold=5)
     yield tid_q
     tid_q.flush()
 

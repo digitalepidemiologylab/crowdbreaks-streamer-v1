@@ -11,9 +11,9 @@ class TestPriorityQueue:
     def test_increase_over_threshold(self, tid_q):
         tweet_id = '123456'
         tid_q.pq.add(tweet_id)
-        for i in range(pytest.priority_threshold - 1):
+        for i in range(tid_q.priority_threshold - 1):
             tid_q.update(tweet_id, 'user'+str(i))
-        assert tid_q.pq.get_score(tweet_id) == pytest.priority_threshold - 1
+        assert tid_q.pq.get_score(tweet_id) == tid_q.priority_threshold - 1
         assert len(tid_q.pq) == 1
         assert tid_q.rset.is_member(tweet_id, 'user0')
 

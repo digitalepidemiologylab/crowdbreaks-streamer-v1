@@ -13,6 +13,7 @@ import numpy as np
 import os
 from helpers import report_error
 from app.utils.mailer import StreamStatusMailer, Mailer
+from app.utils.priority_queue import TweetIdQueue
 
 
 blueprint = Blueprint('main', __name__)
@@ -45,6 +46,11 @@ def test_celery():
 def test_rollbar():
     report_error(logger, 'test error')
     return 'error reported'
+
+@blueprint.route('test/pq', methods=['GET'])
+def test_pq():
+    tid = TweetIdQueue('project_vaccine_sentiment', priority_threshold=3)
+    return tid.pq.list()
 
 @blueprint.route('test/email/ping', methods=['GET'])
 def test_email_ping():

@@ -40,7 +40,7 @@ class PriorityQueue(Redis):
         return self._r.zscan_iter(self.key)
 
     def __bool__(self):
-        return self._r.exists(self.key)
+        return self._r.exists(self.key) > 0
 
     @property
     def key(self):
@@ -50,7 +50,7 @@ class PriorityQueue(Redis):
         """Push value with given priority to queue. Enforce max length of queue by removing low-priority elements."""
         while len(self) >= self.MAX_QUEUE_LENGTH:
             self.remove_lowest_priority()
-        self._r.zadd(self.key, priority, value)
+        self._r.zadd(self.key, {value: priority})
 
     def pop(self, remove=False):
         """Get key with highest priority, optionally also remove that key from queue"""
@@ -66,7 +66,7 @@ class PriorityQueue(Redis):
     def increment_priority(self, val, incr=1):
         if self._r.zrank(self.key, val) is None:
             self.logger.debug("Priority of value {} cannot be changed, because it doesn't exist anymore".format(val))
-        self._r.zincrby(self.key, val, amount=incr)
+        self._r.zincrby(self.key, incr, val)
 
     def remove_lowest_priority(self, random_deletion=True):
         """Remove key with the lowest priority"""
@@ -97,6 +97,20 @@ class PriorityQueue(Redis):
             if res != 1:
                 report_error(self.logger, 'Random key could not be deleted because it does not exist anymore')
 
+    def list(self):
+        """Lists priority queue as HTML"""
+        output = "<h1>{}</h1>".format(self.__class__.__name__)
+        output += '<table align="left" border="1">'
+        output += "<thead><tr><th>#</th><th>Tweet ID</th><th>Priority</th></tr></thead>"
+        output += "<tbody>"
+        count = 1
+        for item in self:
+            output += "<tr><td>{})</td><td>{}</td><td>{:0.1f}</td></tr>".format(count, item[0].decode(), item[1])
+            count += 1 
+            if count > self.MAX_ELEMENT_PRINT:
+                break
+        output += "</table>"
+        return output
 
     def remove(self, item):
         """Remove key by keyname"""

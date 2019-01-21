@@ -13,11 +13,11 @@ class TestPriorityQueue:
         pq.self_remove()
 
     def test_max_length(self, pq):
-        test_vals = range(pytest.max_queue_length + 1)
+        test_vals = range(pq.MAX_QUEUE_LENGTH + 1)
         for t in test_vals:
             pq.add(t)
 
-        assert len(pq) == pytest.max_queue_length
+        assert len(pq) == pq.MAX_QUEUE_LENGTH
         pq.self_remove()
 
     def test_priority_order(self, pq):
