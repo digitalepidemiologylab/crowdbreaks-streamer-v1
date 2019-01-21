@@ -12,7 +12,7 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
 import os
 from helpers import report_error
-from app.utils.mailer import StreamStatusMailer
+from app.utils.mailer import StreamStatusMailer, Mailer
 
 
 blueprint = Blueprint('main', __name__)
@@ -46,8 +46,20 @@ def test_rollbar():
     report_error(logger, 'test error')
     return 'error reported'
 
-@blueprint.route('test/email', methods=['GET'])
-def test_email():
+@blueprint.route('test/email/ping', methods=['GET'])
+def test_email_ping():
+    mailer = Mailer()
+    return mailer.client.users.ping()
+
+@blueprint.route('test/email/send_test_email', methods=['GET'])
+def test_send_email():
+    mailer = StreamStatusMailer(status_type='daily')
+    body = mailer.get_body_daily()
+    resp = mailer.send_status(body)
+    return json.dumps(resp)
+
+@blueprint.route('test/email/status', methods=['GET'])
+def test_email_status():
     mailer = StreamStatusMailer(status_type='daily')
     body = mailer.get_body_daily()
     return body

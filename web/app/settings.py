@@ -52,6 +52,8 @@ class Config(object):
     EMAIL_PORT = os.environ.get('EMAIL_PORT', '')
     EMAIL_STREAM_STATUS_DAILY = os.environ.get('EMAIL_STREAM_STATUS_DAILY', '')
     EMAIL_STREAM_STATUS_WEEKLY = os.environ.get('EMAIL_STREAM_STATUS_WEEKLY', '')
+    MANDRILL_API_KEY = os.environ.get('MANDRILL_API_KEY', '')
+    EMAIL_FROM_ADDR = os.environ.get('EMAIL_FROM_ADDR', '')
 
     # Rollbar
     ROLLBAR_ACCESS_TOKEN = os.environ.get('ROLLBAR_ACCESS_TOKEN', '')

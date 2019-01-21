@@ -1,6 +1,3 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import logging
 from app.settings import Config
 from datetime import datetime, timedelta
@@ -9,44 +6,30 @@ from app.stream.redis_s3_queue import RedisS3Queue
 import os
 import re
 import subprocess
+import mandrill
 
 class Mailer():
     """Handles Emailing"""
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
         self.config = Config()
-        self.server = None
+        self.client = mandrill.Mandrill(self.config.MANDRILL_API_KEY)
+        self.logger = logging.getLogger(__name__)
 
-    def send(self, from_addr, to_addr, msg):
-        self.connect()
-        self.server.sendmail(from_addr, to_addr, msg)
-
-    def connect(self):
-        self.server = smtplib.SMTP('{}:{}'.format(self.config.EMAIL_SERVER, self.config.EMAIL_PORT))
-        self.server.ehlo()
-        self.server.starttls()
-        self.server.login(self.config.EMAIL_USERNAME, self.config.EMAIL_PASSWORD)
+    def send(self, msg):
+        return self.client.messages.send(msg)
 
 
 class StreamStatusMailer(Mailer):
     def __init__(self, status_type='daily'):
         super().__init__()
         self.status_type = status_type
-        self.msg = None
-        self.from_addr = self.config.EMAIL_USERNAME
+        self.from_addr = self.config.EMAIL_FROM_ADDR
         if self.status_type == 'daily':
             self.to_addr = self.config.EMAIL_STREAM_STATUS_DAILY
         elif self.status_type == 'weekly':
             self.to_addr = self.config.EMAIL_STREAM_STATUS_WEEKLY
         else:
             raise Exception('Status type {} is not recognized'.format(self.status_type))
-
-    def compose_message(self, body):
-        self.msg = MIMEMultipart()
-        self.msg['From'] = self.from_addr
-        self.msg['To'] = self.to_addr
-        self.msg['Subject'] = 'Crowdbreaks {} stream update'.format(self.status_type)
-        self.msg.attach(MIMEText(body, 'html'))
 
     def get_body_daily(self):
         today = datetime.now()
@@ -89,7 +72,6 @@ class StreamStatusMailer(Mailer):
     def _get_projects_stats(self, num_days=7, hourly=False):
         stream_config_reader = StreamConfigReader()
         redis_s3_queue = RedisS3Queue()
-
         end_day = datetime.now()
         start_day = end_day - timedelta(days=num_days)
         stats = ''
@@ -136,8 +118,14 @@ class StreamStatusMailer(Mailer):
                         output += line
             output += '</pre>'
         return output
-    
-    def send_status(self):
-        if self.msg is None:
-            raise Exception('Cannot send empty Email')
-        self.send(self.from_addr, self.to_addr, self.msg.as_string())
+
+    def send_status(self, body):
+        msg = {
+                'html': body,
+                'from_email': self.from_addr,
+                'to': [{
+                    'email': self.to_addr
+                    }],
+                'subject': 'Crowdbreaks {} stream update'.format(self.status_type),
+                }
+        return self.send(msg)
