@@ -58,6 +58,9 @@ class Config(object):
     # Rollbar
     ROLLBAR_ACCESS_TOKEN = os.environ.get('ROLLBAR_ACCESS_TOKEN', '')
 
+    # Other
+    TIMEZONE = os.environ.get('TIMEZONE', 'Europe/Zurich')
+
 
 class ProdConfig(Config):
     """Production configuration."""

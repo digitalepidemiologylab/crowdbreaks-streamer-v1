@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import mandrill
+from helpers import convert_tz
 
 class Mailer():
     """Handles Emailing"""
@@ -76,6 +77,8 @@ class StreamStatusMailer(Mailer):
         start_day = end_day - timedelta(days=num_days)
         stats = ''
         dates = list(redis_s3_queue.daterange(start_day, end_day, hourly=hourly))
+        now_utc = datetime.now(datetime.timezone.utc)
+        timezone_hour_delta = (convert_tz(now_utc, from_tz=pytz.utc) - now_utc).seconds // 3600
         total = 0
         for stream in stream_config_reader.read():
             project = stream['es_index_name']
@@ -86,7 +89,7 @@ class StreamStatusMailer(Mailer):
                 if hourly:
                     d, h = d.split(':')
                     count = redis_s3_queue.get_counts(project_slug, d, h)
-                    stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, h, count)
+                    stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, h + timezone_hour_delta, count)
                 else:
                     count = redis_s3_queue.get_counts(project_slug, d)
                     stats += '{}: {:,}<br>'.format(d, count)

@@ -4,6 +4,7 @@ import redis
 from celery.schedules import crontab
 from celery.signals import task_failure
 import rollbar
+from helpers import get_user_tz
 
 def create_celery():
     CELERY_BROKER_URL=os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379'),
@@ -24,19 +25,22 @@ if os.environ.get('ENV') == 'prd':
 def handle_task_failure(**kw):
     rollbar.report_exc_info(extra_data=kw)
 
+# now function
+nowfun = lambda datetime.datetime.now(get_user_tz())
+
 # beat schedule
 celery.conf.beat_schedule = {
         's3-uploads': {
             'task': 's3-upload-task',
-            'schedule': 10*60.0  # run every 10min
+            'schedule': 10*60.0  # runs every 10min
             },
         'email-daily': {
             'task': 'stream-status-daily',
-            'schedule': crontab(hour=8, minute=0) # runs every day at 10:00 CEST (9:00 CET)
+            'schedule': crontab(hour=9, minute=0, nowfun=nowfun) # runs every day at 9am
             },
         'email-weekly': {
             'task': 'stream-status-weekly',
-            'schedule': crontab(day_of_week=1, hour=8, minute=0) # runs at 10:00 CEST (9:00 CET) on Mondays
+            'schedule': crontab(day_of_week=1, hour=9, minute=0, nowfun=nowfun) # runs at 9am on Mondays
             }
         }
 celery.conf.timezone = 'UTC'
