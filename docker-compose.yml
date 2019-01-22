@@ -48,7 +48,7 @@ services:
     build: ./web
     container_name: stream
     command: python3 run_stream.py
-    restart: unless-stopped
+    restart: on-failure
     depends_on:
       - redis
     volumes:
