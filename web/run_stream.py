@@ -22,21 +22,19 @@ def main():
     # wait for a bit before connecting, in case container will be paused
     logger.debug('Streaming container is ready, sleeping for a bit...')
     time.sleep(10)
-    time_last_error = None
-    error_count = 0
+    time_last_error = 0
+    error_count_last_hour = 0
     while run:
         logger.debug('Trying to connect to Twitter API...')
         try: 
             stream = StreamManager(auth, listener)
             stream.start()
-        except TweepError as e:
+        except (TweepError, ConnectionError) as e:
             stream.stop()
             report_error(logger, e)
-            error += 1
-            time_new_error = time.time()
-            time_last_error = wait_some_time(time_last_error, time_new_error)
-            # consider switching auth keys here...
-        time.sleep(4)
+            error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)
+            time_last_error = time.time()
+        wait_some_time(time_last_error, error_count_last_hour)
     logger.info('Shutting down...')
 
 def handler_stop_signals(signum, frame):
@@ -46,20 +44,17 @@ def handler_stop_signals(signum, frame):
     if stream is not None:
         stream.stop()
 
-def wait_some_time(time_last_error, time_new_error):
-    if time_last_error is None:
-        time.sleep(5)
-        return time_new_error
-    time_since_last_error = time_new_error - time_last_error
-    if time_since_last_error < 10:
-        delay = 20
-    elif time_since_last_error < 30:
-        delay = 100
-    elif time_since_last_error < 200:
-        delay = 400
+def update_error_count(error_count, time_last_error):
+    if (time.time() - time_last_error) < 3600:
+        return error_count + 1
+    return 0  # reset to zero
+
+def wait_some_time(time_last_error, error_count_last_hour):
+    base_delay = 60
+    if error_count_last_hour == 0:
+        time.sleep(base_delay)
     else:
-        delay = 600
-    time.sleep(delay)
+        time.sleep(min(base_delay * error_count_last_hour, 1800)) # don't wait longer than 30min
     return time_new_error
 
 def get_auth():
@@ -70,7 +65,6 @@ def get_auth():
     auth.set_access_token(config.OAUTH_TOKEN, config.OAUTH_TOKEN_SECRET)
     return auth
 
-
 def rollbar_init():
     config = Config()
     if config.ENV == 'prd':
@@ -78,7 +72,6 @@ def rollbar_init():
                     'production', # Environment name
                     root=os.path.dirname(os.path.realpath(__file__)), # server root directory, makes tracebacks prettier
                     allow_logging_basic_config=False)
-
 
 if __name__ == '__main__':
     # logging config
