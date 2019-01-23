@@ -90,11 +90,10 @@ class Elastic():
         try:
             self.es.index(index=index_name, id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
         except elasticsearch.TransportError as e:
+            # This usually happens when a document with the same ID already exists
             report_error(self.logger, e)
-            report_error(self.logger, 'Transport error with tweet id: {}, current time: {}'.format(tweet['id'], str(datetime.now())))
-            res = self.es.get(index=index_name, doc_type='tweet', id=tweet['id'])
-            report_error(self.logger, 'About to index: {}\nOn ES: {}'.format(str(tweet), str(res['_source'])))
-        self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
+        else:
+            self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
 
     def put_template(self, filename='project.json', template_path=None):
         """Put template to ES

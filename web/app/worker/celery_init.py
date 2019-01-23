@@ -44,5 +44,9 @@ celery.conf.beat_schedule = {
 config = Config()
 celery.conf.timezone = config.TIMEZONE
 
+# Broker transport options
+# These options try to avoid rare cases of duplicate task execution when using Redis as a backend
+celery.conf.broker_transport_options = {'fanout_prefix': True, 'fanout_patterns': True, 'visibility_timeout': 43200}
+
 if __name__ == "__main__":
     celery.start()
