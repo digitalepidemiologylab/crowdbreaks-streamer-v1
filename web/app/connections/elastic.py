@@ -354,6 +354,11 @@ class Elastic():
                 res.append(d_date.strftime(output_format))
         return res
 
+    def count_recent_documents(self, since='now-10m'):
+        indices = self.list_indices()
+        body = {'query': {'range': {'created_at': {'gte': since, 'lte': 'now'}}}}
+        resp = self.es.count(index=indices, doc_type='tweet', body=body)
+        return resp.get('count', 0)
 
 # Helper functions
 def keys_exist(element, *keys):

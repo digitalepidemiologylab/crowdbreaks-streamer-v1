@@ -16,10 +16,6 @@ def require_auth_all():
 def test_es():
     return json.dumps(es.test_connection())
 
-@blueprint.route('/', methods=['GET'])
-def index():
-    return "hello world from elasticsearch interface"
-
 @blueprint.route('/stats', methods=['GET'])
 def indices_stats():
     return jsonify(es.indices_stats())
@@ -28,7 +24,6 @@ def indices_stats():
 def get_health():
     return jsonify(es.cluster_health())
 
-
 @blueprint.route('/create', methods=['POST'])
 def create_index():
     params = request.get_json()
@@ -36,4 +31,3 @@ def create_index():
         return Response("Index successfully created.", status=200, mimetype='text/plain')
     else:
         return Response("Index creation not successful.", status=400, mimetype='text/plain')
-

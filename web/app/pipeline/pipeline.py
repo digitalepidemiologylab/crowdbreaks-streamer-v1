@@ -9,21 +9,18 @@ import subprocess
 import glob
 import time
 import logging
-from app.connections import elastic
 from app.utils.docker_wrapper import DockerWrapper
 from app.pipeline.stream_config import StreamConfig
 from app.stream.stream_config_reader import StreamConfigReader
 from app.extensions import es
+from datetime import datetime, timedelta
+from app.stream.redis_s3_queue import RedisS3Queue
 
 blueprint = Blueprint('pipeline', __name__)
 
 @blueprint.before_request
 def require_auth_all():
     return requires_auth_func()
-
-@blueprint.route('/', methods=['GET'])
-def index():
-    return "hello world from pipeline"
 
 @blueprint.route('/start', methods=['GET'])
 def start():
@@ -81,6 +78,24 @@ def status_all():
     d = DockerWrapper()
     return jsonify(d.list_containers())
 
+@blueprint.route('/status/stream_activity', methods=['GET'])
+def stream_activity():
+    es_activity_threshold_min = int(request.args.get('es_activity_threshold_min', 10))
+    redis_counts_threshold_hours = int(request.args.get('redis_counts_threshold_hours', 2))
+    # elasticsearch counts
+    es_count = es.count_recent_documents(since='now-{}m'.format(es_activity_threshold_min))
+    # redis counts
+    e = datetime.now()
+    s = e - timedelta(hours=redis_counts_threshold_hours)
+    redis_s3_queue = RedisS3Queue()
+    stream_config_reader = StreamConfigReader()
+    dates = list(redis_s3_queue.daterange(s, e, hourly=True))
+    redis_count = 0
+    for stream in stream_config_reader.read():
+        for d in dates:
+            d, h = d.split(':')
+            redis_count = redis_s3_queue.get_counts(stream['slug'], d, h)
+    return jsonify({'redis_count': redis_count, 'es_count': es_count})
 
 @blueprint.route('/status/<container_name>')
 def status_container(container_name):
