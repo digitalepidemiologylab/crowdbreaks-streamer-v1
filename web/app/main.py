@@ -68,7 +68,6 @@ def test_send_email():
 @blueprint.route('test/email/status', methods=['GET'])
 def test_email_status():
     status_type = request.args.get('type', default='daily', type=str)
-    print(status_type)
     mailer = StreamStatusMailer(status_type=status_type)
     body = mailer.get_body()
     return body
