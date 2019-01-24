@@ -59,15 +59,18 @@ def test_email_ping():
 
 @blueprint.route('test/email/send_test_email', methods=['GET'])
 def test_send_email():
-    mailer = StreamStatusMailer(status_type='daily')
-    body = mailer.get_body_daily()
+    status_type = request.args.get('type', default='daily', type='str')
+    mailer = StreamStatusMailer(status_type=status_type)
+    body = mailer.get_body()
     resp = mailer.send_status(body)
     return json.dumps(resp)
 
 @blueprint.route('test/email/status', methods=['GET'])
 def test_email_status():
-    mailer = StreamStatusMailer(status_type='daily')
-    body = mailer.get_body_daily()
+    status_type = request.args.get('type', default='daily', type=str)
+    print(status_type)
+    mailer = StreamStatusMailer(status_type=status_type)
+    body = mailer.get_body()
     return body
 
 #################################################################

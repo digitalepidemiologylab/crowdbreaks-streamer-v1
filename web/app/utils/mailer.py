@@ -33,53 +33,38 @@ class StreamStatusMailer(Mailer):
         else:
             raise Exception('Status type {} is not recognized'.format(self.status_type))
 
-    def get_body_daily(self):
-        today = datetime.now()
-        projects_stats, total_count = self._get_projects_stats(num_days=1, hourly=True)
-        html_text = """\
-            <html>
-              <head></head>
-                <body>
-                    <h2>Crowdbreaks stream status</h2>
-                    Date: {date}<br>
-                    Total today: {total_count:,}<br>
-                    {projects_stats}
-                    <h2>Error log (past 7 days)</h2>
-                    {errors}
-                </body>
-            </html>
-
-        """.format(date=today.strftime("%Y-%m-%d"), total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
-        return html_text
-
-    def get_body_weekly(self):
+    def get_body(self):
         today = datetime.now().strftime("%Y-%m-%d")
-        projects_stats, total_count = self._get_projects_stats()
+        if self.status_type == 'daily':
+            projects_stats, total_count = self._get_projects_stats(num_days=1, hourly=True)
+            total_text = 'Total today'
+        else:
+            projects_stats, total_count = self._get_projects_stats()
+            total_text = 'Total this week'
         html_text = """\
             <html>
               <head></head>
                 <body>
                     <h2>Crowdbreaks stream status</h2>
                     Date: {date}<br>
-                    Total this week: {total_count:,}<br>
+                    {total_text}: {total_count:,}<br>
                     {projects_stats}
                     <h2>Error log (past 7 days)</h2>
                     {errors}
                 </body>
             </html>
-
-        """.format(date=today, total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
+        """.format(date=today, total_text=total_text, total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
         return html_text
 
     def _get_projects_stats(self, num_days=7, hourly=False):
         stream_config_reader = StreamConfigReader()
         redis_s3_queue = RedisS3Queue()
-        end_day = datetime.now()
+        end_day = datetime.utcnow()
         start_day = end_day - timedelta(days=num_days)
         stats = ''
         dates = list(redis_s3_queue.daterange(start_day, end_day, hourly=hourly))
-        now_utc = pytz.utc.localize(datetime.utcnow())
-        timezone_hour_delta = (convert_tz(now_utc, from_tz=pytz.utc) - now_utc).seconds // 3600
+        now_utc = pytz.utc.localize(end_day)
+        timezone_hour_delta = convert_tz(now_utc, from_tz=pytz.utc).hour - now_utc.hour
         total = 0
         for stream in stream_config_reader.read():
             project = stream['es_index_name']

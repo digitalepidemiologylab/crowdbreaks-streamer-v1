@@ -91,7 +91,7 @@ class RedisS3Queue(Redis):
             self._r.delete(key)
 
     def daterange(self, date1, date2, hourly=False):
-        while date1 <= date2:
+        while date1 < date2:
             if hourly:
                 yield date1.strftime('%Y-%m-%d:%H')
                 date1 += timedelta(hours=1)
@@ -111,9 +111,9 @@ class RedisS3Queue(Redis):
     # private methods
 
     def _get_today(self):
-        now = datetime.now()
+        now = datetime.utcnow()
         return now.strftime("%Y-%m-%d")
 
     def _get_hour(self):
-        now = datetime.now()
+        now = datetime.utcnow()
         return now.strftime("%H")
