@@ -78,8 +78,9 @@ class RedisS3Queue(Redis):
     
     def clear_counts(self, older_than=90):
         """Clear all keys for project older than `older_than` days"""
-        end_day = datetime.now()
+        end_day = datetime.utcnow()
         start_day = end_day - timedelta(days=older_than)
+        end_day += timedelta(days=1)  # include also current day
         except_dates = list(self.daterange(start_day, end_day))
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.counts_namespace)):
             day = key.decode().split(':')[-2]
@@ -91,6 +92,8 @@ class RedisS3Queue(Redis):
             self._r.delete(key)
 
     def daterange(self, date1, date2, hourly=False):
+        if date1 > date2:
+            raise Exception('Invalid daterange. First date has to be smaller or equal to second date.')
         while date1 < date2:
             if hourly:
                 yield date1.strftime('%Y-%m-%d:%H')

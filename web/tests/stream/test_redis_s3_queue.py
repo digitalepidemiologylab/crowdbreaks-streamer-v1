@@ -59,7 +59,6 @@ class TestRedisS3Queue:
         assert popped_tweets[0].decode() == tweet1
         assert popped_tweets[1].decode() == tweet2
 
-
     def test_mailer(self, s3_q):
         project = 'project_vaccine_sentiment'
         s3_q.update_counts(project)
@@ -67,8 +66,18 @@ class TestRedisS3Queue:
         body = mailer._get_projects_stats()
         print(body)
 
+    def test_daterange(self, s3_q):
+        now = datetime.utcnow()
+        one_day_ago = now - timedelta(days=1)
+        dr = s3_q.daterange(one_day_ago, now)
+        assert len(list(dr)) == 1
+        dr = s3_q.daterange(one_day_ago, now, hourly=True)
+        assert len(list(dr)) == 24
+
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     import os; os.environ["REDIS_HOST"] = "localhost"
+    # @pytest.mark.focus
+    # pytest.main(['-s', '-m', 'focus'])
     pytest.main(['-s'])
