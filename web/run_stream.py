@@ -8,6 +8,7 @@ from app.settings import Config
 import signal
 import rollbar
 from helpers import report_error
+from urllib3.exceptions import ProtocolError
 
 run = True
 stream = None
@@ -29,7 +30,7 @@ def main():
         try: 
             stream = StreamManager(auth, listener)
             stream.start()
-        except (TweepError, ConnectionError) as e:
+        except (TweepError, ConnectionError, ProtocolError) as e:
             stream.stop()
             report_error(logger, e)
             error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)

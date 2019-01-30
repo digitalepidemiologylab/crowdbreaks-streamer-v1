@@ -16,4 +16,7 @@ class StreamManager():
 
     def stop(self):
         self.logger.info('Stopping stream...')
-        self.stream.disconnect()
+        try:
+            self.stream.disconnect()
+        except:
+            pass
