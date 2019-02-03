@@ -89,8 +89,10 @@ class Elastic():
         """
         try:
             self.es.index(index=index_name, id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
+        except elasticsearch.ConflictError as e:
+            # This usually happens when a document with the same ID already exists.
+            self.logger.warning('Conflict Error')
         except elasticsearch.TransportError as e:
-            # This usually happens when a document with the same ID already exists
             report_error(self.logger, e)
         else:
             self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))

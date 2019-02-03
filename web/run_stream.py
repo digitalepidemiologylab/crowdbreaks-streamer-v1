@@ -35,6 +35,12 @@ def main():
             report_error(logger, e)
             error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)
             time_last_error = time.time()
+        except Exception as e:
+            stream.stop()
+            report_error(logger, 'Uncaught stream exception.')
+            report_error(logger, e)
+            error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)
+            time_last_error = time.time()
         wait_some_time(time_last_error, error_count_last_hour)
     logger.info('Shutting down...')
 
