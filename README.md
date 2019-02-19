@@ -47,7 +47,7 @@ Description of models in `bin/vaccine_sentiment/`
 | `fasttext_v1.ftz` | FastText supervised [bag-of-words classifier](https://arxiv.org/pdf/1607.01759.pdf) | Trained on data from Bauch et al. Parameters: dim=100, epochs=200, ngrams=3, learning_rate=0.015 |
 
 
-# Example usage
+## Example usage
 Determine vaccine sentiment of a sentence
 ```
 import requests, os
