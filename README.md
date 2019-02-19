@@ -62,5 +62,5 @@ resp.json()
 }
 ```
 
-# Author
-Martin Müller (martin.muller@epfl.ch)
+# Contact
+Martin Müller (martin.muller@epfl.ch) or directly info@crowdbreks.org
