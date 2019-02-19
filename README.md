@@ -1,6 +1,6 @@
 # Crowdbreaks Streamer
 
-Intended to be used for stream processing, interaction with ElasticSearch, and endpoints for running ML tasks (such as vaccine sentiments) and exposes Flask API endpoints (api.crowdbreaks.org).
+Intended to be used for stream processing, interaction with ElasticSearch, and endpoints for running ML tasks (such as vaccine sentiments) and exposes Flask API endpoints (on `api.crowdbreaks.org`).
 
 # Installation
 ## Development
