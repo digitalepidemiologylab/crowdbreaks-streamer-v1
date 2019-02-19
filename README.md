@@ -63,4 +63,4 @@ resp.json()
 ```
 
 # Contact
-Martin Müller (martin.muller@epfl.ch) or directly info@crowdbreks.org
+In case of questions feel free to write to info@crowdbreaks.org or directly to Martin Müller (martin.muller@epfl.ch)
