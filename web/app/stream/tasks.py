@@ -14,7 +14,7 @@ import json
 from helpers import report_error
 
 @celery.task(ignore_result=True)
-def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
+def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatched_tweets=False):
     logger = get_task_logger(__name__)
     if debug:
         logger.setLevel(logging.DEBUG)
@@ -22,12 +22,13 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
     rtm = ReverseTweetMatcher(tweet=tweet)
     candidates = rtm.get_candidates()
     if len(candidates) == 0:
-        # Could not match keywords
-        report_error(logger, 'ERROR: No matching projects in tweet')
-        # store to separate file for later analysis
-        config = Config()
-        with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', tweet['id_str'] + '.json'), 'w') as f:
-            json.dump(tweet, f)
+        # Could not match keywords. This might occur quite frequently e.g. when tweets are collected accross different languages/keywords
+        logger.info('Tweet {} could not be matched against any existing projects.'.format(tweet['id']))
+        if store_unmatched_tweets:
+            # store to separate file for later analysis
+            config = Config()
+            with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', tweet['id_str'] + '.json'), 'w') as f:
+                json.dump(tweet, f)
         return
     # queue up for s3 upload and add to priority queue
     logger.info("SUCCESS: Found {} project(s) ({}) as a matching project for tweet".format(len(candidates), ', '.join(candidates)))

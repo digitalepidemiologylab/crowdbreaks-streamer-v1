@@ -61,36 +61,30 @@ class ReverseTweetMatcher(object):
     def _match_to_config(self, relevant_text, config):
         """Match text to config in stream"""
         relevant_text = relevant_text.lower()
-        candidates = set()
+        match_candidates = set()
         for c in config:
             # else find match for keywords to relevant text
             keywords = [k.lower().split() for k in c['keywords']]
             for keyword_list in keywords:
                 if len(keyword_list) == 1:
                     if keyword_list[0] in relevant_text:
-                        candidates.add(c['slug'])
+                        match_candidates.add(c['slug'])
                         continue
                 else:
                     # keywords with more than one word: Check if all words are contained in text
                     match_result = re.findall(r'{}'.format('|'.join(keyword_list)), relevant_text)
                     if set(match_result) == set(keyword_list):
-                        candidates.add(c['slug'])
+                        match_candidates.add(c['slug'])
                         continue
-        if len(candidates) > 1:
-            # try to distinguish by language
-            config_dict = {c['slug']: c for c in config}
-            lang_tweet = self.tweet['lang']
-            candidates_by_lang = set()
-            for c in candidates:
-                languages = config_dict[c]['lang']
-                if len(languages) == 0:
-                    # no language was set, potential candidate
-                    candidates_by_lang.add(c)
-                else:
-                    for lang in languages:
-                        if lang == lang_tweet:
-                            candidates_by_lang.add(c)
-            return list(candidates_by_lang)
+        # filter by language setting
+        config_dict = {c['slug']: c for c in config}
+        lang_tweet = self.tweet['lang']
+        candidates = set()
+        for c in match_candidates:
+            languages = config_dict[c]['lang']
+            # add as match if language matches, no language was specified or language could not be detected by Twitter ('und')
+            if lang_tweet in languages or len(languages) == 0 or lang_tweet == 'und':
+                candidates.add(c)
         return list(candidates)
 
     def _fetch_urls(self, obj):
