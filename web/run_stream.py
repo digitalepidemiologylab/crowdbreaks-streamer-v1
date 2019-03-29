@@ -67,7 +67,6 @@ def wait_some_time(time_last_error, error_count_last_hour):
         time.sleep(base_delay)
     else:
         time.sleep(min(base_delay * error_count_last_hour, 1800)) # don't wait longer than 30min
-    return time_new_error
 
 def get_auth():
     config = Config()
