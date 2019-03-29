@@ -13,7 +13,7 @@ class ReverseTweetMatcher(object):
         self.stream_config_reader = StreamConfigReader()
         self.relevant_text = ''
 
-    def get_candidates(self, match_based_on_language=True):
+    def get_candidates(self):
         relevant_text = self.fetch_all_relevant_text()
         config = self.stream_config_reader.read()
         if len(config) == 0:
@@ -23,7 +23,7 @@ class ReverseTweetMatcher(object):
             return [config[0]['slug']]
         else:
             # try to match to configs
-            return self._match_to_config(relevant_text, config, match_based_on_language)
+            return self._match_to_config(relevant_text, config)
     
     def fetch_all_relevant_text(self):
         """Here we pool all relevant text within the tweet to do the matching. From the twitter docs:
@@ -58,28 +58,11 @@ class ReverseTweetMatcher(object):
 
     # private methods
 
-    def _match_to_config(self, relevant_text, config, match_based_on_language=True):
+    def _match_to_config(self, relevant_text, config):
         """Match text to config in stream"""
-        candidates_by_language = set()
-        if match_based_on_language and 'lang' in self.tweet:
-            # find a match based on languages
-            lang = self.tweet['lang']
-            for c in config:
-                if lang in c['lang']:
-                    candidates_by_language.add(c['slug'])
-        else:
-            # all projects are possible candidates
-            for c in config:
-                candidates_by_language.add(c['slug'])
-        if len(candidates_by_language) == 1:
-            return list(candidates_by_language)
-        # multiple possible projects, match based on keywords
         relevant_text = relevant_text.lower()
         candidates = set()
         for c in config:
-            # Only consider candidates by language
-            if c['slug'] not in candidates_by_language:
-                continue
             # else find match for keywords to relevant text
             keywords = [k.lower().split() for k in c['keywords']]
             for keyword_list in keywords:
@@ -93,6 +76,21 @@ class ReverseTweetMatcher(object):
                     if set(match_result) == set(keyword_list):
                         candidates.add(c['slug'])
                         continue
+        if len(candidates) > 1:
+            # try to distinguish by language
+            config_dict = {c['slug']: c for c in config}
+            lang_tweet = self.tweet['lang']
+            candidates_by_lang = set()
+            for c in candidates:
+                languages = config_dict[c]['lang']
+                if len(languages) == 0:
+                    # no language was set, potential candidate
+                    candidates_by_lang.add(c)
+                else:
+                    for lang in languages:
+                        if lang == lang_tweet:
+                            candidates_by_lang.add(c)
+            return list(candidates_by_lang)
         return list(candidates)
 
     def _fetch_urls(self, obj):

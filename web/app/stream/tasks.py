@@ -22,15 +22,13 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False):
     rtm = ReverseTweetMatcher(tweet=tweet)
     candidates = rtm.get_candidates()
     if len(candidates) == 0:
-        # Check if can be matched if independent from language
-        if len(rtm.get_candidates(match_based_on_language=False)) == 0:
-            # Could not match keywords
-            report_error(logger, 'ERROR: No matching projects in tweet')
-            # store to separate file for later analysis
-            config = Config()
-            with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', tweet['id_str'] + '.json'), 'w') as f:
-                json.dump(tweet, f)
-            return
+        # Could not match keywords
+        report_error(logger, 'ERROR: No matching projects in tweet')
+        # store to separate file for later analysis
+        config = Config()
+        with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', tweet['id_str'] + '.json'), 'w') as f:
+            json.dump(tweet, f)
+        return
     # queue up for s3 upload and add to priority queue
     logger.info("SUCCESS: Found {} project(s) ({}) as a matching project for tweet".format(len(candidates), ', '.join(candidates)))
     redis_queue = RedisS3Queue()
