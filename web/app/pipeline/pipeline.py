@@ -94,7 +94,7 @@ def stream_activity():
     for stream in stream_config_reader.read():
         for d in dates:
             d, h = d.split(':')
-            redis_count = redis_s3_queue.get_counts(stream['slug'], d, h)
+            redis_count += redis_s3_queue.get_counts(stream['slug'], d, h)
     return jsonify({'redis_count': redis_count, 'es_count': es_count})
 
 @blueprint.route('/status/<container_name>')
