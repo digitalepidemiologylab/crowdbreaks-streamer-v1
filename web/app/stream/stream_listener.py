@@ -42,4 +42,4 @@ class Listener(StreamListener):
         self.logger.info('Successfully connected to Twitter Streaming API.')
 
     def on_warning(self, notice):
-        self.logger.warning(notice)
+        report_error(self.logger, notice, level='warning')
