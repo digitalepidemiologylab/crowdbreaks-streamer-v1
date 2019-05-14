@@ -41,6 +41,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             return
         # add tracking info
         tweet['_tracking_info'] = stream_config_reader.get_tracking_info(project)
+        tweet['_tracking_info']['matching_keywords'] = rtm.matching_keywords[project]
         # queue up on Redis for subsequent upload
         redis_queue.push(json.dumps(tweet).encode(), project)
         if use_pq and not rtm.is_retweet:

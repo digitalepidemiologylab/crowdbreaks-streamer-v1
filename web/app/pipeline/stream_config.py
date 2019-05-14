@@ -11,7 +11,7 @@ class StreamConfig():
         self.app_config = app_config
         self.config = config
         self.logger = logging.getLogger('pipeline')
-        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode']
+        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode']
 
     def write(self):
         config_path = self._get_config_path()
@@ -20,7 +20,7 @@ class StreamConfig():
             return
         new_config = self._extract_config()
         with open(config_path, 'w') as f:
-            json.dump(new_config, f)
+            json.dump(new_config, f, indent=4)
 
     def read(self):
         config_path = self._get_config_path()

@@ -2,6 +2,7 @@ import re
 import logging
 import os
 from app.stream.stream_config_reader import StreamConfigReader
+from collections import defaultdict
 
 class ReverseTweetMatcher(object):
     """Tries to reverse match a tweet object given a set of keyword lists and languages."""
@@ -12,6 +13,7 @@ class ReverseTweetMatcher(object):
         self.logger = logging.getLogger(__name__)
         self.stream_config_reader = StreamConfigReader()
         self.relevant_text = ''
+        self.matching_keywords = {}
 
     def get_candidates(self):
         relevant_text = self.fetch_all_relevant_text()
@@ -20,6 +22,7 @@ class ReverseTweetMatcher(object):
             return []
         elif len(config) == 1:
             # only one possibility
+            self._find_matching_keywords_for_project(relevant_text, config[0])
             return [config[0]['slug']]
         else:
             # try to match to configs
@@ -55,13 +58,29 @@ class ReverseTweetMatcher(object):
         self.relevant_text = text
         return text
 
-
     # private methods
+
+    def _find_matching_keywords_for_project(self, relevant_text, config):
+        """Find matching_keywords"""
+        relevant_text = relevant_text.lower()
+        keywords = [k.lower().split() for k in config['keywords']]
+        matching_keywords = defaultdict(list)
+        for keyword_list in keywords:
+            if len(keyword_list) == 1:
+                if keyword_list[0] in relevant_text:
+                    matching_keywords[config['slug']].append(keyword_list[0])
+            else:
+                # keywords with more than one word: Check if all words are contained in text
+                match_result = re.findall(r'{}'.format('|'.join(keyword_list)), relevant_text)
+                if set(match_result) == set(keyword_list):
+                    matching_keywords[config['slug']].extend(keyword_list)
+        self.matching_keywords = dict(matching_keywords)
 
     def _match_to_config(self, relevant_text, config):
         """Match text to config in stream"""
         relevant_text = relevant_text.lower()
         match_candidates = set()
+        matching_keywords_by_project = defaultdict(list)
         for c in config:
             # else find match for keywords to relevant text
             keywords = [k.lower().split() for k in c['keywords']]
@@ -69,13 +88,13 @@ class ReverseTweetMatcher(object):
                 if len(keyword_list) == 1:
                     if keyword_list[0] in relevant_text:
                         match_candidates.add(c['slug'])
-                        continue
+                        matching_keywords_by_project[c['slug']].append(keyword_list[0])
                 else:
                     # keywords with more than one word: Check if all words are contained in text
                     match_result = re.findall(r'{}'.format('|'.join(keyword_list)), relevant_text)
                     if set(match_result) == set(keyword_list):
                         match_candidates.add(c['slug'])
-                        continue
+                        matching_keywords_by_project[c['slug']].extend(keyword_list)
         # filter by language setting
         config_dict = {c['slug']: c for c in config}
         lang_tweet = self.tweet['lang']
@@ -84,6 +103,7 @@ class ReverseTweetMatcher(object):
             languages = config_dict[c]['lang']
             # add as match if language matches, no language was specified or language could not be detected by Twitter ('und')
             if lang_tweet in languages or len(languages) == 0 or lang_tweet == 'und':
+                self.matching_keywords[c] = matching_keywords_by_project[c]
                 candidates.add(c)
         return list(candidates)
 

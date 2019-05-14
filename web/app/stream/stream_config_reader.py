@@ -8,7 +8,7 @@ class StreamConfigReader():
 
     def __init__(self):
         self.config_path = self._get_config_path()
-        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode']
+        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode']
 
     def get_pooled_config(self):
         """Pool all configs to run in single stream"""
@@ -48,8 +48,8 @@ class StreamConfigReader():
         if len(config) == 0:
           return False, 'Configuration contains no streams.'
         for c in config:
-          if set(self.required_keys) != set(c.keys()):
-              return False, 'Configuration contains invalid keys.'
+            if set(self.required_keys) != set(c.keys()):
+                return False, 'Configuration contains invalid keys.'
         return True, ''
 
 
