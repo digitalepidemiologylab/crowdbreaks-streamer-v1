@@ -68,12 +68,12 @@ class ProcessMedia():
         fmt = url.split('.')[-1]
         matching_keywords = self.tweet['_tracking_info']['matching_keywords']
         matching_keywords = '_'.join(matching_keywords)
-        created_at = self.created_at.strftime("%Y%M%d%H%M%S")
+        created_at = self.created_at.strftime("%Y%m%d%H%M%S")
         size = "{}-{}x{}".format(size_info['size'], size_info['w'], size_info['h'])
         return "{}-{}-{}-{}-{}-{}-{}.{}".format(created_at, self.project, tweet_id, idx, media_type, size, matching_keywords, fmt)
 
     def get_s3_key(self, f_name):
-        return "{}/{}/{}/{}".format('media', self.project, self.created_at.strftime("%Y-%M-%d"), f_name)
+        return "{}/{}/{}/{}".format('media', self.project, self.created_at.strftime("%Y-%m-%d"), f_name)
 
     @property
     def created_at(self, fmt='%a %b %d %H:%M:%S %z %Y'):
