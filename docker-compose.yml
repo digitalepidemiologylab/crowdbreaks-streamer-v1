@@ -14,6 +14,7 @@ services:
       - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
+      - './web/app/tmp/:/home/app/app/tmp/'
   redis:
     container_name: redis
     image: "redis:alpine"
@@ -31,6 +32,7 @@ services:
       - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
+      - './web/app/tmp/:/home/app/app/tmp/'
   celery-beat:
     build: ./web
     container_name: celery-beat
@@ -44,6 +46,7 @@ services:
       - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
+      - './web/app/tmp/:/home/app/app/tmp/'
   stream:
     build: ./web
     container_name: stream
@@ -55,5 +58,6 @@ services:
       - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
+      - './web/app/tmp/:/home/app/app/tmp/'
     env_file:
       - secrets.list
