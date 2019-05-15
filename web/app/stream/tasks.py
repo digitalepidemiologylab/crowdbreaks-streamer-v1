@@ -3,6 +3,7 @@ from app.worker.celery_init import celery
 from celery.utils.log import get_task_logger
 from app.utils.reverse_tweet_matcher import ReverseTweetMatcher
 from app.utils.process_tweet import ProcessTweet
+from app.utils.process_media import ProcessMedia
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.predict_sentiment import PredictSentiment
 from app.stream.stream_config_reader import StreamConfigReader
@@ -49,6 +50,9 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             logger.debug('Add tweet to priority queue...')
             tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
             tid.add(tweet['id'], priority=0)
+        if stream_config['image_storage_mode'] != 'inactive':
+            pm = ProcessMedia(tweet, image_storage_mode=stream_config['image_storage_mode'])
+            pm.process()
         if send_to_es and stream_config['storage_mode'] in ['s3-es', 's3-es-no-retweets']:
             if rtm.is_retweet and stream_config['storage_mode'] == 's3-es-no-retweets':
                 # Do not store retweets on ES

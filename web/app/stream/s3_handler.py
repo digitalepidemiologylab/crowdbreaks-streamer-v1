@@ -22,6 +22,15 @@ class S3Handler():
         else:
             return True
 
+    def upload_file(self, local_path, key):
+        try: 
+            self._s3_client.upload_file(local_path, self.bucket, key)
+        except Exception as e:
+            report_error(self.logger, e)
+            return False
+        else:
+            return True
+
     def list_buckets(self):
         return self._s3_client.list_buckets()
 

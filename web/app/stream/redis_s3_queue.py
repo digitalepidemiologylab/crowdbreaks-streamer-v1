@@ -15,12 +15,15 @@ class RedisS3Queue(Redis):
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.counts_namespace = 'counts'
+        self.media_name_spaces = ['photo', 'video', 'animated_gif']
 
     def queue_key(self, project):
         return "{}:{}:{}".format(self.namespace, self.config.REDIS_STREAM_QUEUE_KEY, project)
 
-    def count_key(self, project, day, hour):
-        return "{}:{}:{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.counts_namespace, project, day, hour)
+    def count_key(self, project, day, hour, media_type):
+        if media_type is None:
+            media_type = 'tweets'
+        return "{}:{}:{}:{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.counts_namespace, project, media_type, day, hour)
 
     def push(self, tweet, project):
         self.update_counts(project)
@@ -47,11 +50,11 @@ class RedisS3Queue(Redis):
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.config.REDIS_STREAM_QUEUE_KEY)):
             self._r.delete(key)
 
-    def get_counts(self, project, day=None, hour=None):
+    def get_counts(self, project, day=None, hour=None, media_type=None):
         if day is None:
             day = self._get_today()
         if hour is not None:
-            key = self.count_key(project, day, hour)
+            key = self.count_key(project, day, hour, media_type)
             counts = self._r.get(key)
             if counts is None:
                 return 0
@@ -61,19 +64,19 @@ class RedisS3Queue(Redis):
         hour = self._get_hour()
         counts = 0
         for h in self.full_day_hour_range():
-            key = self.count_key(project, day, h)
+            key = self.count_key(project, day, h, media_type)
             c = self._r.get(key)
             if c is not None:
                 counts += int(c.decode())
         return counts
 
-    def update_counts(self, project, day=None, hour=None, incr=1):
+    def update_counts(self, project, day=None, hour=None, incr=1, media_type=None):
         if day is None:
             day = self._get_today()
         if hour is None:
             hour = self._get_hour()
-        counts = self.get_counts(project, day, hour)
-        key = self.count_key(project, day, hour)
+        counts = self.get_counts(project, day, hour, media_type)
+        key = self.count_key(project, day, hour, media_type)
         self._r.set(key, counts + incr)
     
     def clear_counts(self, older_than=90):
@@ -88,8 +91,9 @@ class RedisS3Queue(Redis):
                 self._r.delete(key)
 
     def clear_all_counts(self):
-        for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.counts_namespace)):
-            self._r.delete(key)
+        for namespace in [self.counts_namespace] + self.media_name_spaces:
+            for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, namespace)):
+                self._r.delete(key)
 
     def daterange(self, date1, date2, hourly=False):
         if date1 > date2:

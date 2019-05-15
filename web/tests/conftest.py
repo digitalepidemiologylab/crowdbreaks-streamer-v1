@@ -1,8 +1,10 @@
 import pytest
 import sys, os
+import json
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from app.utils.priority_queue import PriorityQueue, TweetIdQueue, RedisSet
 from app.stream.redis_s3_queue import RedisS3Queue
+from app.utils.process_media import ProcessMedia
 
 
 # vars global to test env
@@ -35,3 +37,9 @@ def s3_q():
     redis_s3_queue = RedisS3Queue() 
     yield redis_s3_queue
     redis_s3_queue.clear()
+
+@pytest.fixture(scope='session')
+def tweet_with_images():
+    with open(os.path.join('..', 'data', 'tweet_with_media.json')) as f:
+        tweet = json.load(f)
+    yield tweet

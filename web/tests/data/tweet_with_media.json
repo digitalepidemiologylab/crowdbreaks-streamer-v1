@@ -1,0 +1,231 @@
+{
+  "created_at": "Thu Apr 04 12:23:44 +0000 2019",
+  "id": 0,
+  "id_str": "0",
+  "text": "test text",
+  "display_text_range": [
+    0,
+    140
+  ],
+  "source": "<a href=\"http://twitter.com\" rel=\"nofollow\">Twitter Web Client</a>",
+  "truncated": true,
+  "in_reply_to_status_id": null,
+  "in_reply_to_status_id_str": null,
+  "in_reply_to_user_id": null,
+  "in_reply_to_user_id_str": null,
+  "in_reply_to_screen_name": null,
+  "user": {
+    "id": 0,
+    "id_str": "0",
+    "name": "test user",
+    "screen_name": "test user",
+    "location": "test location",
+    "url": "https://www.linkedin.com/in/test_user/",
+    "description": "test description",
+    "translator_type": "none",
+    "protected": false,
+    "verified": false,
+    "followers_count": 422,
+    "friends_count": 243,
+    "listed_count": 20,
+    "favourites_count": 920,
+    "statuses_count": 465,
+    "created_at": "Thu Feb 24 22:27:31 +0000 2011",
+    "utc_offset": null,
+    "time_zone": null,
+    "geo_enabled": false,
+    "lang": "ca",
+    "contributors_enabled": false,
+    "is_translator": false,
+    "profile_background_color": "C0DEED",
+    "profile_background_image_url": "http://abs.twimg.com/images/themes/theme1/bg.png",
+    "profile_background_image_url_https": "https://abs.twimg.com/images/themes/theme1/bg.png",
+    "profile_background_tile": false,
+    "profile_link_color": "1DA1F2",
+    "profile_sidebar_border_color": "C0DEED",
+    "profile_sidebar_fill_color": "DDEEF6",
+    "profile_text_color": "333333",
+    "profile_use_background_image": true,
+    "profile_image_url": "http://pbs.twimg.com/profile_images/599206471197446144/Lp83C7dj_normal.jpg",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/599206471197446144/Lp83C7dj_normal.jpg",
+    "profile_banner_url": "https://pbs.twimg.com/profile_banners/257183784/1516805000",
+    "default_profile": true,
+    "default_profile_image": false,
+    "following": null,
+    "follow_request_sent": null,
+    "notifications": null
+  },
+  "geo": null,
+  "coordinates": null,
+  "place": null,
+  "contributors": null,
+  "is_quote_status": false,
+  "extended_tweet": {
+    "full_text": "full text",
+    "display_text_range": [
+      0,
+      211
+    ],
+    "entities": {
+      "hashtags": [
+        {
+          "text": "VaccinesWork",
+          "indices": [
+            198,
+            211
+          ]
+        }
+      ],
+      "urls": [
+        {
+          "url": "https://t.co/OOOYAfObdW",
+          "expanded_url": "https://theconversation.com/anti-vaxxers-appear-to-be-losing-ground-in-the-online-vaccine-debate-114406",
+          "display_url": "theconversation.com/anti-vaxxers-a…",
+          "indices": [
+            131,
+            154
+          ]
+        }
+      ],
+      "user_mentions": [
+        {
+          "screen_name": "other user",
+          "name": "other user",
+          "id": 1,
+          "id_str": "1",
+          "indices": [
+            112,
+            127
+          ]
+        }
+      ],
+      "symbols": [],
+      "media": [
+        {
+          "id": 1113777837478166500,
+          "id_str": "1113777837478166529",
+          "indices": [
+            212,
+            235
+          ],
+          "media_url": "http://pbs.twimg.com/media/D3TvCsmWwAEGWAF.jpg",
+          "media_url_https": "https://pbs.twimg.com/media/D3TvCsmWwAEGWAF.jpg",
+          "url": "https://t.co/uHLA3nwjoR",
+          "display_url": "pic.twitter.com/uHLA3nwjoR",
+          "expanded_url": "https://twitter.com/j_lanuza/status/1113779181895155712/photo/1",
+          "type": "photo",
+          "sizes": {
+            "medium": {
+              "w": 1000,
+              "h": 789,
+              "resize": "fit"
+            },
+            "thumb": {
+              "w": 150,
+              "h": 150,
+              "resize": "crop"
+            },
+            "small": {
+              "w": 680,
+              "h": 537,
+              "resize": "fit"
+            },
+            "large": {
+              "w": 1000,
+              "h": 789,
+              "resize": "fit"
+            }
+          }
+        }
+      ]
+    },
+    "extended_entities": {
+      "media": [
+        {
+          "id": 1113777837478166500,
+          "id_str": "1113777837478166529",
+          "indices": [
+            212,
+            235
+          ],
+          "media_url": "http://pbs.twimg.com/media/D3TvCsmWwAEGWAF.jpg",
+          "media_url_https": "https://pbs.twimg.com/media/D3TvCsmWwAEGWAF.jpg",
+          "url": "https://t.co/uHLA3nwjoR",
+          "display_url": "pic.twitter.com/uHLA3nwjoR",
+          "expanded_url": "https://twitter.com/j_lanuza/status/1113779181895155712/photo/1",
+          "type": "photo",
+          "sizes": {
+            "medium": {
+              "w": 1000,
+              "h": 789,
+              "resize": "fit"
+            },
+            "thumb": {
+              "w": 150,
+              "h": 150,
+              "resize": "crop"
+            },
+            "small": {
+              "w": 680,
+              "h": 537,
+              "resize": "fit"
+            },
+            "large": {
+              "w": 1000,
+              "h": 789,
+              "resize": "fit"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "quote_count": 0,
+  "reply_count": 0,
+  "retweet_count": 0,
+  "favorite_count": 0,
+  "entities": {
+    "hashtags": [],
+    "urls": [
+      {
+        "url": "https://t.co/0OmhhBwpra",
+        "expanded_url": "https://twitter.com/i/web/status/1113779181895155712",
+        "display_url": "twitter.com/i/web/status/1…",
+        "indices": [
+          113,
+          136
+        ]
+      }
+    ],
+    "user_mentions": [],
+    "symbols": []
+  },
+  "favorited": false,
+  "retweeted": false,
+  "possibly_sensitive": false,
+  "filter_level": "low",
+  "lang": "en",
+  "timestamp_ms": "1554380624637",
+  "_tracking_info": {
+    "lang": [
+      "en"
+    ],
+    "keywords": [
+      "vaccine",
+      "vaccination",
+      "vaxxer",
+      "vaxxed",
+      "vaccinated",
+      "vaccinating",
+      "vacine",
+      "overvaccinate",
+      "undervaccinate",
+      "unvaccinated"
+    ],
+    "matching_keywords": [
+      "vaccination",
+      "vaccine"
+    ],
+    "es_index_name": "project_vaccine_sentiment"
+  }
+}
