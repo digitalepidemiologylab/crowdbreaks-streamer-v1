@@ -15,7 +15,7 @@ class TestProcessMedia:
         b = patch('app.stream.s3_handler.S3Handler.upload_file', return_value=True)
         s3_q.clear_all_counts()
         with a, b:
-            pm.process_images()
+            pm.process()
         assert s3_q.get_counts(pm.project, media_type='photo') == 1
         s3_q.clear_all_counts()
 

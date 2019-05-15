@@ -18,7 +18,7 @@ class ProcessMedia():
         self.project = tweet['_tracking_info']['es_index_name']
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
-        self.tmp_path = os.path.join(self.config.PROJECT_ROOT, 'tmp')
+        self.tmp_path = os.path.join(self.config.APP_DIR, 'tmp')
         self.image_storage_mode = image_storage_mode
         self.redis_s3_queue = RedisS3Queue()
         self.s3 = S3Handler()
