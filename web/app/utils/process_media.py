@@ -13,9 +13,10 @@ import os
 class ProcessMedia():
     """Process media (such as images) and store on S3"""
 
-    def __init__(self, tweet, image_storage_mode='active'):
+    def __init__(self, tweet, project, image_storage_mode='active'):
         self.tweet = tweet
-        self.project = tweet['_tracking_info']['es_index_name']
+        self.es_index_name = tweet['_tracking_info']['es_index_name']
+        self.project_slug = project
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.tmp_path = os.path.join(self.config.APP_DIR, 'tmp')
@@ -40,7 +41,7 @@ class ProcessMedia():
             self.logger.debug('Tweet contains no media.')
             return
         for media_type, count in media_info['counts'].items():
-            self.redis_s3_queue.update_counts(self.project, media_type=media_type)
+            self.redis_s3_queue.update_counts(self.project_slug, media_type=media_type)
 
         # download media and upload to S3
         idx = 0
@@ -70,10 +71,10 @@ class ProcessMedia():
         matching_keywords = '_'.join(matching_keywords)
         created_at = self.created_at.strftime("%Y%m%d%H%M%S")
         size = "{}-{}x{}".format(size_info['size'], size_info['w'], size_info['h'])
-        return "{}-{}-{}-{}-{}-{}-{}.{}".format(created_at, self.project, tweet_id, idx, media_type, size, matching_keywords, fmt)
+        return "{}-{}-{}-{}-{}-{}-{}.{}".format(created_at, self.es_index_name, tweet_id, idx, media_type, size, matching_keywords, fmt)
 
     def get_s3_key(self, f_name):
-        return "{}/{}/{}/{}".format('media', self.project, self.created_at.strftime("%Y-%m-%d"), f_name)
+        return "{}/{}/{}/{}".format('media', self.es_index_name, self.created_at.strftime("%Y-%m-%d"), f_name)
 
     @property
     def created_at(self, fmt='%a %b %d %H:%M:%S %z %Y'):

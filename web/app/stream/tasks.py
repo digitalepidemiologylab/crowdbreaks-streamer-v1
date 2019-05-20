@@ -51,7 +51,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
             tid.add(tweet['id'], priority=0)
         if stream_config['image_storage_mode'] != 'inactive':
-            pm = ProcessMedia(tweet, image_storage_mode=stream_config['image_storage_mode'])
+            pm = ProcessMedia(tweet, project, image_storage_mode=stream_config['image_storage_mode'])
             pm.process()
         if send_to_es and stream_config['storage_mode'] in ['s3-es', 's3-es-no-retweets']:
             if rtm.is_retweet and stream_config['storage_mode'] == 's3-es-no-retweets':
