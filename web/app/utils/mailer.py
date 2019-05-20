@@ -9,6 +9,7 @@ import subprocess
 import mandrill
 from helpers import get_tz_difference
 import pytz
+from collections import defaultdict
 
 class Mailer():
     """Handles Emailing"""
@@ -35,25 +36,24 @@ class StreamStatusMailer(Mailer):
 
     def get_body(self):
         today = datetime.now().strftime("%Y-%m-%d")
+        args = {}
         if self.status_type == 'daily':
-            projects_stats, total_count = self._get_projects_stats(num_days=1, hourly=True)
-            total_text = 'Total today'
-        else:
-            projects_stats, total_count = self._get_projects_stats()
-            total_text = 'Total this week'
+            args = {'num_days': 1, 'hourly': True}
+        projects_stats, total_stats = self._get_projects_stats(**args)
+        errors = self._get_error_log(5)
         html_text = """\
             <html>
               <head></head>
                 <body>
                     <h2>Crowdbreaks stream status</h2>
-                    Date: {date}<br>
-                    {total_text}: {total_count:,}<br>
+                    Date: {date}<br><br>
+                    {total_stats}
                     {projects_stats}
                     <h2>Error log (past 7 days)</h2>
                     {errors}
                 </body>
             </html>
-        """.format(date=today, total_text=total_text, total_count=total_count, projects_stats=projects_stats, errors=self._get_error_log(5), subtype='html')
+        """.format(date=today, total_stats=total_stats, projects_stats=projects_stats, errors=errors, subtype='html')
         return html_text
 
     def _get_projects_stats(self, num_days=7, hourly=False):
@@ -65,25 +65,36 @@ class StreamStatusMailer(Mailer):
         dates = list(redis_s3_queue.daterange(start_day, end_day, hourly=hourly))
         now_utc = pytz.utc.localize(end_day)
         timezone_hour_delta = get_tz_difference()
-        total = 0
+        total = defaultdict(lambda: 0)
         for stream in stream_config_reader.read():
+            total_by_project = defaultdict(lambda: 0)
             project = stream['es_index_name']
             project_slug = stream['slug']
             stats += "<h3>{}</h3>".format(project)
-            total_by_project = 0
-            for d in dates:
-                if hourly:
-                    d, h = d.split(':')
-                    count = redis_s3_queue.get_counts(project_slug, d, h)
-                    corrected_hour = (datetime.strptime(h, '%H') - timezone_hour_delta).strftime('%H')
-                    stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, corrected_hour, count)
-                else:
-                    count = redis_s3_queue.get_counts(project_slug, d)
-                    stats += '{}: {:,}<br>'.format(d, count)
-                total += count
-                total_by_project += count
-            stats += 'Total: {:,}<br>'.format(total_by_project)
-        return stats, total
+            count_types = ['tweets']
+            if stream['image_storage_mode'] != 'inactive':
+                count_types += ['photos', 'animated_gif']
+            for count_type in count_types:
+                stats += '<h4>{}</h4>'.format(count_type)
+                for d in dates:
+                    if hourly:
+                        d, h = d.split(':')
+                        count = redis_s3_queue.get_counts(project_slug, d, h)
+                        corrected_hour = (datetime.strptime(h, '%H') - timezone_hour_delta).strftime('%H')
+                        stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, corrected_hour, count)
+                    else:
+                        count = redis_s3_queue.get_counts(project_slug, d)
+                        stats += '{}: {:,}<br>'.format(d, count)
+                    total[count_type] += count
+                    total_by_project[count_type] += count
+                stats += 'Total: {:,}<br><br>'.format(total_by_project[count_type])
+
+        total_stats = 'Total {}:'.format('today' if hourly else 'this week')
+        total_stats += '<ul>'
+        for count_type, count in total.items():
+            total_stats += "<li>{}: {:,}</li>".format(count_type, count)
+        total_stats += '</ul>'
+        return stats, total_stats
 
     def _get_error_log(self, n=1, num_days=7, max_length=30):
         error_log = os.path.join(self.config.PROJECT_ROOT, 'logs', 'error.log')

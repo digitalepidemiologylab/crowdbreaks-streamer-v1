@@ -20,9 +20,7 @@ class RedisS3Queue(Redis):
     def queue_key(self, project):
         return "{}:{}:{}".format(self.namespace, self.config.REDIS_STREAM_QUEUE_KEY, project)
 
-    def count_key(self, project, day, hour, media_type):
-        if media_type is None:
-            media_type = 'tweets'
+    def count_key(self, project, day, hour, media_type='tweets'):
         return "{}:{}:{}:{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.counts_namespace, project, media_type, day, hour)
 
     def push(self, tweet, project):

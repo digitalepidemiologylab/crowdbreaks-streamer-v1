@@ -5,13 +5,8 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from app.utils.priority_queue import PriorityQueue, TweetIdQueue, RedisSet
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.utils.process_media import ProcessMedia
+from app.settings import Config
 
-
-# vars global to test env
-# def pytest_namespace():
-#     return {'max_queue_length': 10,
-#             'priority_threshold': 5}
-#
 
 # session fixtures
 @pytest.fixture(scope='session')
@@ -40,6 +35,7 @@ def s3_q():
 
 @pytest.fixture(scope='session')
 def tweet_with_images():
-    with open(os.path.join('..', 'data', 'tweet_with_media.json')) as f:
+    config = Config()
+    with open(os.path.join(config.PROJECT_ROOT, 'tests', 'data', 'tweet_with_media.json')) as f:
         tweet = json.load(f)
     yield tweet
