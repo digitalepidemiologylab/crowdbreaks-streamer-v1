@@ -79,7 +79,7 @@ class StreamStatusMailer(Mailer):
                 for d in dates:
                     if hourly:
                         d, h = d.split(':')
-                        count = redis_s3_queue.get_counts(project_slug, d, h)
+                        count = redis_s3_queue.get_counts(project_slug, d, h, media_type=count_type)
                         corrected_hour = (datetime.strptime(h, '%H') - timezone_hour_delta).strftime('%H')
                         stats += '{0} ({1}:00 - {1}:59): {2:,}<br>'.format(d, corrected_hour, count)
                     else:

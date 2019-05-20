@@ -20,7 +20,9 @@ class RedisS3Queue(Redis):
     def queue_key(self, project):
         return "{}:{}:{}".format(self.namespace, self.config.REDIS_STREAM_QUEUE_KEY, project)
 
-    def count_key(self, project, day, hour, media_type='tweets'):
+    def count_key(self, project, day, hour, media_type):
+        if media_type is None:
+            media_type = 'tweets'
         return "{}:{}:{}:{}:{}:{}".format(self.config.REDIS_NAMESPACE, self.counts_namespace, project, media_type, day, hour)
 
     def push(self, tweet, project):
@@ -83,14 +85,14 @@ class RedisS3Queue(Redis):
         start_day = end_day - timedelta(days=older_than)
         end_day += timedelta(days=1)  # include also current day
         except_dates = list(self.daterange(start_day, end_day))
-        for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.counts_namespace)):
+        for key in self._r.scan_iter("{}:{}:*".format(self.namespace, self.counts_namespace)):
             day = key.decode().split(':')[-2]
             if day not in except_dates:
                 self._r.delete(key)
 
-    def clear_all_counts(self):
-        for namespace in [self.counts_namespace] + self.media_name_spaces:
-            for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, namespace)):
+    def clear_all_counts(self, project='*'):
+        for media_type in ['tweets'] + self.media_name_spaces:
+            for key in self._r.scan_iter("{}:{}:{}:{}:*".format(self.namespace, self.counts_namespace, project, media_type)):
                 self._r.delete(key)
 
     def daterange(self, date1, date2, hourly=False):
