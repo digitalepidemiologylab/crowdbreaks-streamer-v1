@@ -45,11 +45,14 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         tweet['_tracking_info']['matching_keywords'] = rtm.matching_keywords[project]
         # queue up on Redis for subsequent upload
         redis_queue.push(json.dumps(tweet).encode(), project)
-        if use_pq and not rtm.is_retweet:
+        # preprocess tweet
+        pt = ProcessTweet(tweet=tweet, project=project)
+        processed_tweet = pt.process_and_predict()
+        if use_pq and pt.should_be_annotated():
             # add to Tweet ID queue for crowd labelling
-            logger.debug('Add tweet to priority queue...')
+            logger.info('Add tweet {} to priority queue...'.format(processed_tweet['id']))
             tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
-            tid.add_tweet(tweet, priority=0)
+            tid.add_tweet(processed_tweet, priority=0)
         if stream_config['image_storage_mode'] != 'inactive':
             pm = ProcessMedia(tweet, project, image_storage_mode=stream_config['image_storage_mode'])
             pm.process()
@@ -57,12 +60,10 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             if rtm.is_retweet and stream_config['storage_mode'] == 's3-es-no-retweets':
                 # Do not store retweets on ES
                 return
-            # process tweet
-            pt = ProcessTweet(tweet=tweet, project=project)
-            processed_tweet = pt.process()
             # send to ES
             logger.debug('Sending tweet with id {} to ES'.format(processed_tweet['id']))
             es.index_tweet(processed_tweet, stream_config['es_index_name'])
+
 
 @celery.task
 def predict(text, model='fasttext_v1.ftz', num_classes=3, path_to_model='.'):

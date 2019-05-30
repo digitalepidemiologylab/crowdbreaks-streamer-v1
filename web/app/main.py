@@ -83,7 +83,7 @@ def get_new_tweet(project):
     tweet = tid.get_tweet(user_id=user_id)
     if tweet is None:
         msg = 'Could not get tweet id from priority queue. Getting random tweet from ES instead.'
-        report_error(logger, mgs)
+        report_error(logger, msg)
         # get a random tweet instead
         tweet = es.get_random_document(project)
         if tweet is None:

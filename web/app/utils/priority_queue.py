@@ -233,21 +233,17 @@ class TweetIdQueue:
         if not self.pq:
             report_error(self.logger, 'Priority queue does not exist. Aborting.')
             return
-
         if not self.pq.exists(tweet_id):
             # This may happen relatively often when multiple people are working on the same tweet
             report_error(self.logger, 'Key {} does not exist anymore. Aborting.'.format(tweet_id), level='warning')
             return
-
         # Change priority in queue
         self.pq.increment_priority(tweet_id)
-
         # remove from pqueue if below certain threshold
         score = self.pq.get_score(tweet_id)
         if score >= self.priority_threshold:
             self.remove(tweet_id)
             return
-
         # add user to set of tweet_id
         self.rset.add(tweet_id, user_id)
 
