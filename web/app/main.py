@@ -78,18 +78,24 @@ def test_email_status():
 def get_new_tweet(project):
     """"Get new tweet from priority queue"""
     user_id = request.args.get('user_id', None)
+    fields = request.args.get('fields', ['id', 'text'])
     tid = TweetIdQueue(project)
-    tweet_id = tid.get(user_id=user_id)
-    if tweet_id is None:
+    tweet = tid.get_tweet(user_id=user_id)
+    if tweet is None:
         msg = 'Could not get tweet id from priority queue. Getting random tweet from ES instead.'
         report_error(logger, mgs)
         # get a random tweet instead
-        tweet_id = es.get_random_document_id(project)
-        if tweet_id is None:
-            report_error(logger, 'Could not get random tweet from elasticsearch.')
-            return Response(None, status=400, mimetype='text/plain')
-    return Response(str(tweet_id), status=200, mimetype='text/plain')
-
+        tweet = es.get_random_document(project)
+        if tweet is None:
+            msg = 'Could not get random tweet from elasticsearch.'
+            report_error(logger, msg)
+            return jsonify({'error': msg}), 400
+    tweet = {k: tweet.get(k) for k in fields}
+    if 'id' in tweet:
+        # rename fields
+        tweet['tweet_id'] = str(tweet.pop('id'))
+        tweet['tweet_text'] = tweet.pop('text')
+    return jsonify(tweet)
 
 @blueprint.route('tweet/update/<project>', methods=['POST'])
 def add_to_pq(project):
@@ -183,7 +189,7 @@ def compute_loess(data):
         if np.isnan(lowess_fit[i]):
             # needed for Ruby to be able to parse NaN values
             d['avg_sentiment']['value_smoothed'] = 'null'
-        else: 
+        else:
             d['avg_sentiment']['value_smoothed'] = lowess_fit[i]
         data_new.append(d)
     return data_new

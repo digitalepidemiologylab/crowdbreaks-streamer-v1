@@ -22,7 +22,7 @@ class Elastic():
         self.default_template_name = 'project' # default template name when creating new index
         if self.logger is None:
             self.logger = logging.getLogger('ES')
-            
+
         if app is not None:
             self.init_app(app)
 
@@ -72,7 +72,7 @@ class Elastic():
 
     def test_connection(self):
         """test_connection"""
-        test = self.es.ping() 
+        test = self.es.ping()
         if test:
             self.logger.info('Successfully connected to Elasticsearch host {}'.format(self.config['ELASTICSEARCH_HOST']))
         else:
@@ -214,7 +214,7 @@ class Elastic():
                 ]
             query_conditions.append({'bool': {'should': exclude_retweets_query}}) # needs to exclude retweets condition
         # full query
-        body = {'size': 0, 
+        body = {'size': 0,
                 'aggs': {
                     'sentiment': {
                         'date_histogram': {
@@ -251,7 +251,7 @@ class Elastic():
 
         # full query
         field = 'meta.sentiment.{}'.format(options.get('model', 'fasttext_v1'))
-        body = {'size': 0, 
+        body = {'size': 0,
                 'aggs': {
                     'avg_sentiment': {
                         'date_histogram': {
@@ -308,7 +308,7 @@ class Elastic():
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         s_date, e_date = self.parse_dates(start_date, end_date)
-        body = {'size': 0, 
+        body = {'size': 0,
                 'aggs': {
                     'sentiment': {
                         'date_histogram': {
@@ -328,14 +328,14 @@ class Elastic():
 
     #################################################################
     # Misc
-    def get_random_document_id(self, index_name, doc_type='tweet'):
+    def get_random_document(self, index_name, doc_type='tweet'):
         body = {'query': {'function_score': {'functions': [{'random_score': {}}]}}}
         res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])
         hits = res['hits']['hits']
         if len(hits) == 0:
             report_error(self.logger, 'Could not find a random document in index {}'.format(index_name))
             return None
-        return hits[0]['_source']['id']
+        return hits[0]['_source']
 
 
     def parse_dates(self, *dates, input_format='%Y-%m-%d %H:%M:%S', output_format='%a %b %d %H:%M:%S %z %Y'):

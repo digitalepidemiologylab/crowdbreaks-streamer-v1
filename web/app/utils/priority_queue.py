@@ -4,6 +4,7 @@ from random import randint
 import logging
 from app.utils.redis import Redis
 from helpers import report_error
+import json
 
 
 class PriorityQueue(Redis):
@@ -31,7 +32,7 @@ class PriorityQueue(Redis):
         count = 1
         for item in self:
             output += "{:02d}) {:0.1f}       {}\n".format(count, item[1], item[0].decode())
-            count += 1 
+            count += 1
             if count > self.MAX_ELEMENT_PRINT:
                 break
         return output[:-1]
@@ -106,7 +107,7 @@ class PriorityQueue(Redis):
         count = 1
         for item in self:
             output += "<tr><td>{})</td><td>{}</td><td>{:0.1f}</td></tr>".format(count, item[0].decode(), item[1])
-            count += 1 
+            count += 1
             if count > self.MAX_ELEMENT_PRINT:
                 break
         output += "</table>"
@@ -129,13 +130,38 @@ class PriorityQueue(Redis):
         else:
             return True
 
+class TweetStore(Redis):
+    """Stores tweets with the tweet ID as the key and the tweet as a hash"""
+
+    def __init__(self, namespace='cb', key_namespace='tweet_store'):
+        super().__init__(self)
+        self.namespace = namespace
+        self.key_namespace = key_namespace
+
+    def key(self, tweet_id):
+        return "{}:{}:{}".format(self.namespace, self.key_namespace, tweet_id)
+
+    def add(self, tweet):
+        self._r.set(self.key(tweet['id']), json.dumps(tweet).encode())
+
+    def get(self, tweet_id):
+        tweet = self._r.get(self.key(tweet_id))
+        if tweet is None:
+            return {'id': tweet_id}
+        return json.loads(tweet.decode())
+
+    def remove(self, tweet_id):
+        self._r.delete(self.key(tweet_id))
+
+    def remove_all(self):
+        for k in self._r.scan_iter(self.key('*')):
+            self._r.delete(k)
 
 class TweetIdQueue:
     """Handles Tweet IDs in a priority queue and keeps a record of which user classified what tweet as a set in Redis."""
 
     def __init__(self, project, namespace='cb', logger=None, priority_threshold=3, **kwargs):
-        """__init__
-
+        """
         :param project: Unique project name (used to name queue)
         :param namespace: Redis key namespace
         :param logger: Logger instance
@@ -150,39 +176,55 @@ class TweetIdQueue:
         self.project = project
         self.pq = PriorityQueue(project, namespace=namespace, max_queue_length=kwargs.get('max_queue_length', 1000))
         self.rset = RedisSet(project, namespace=namespace, **kwargs)
+        self.tweet_store = TweetStore(namespace=namespace, **kwargs)
         self.priority_threshold = priority_threshold
 
     def add(self, tweet_id, priority=0):
         """Simply adds a new tweet_id to its priority queue"""
         self.pq.add(tweet_id, priority=priority)
 
+    def add_tweet(self, tweet, priority=0):
+        """Adds a new tweet to its priority queue and stores it in the TweetStore"""
+        self.pq.add(tweet['id'], priority=priority)
+        self.tweet_store.add(tweet)
+
     def get(self, user_id=None):
-        """Get new tweet to classify for user
-
-        :param user_id:
-        """
-
+        """Get new tweet ID to classify for user ID """
         # If no user is defined, simply pop the queue
         if user_id is None:
-            item = self.pq.pop()
-            if item is None:
+            tweet_id = self.pq.pop()
+            if tweet_id is None:
                 report_error(self.logger, 'Queue is empty')
                 return None
             else:
-                return item
+                return tweet_id
         else:
-            num = 3
-            starts = [num*i for i in range(1 + (len(self.pq)//num))]
-            for s in starts:
-                item_range = self.pq._r.zrevrangebyscore(self.pq.key, '+inf', '-inf', start=s, num=num, withscores=True)
-                for item, score in item_range:
-                    if not self.rset.is_member(item.decode(), user_id):
-                        return item.decode()
-            report_error(self.logger, 'No new tweet could be found for user_id {}'.format(user_id))
+            tweet_id = self.retrieve_for_user(user_id)
+            if tweet_id is None:
+                report_error(self.logger, 'No new tweet could be found for user_id {}'.format(user_id))
+            else:
+                return tweet_id
 
+    def get_tweet(self, user_id=None):
+        """Get tweet to classify for user ID """
+        # If no user is defined, simply pop the queue
+        tweet_id = self.get(user_id=user_id)
+        if tweet_id is None:
+            return None
+        else:
+            return self.tweet_store.get(tweet_id)
+
+    def retrieve_for_user(self, user_id):
+        num = 3
+        starts = [num*i for i in range(1 + (len(self.pq)//num))]
+        for s in starts:
+            item_range = self.pq._r.zrevrangebyscore(self.pq.key, '+inf', '-inf', start=s, num=num, withscores=True)
+            for tweet_id, score in item_range:
+                if not self.rset.is_member(tweet_id.decode(), user_id):
+                    return tweet_id.decode()
 
     def update(self, tweet_id, user_id):
-        """Track the fact that user user_id classified tweet_id. 
+        """Track the fact that user user_id classified tweet_id.
         This method updates the score of the item in the priority queue and adds the user_id to the tweet's redis set
 
         :param tweet_id:
@@ -191,7 +233,7 @@ class TweetIdQueue:
         if not self.pq:
             report_error(self.logger, 'Priority queue does not exist. Aborting.')
             return
-        
+
         if not self.pq.exists(tweet_id):
             # This may happen relatively often when multiple people are working on the same tweet
             report_error(self.logger, 'Key {} does not exist anymore. Aborting.'.format(tweet_id), level='warning')
@@ -210,19 +252,20 @@ class TweetIdQueue:
         self.rset.add(tweet_id, user_id)
 
     def remove(self, tweet_id):
-        """Remove a tweet from Redis set and PQueue"""
+        """Remove a tweet from Redis set, PQueue and TweetStore"""
         if self.pq.exists(tweet_id):
             self.logger.debug('Removing tweet_id {} from priority queue'.format(tweet_id))
             self.pq.remove(tweet_id)
         else:
             self.logger.debug('Tweet_id {} not found in priority queue, therefore not removed'.format(tweet_id))
-
         self.rset.remove(tweet_id)
+        self.tweet_store.remove(tweet_id)
 
     def flush(self):
         """Self-destroy and clean up all keys"""
         self.pq.self_remove()
         self.rset.self_remove_all()
+        self.tweet_store.remove_all()
 
 
 class RedisSet(Redis):
@@ -259,7 +302,7 @@ class RedisSet(Redis):
         count = 1
         for item in self._r.sscan_iter(key):
             output += "{:02d}) {}\n".format(count, item.decode())
-            count += 1 
+            count += 1
         print(output)
 
     def self_remove_all(self):

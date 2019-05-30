@@ -8,6 +8,20 @@ class TestPriorityQueue:
         assert tid_q.pq.get_score('123456') == 1   # classified once
         tid_q.flush()
 
+    def test_tweet_store(self, tweet_store, tweet):
+        no_old_tweet_present = tweet_store.get(tweet['id'])
+        assert no_old_tweet_present is None
+        # add and then get again
+        tweet_store.add(tweet)
+        retweet_from_tweet_store = tweet_store.get(tweet['id'])
+        assert retweet_from_tweet_store == tweet
+
+    def test_tweet_id_queue_with_full_tweets(self, tid_q, tweet):
+        tid_q.add_tweet(tweet)
+        r_tweet = tid_q.get_tweet()
+        assert r_tweet == tweet
+        tid_q.flush()
+
     def test_increase_over_threshold(self, tid_q):
         tweet_id = '123456'
         tid_q.pq.add(tweet_id)
@@ -23,6 +37,23 @@ class TestPriorityQueue:
         assert not tid_q.rset.is_member(tweet_id, 'user0')
         assert not tid_q.rset.is_member(tweet_id, 'final_user')
         assert tid_q.rset.num_members(tweet_id) == 0
+        tid_q.flush()
+
+    def test_get_highest_priority_item_full_tweet(self, tid_q, tweet, retweet):
+        tid_q.add_tweet(tweet)
+        tweet_id = tweet['id_str']
+        tid_q.update(tweet_id, 'the_dude')
+        assert tid_q.get(user_id='the_dude') is None  # has already classified this tweet
+        assert tid_q.get(user_id='another_dude') == tweet_id
+        tid_q.update(tweet_id, 'another_dude')
+        assert tid_q.get(user_id='another_dude') is None  # has already classified this tweet
+
+        # new tweet is added to queue
+        tid_q.add_tweet(retweet)
+        new_tweet_id = retweet['id_str']
+        assert new_tweet_id != tweet_id
+        assert tid_q.get(user_id='another_dude') == new_tweet_id
+        assert tid_q.get(user_id='the_dude') == new_tweet_id
         tid_q.flush()
 
     def test_get_highest_priority_item(self, tid_q):
@@ -65,9 +96,11 @@ class TestPriorityQueue:
         assert tid_q.rset.num_members('321') == 0
         assert tid_q.rset.num_members('123') == 0
 
-        
+
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     import os; os.environ["REDIS_HOST"] = "localhost"
+    # @pytest.mark.focus
+    # pytest.main(['-s', '-m', 'focus'])
     pytest.main()
