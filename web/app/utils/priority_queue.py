@@ -101,14 +101,16 @@ class PriorityQueue(Redis):
 
     def list(self, length=100):
         """Lists priority queue as HTML"""
-        output = "<h1>{}</h1>".format(self.__class__.__name__)
-        output += '<table align="left" border="1">'
-        output += "<thead><tr><th>#</th><th>Tweet ID</th><th>Priority</th></tr></thead>"
-        output += "<tbody>"
         pq_list = {}
         for count, item in enumerate(self):
             pq_list[item[0].decode()] = item[1]
         pq_list = sorted(pq_list.items(), key=lambda kv: kv[1], reverse=True)
+        output = "<h1>{}: {}</h1>".format(self.__class__.__name__, self.project)
+        output += "<p>List size: {} (max {} listed below)</p>".format(len(pq_list), length)
+        output += "<p>Max list size: {}</p>".format(self.MAX_QUEUE_LENGTH)
+        output += '<table align="left" border="1">'
+        output += "<thead><tr><th>#</th><th>Tweet ID</th><th>Priority</th></tr></thead>"
+        output += "<tbody>"
         for i, item in enumerate(pq_list):
             output += "<tr><td>{})</td><td>{}</td><td>{:.1f}</td></tr>".format(i + 1, item[0], item[1])
             if i > length:
