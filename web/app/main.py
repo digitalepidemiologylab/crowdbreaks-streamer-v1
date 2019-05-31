@@ -50,7 +50,7 @@ def test_rollbar():
 @blueprint.route('test/pq', methods=['GET'])
 def test_pq():
     project = request.args.get('project', default='project_vaccine_sentiment', type=str)
-    length = request.args.get('length', default=1000, type=int)
+    length = request.args.get('length', default=100, type=int)
     tid = TweetIdQueue(project)
     return tid.pq.list(length=length)
 

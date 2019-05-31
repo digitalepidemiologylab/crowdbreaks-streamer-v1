@@ -99,20 +99,20 @@ class PriorityQueue(Redis):
             if res != 1:
                 report_error(self.logger, 'Random key could not be deleted because it does not exist anymore')
 
-    def list(self, length=1000):
+    def list(self, length=100):
         """Lists priority queue as HTML"""
         output = "<h1>{}</h1>".format(self.__class__.__name__)
         output += '<table align="left" border="1">'
         output += "<thead><tr><th>#</th><th>Tweet ID</th><th>Priority</th></tr></thead>"
         output += "<tbody>"
-        items = {}
+        pq_list = {}
         for count, item in enumerate(self):
-            if count == length:
+            pq_list[item[0].decode()] = item[1]
+        pq_list = sorted(pq_list.items(), key=lambda kv: kv[1], reverse=True)
+        for i, item in enumerate(pq_list):
+            output += "<tr><td>{})</td><td>{}</td><td>{:.1f}</td></tr>".format(i + 1, item[0], item[1])
+            if i > length:
                 break
-            items[item[0].decode()] = item[1]
-        items = collections.OrderedDict(items)
-        for i, tweet_id in enumerate(reversed(items)):
-            output += "<tr><td>{})</td><td>{}</td><td>{:.1f}</td></tr>".format(i + 1, tweet_id, items[tweet_id])
         output += "</table>"
         return output
 
