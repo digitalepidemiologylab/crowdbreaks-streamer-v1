@@ -47,6 +47,7 @@ class ProcessTweet(object):
 
     def __init__(self, project=None, tweet=None):
         self.tweet = tweet            # initial tweet
+        self.extended_tweet = self._get_extended_tweet()
         self.processed_tweet = None   # processed tweet
         self.logger = logging.getLogger(__name__)
         self.project = project
@@ -216,8 +217,38 @@ class ProcessTweet(object):
             tweet_text = self._get_full_text(self.tweet)
         return self.remove_control_characters(str(tweet_text))
 
+    def anonymize_text(self, tweet_text):
+        tweet_text = self.replace_user_mentions(tweet_text)
+        tweet_text = self.replace_urls(tweet_text)
+        return tweet_text
+
+    def replace_user_mentions(self, tweet_text):
+        """Replaces @user mentions in tweet text based on indices provided in entities.user_mentions.indices"""
+        filler = '@<user>'
+        corr = 0
+        try:
+            user_mentions = self.extended_tweet['entities']['user_mentions']
+        except KeyError:
+            user_mentions = []
+        for m in user_mentions:
+            s, e = m['indices']
+            s -= corr
+            e -= corr
+            tweet_text = tweet_text[:s] + filler + tweet_text[e:]
+            corr += (e-s) - len(filler)
+        return tweet_text
+
+    def replace_urls(self, tweet_text):
+        return re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>', tweet_text)
+
 
     # private methods
+
+    def _get_extended_tweet(self):
+        if 'extended_tweet' in self.tweet:
+            return self.tweet['extended_tweet']
+        else:
+            return self.tweet
 
     def _get_full_text(self, tweet_obj):
         if 'extended_tweet' in tweet_obj:

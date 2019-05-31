@@ -52,6 +52,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             # add to Tweet ID queue for crowd labelling
             logger.info('Add tweet {} to priority queue...'.format(processed_tweet['id']))
             tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
+            processed_tweet['text'] = pt.anonymize_text(processed_tweet['text'])
             tid.add_tweet(processed_tweet, priority=0)
         if stream_config['image_storage_mode'] != 'inactive':
             pm = ProcessMedia(tweet, project, image_storage_mode=stream_config['image_storage_mode'])
