@@ -5,6 +5,7 @@ import logging
 from app.utils.redis import Redis
 from helpers import report_error
 import json
+import collections
 
 
 class PriorityQueue(Redis):
@@ -98,18 +99,20 @@ class PriorityQueue(Redis):
             if res != 1:
                 report_error(self.logger, 'Random key could not be deleted because it does not exist anymore')
 
-    def list(self):
+    def list(self, length=1000):
         """Lists priority queue as HTML"""
         output = "<h1>{}</h1>".format(self.__class__.__name__)
         output += '<table align="left" border="1">'
         output += "<thead><tr><th>#</th><th>Tweet ID</th><th>Priority</th></tr></thead>"
         output += "<tbody>"
-        count = 1
-        for item in self:
-            output += "<tr><td>{})</td><td>{}</td><td>{:0.1f}</td></tr>".format(count, item[0].decode(), item[1])
-            count += 1
-            if count > self.MAX_ELEMENT_PRINT:
+        items = {}
+        for count, item in enumerate(self):
+            if count == length:
                 break
+            items[item[0].decode()] = item[1]
+        items = collections.OrderedDict(items)
+        for i, tweet_id in enumerate(reversed(items)):
+            output += "<tr><td>{})</td><td>{}</td><td>{:.1f}</td></tr>".format(i + 1, tweet_id, items[tweet_id])
         output += "</table>"
         return output
 

@@ -49,8 +49,10 @@ def test_rollbar():
 
 @blueprint.route('test/pq', methods=['GET'])
 def test_pq():
-    tid = TweetIdQueue('project_vaccine_sentiment', priority_threshold=3)
-    return tid.pq.list()
+    project = request.args.get('project', default='project_vaccine_sentiment', type=str)
+    length = request.args.get('length', default=1000, type=int)
+    tid = TweetIdQueue(project)
+    return tid.pq.list(length=length)
 
 @blueprint.route('test/email/ping', methods=['GET'])
 def test_email_ping():
