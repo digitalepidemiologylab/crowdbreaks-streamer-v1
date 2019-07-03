@@ -34,26 +34,30 @@ class StreamStatusMailer(Mailer):
         else:
             raise Exception('Status type {} is not recognized'.format(self.status_type))
 
+    def get_full_html(self):
+        html_text = """\
+            <html>
+              <head></head>
+                <body>
+                    {body}
+                </body>
+            </html>
+        """.format(body=self.get_body())
+        return html_text
+
     def get_body(self):
-        today = datetime.now().strftime("%Y-%m-%d")
         args = {}
         if self.status_type == 'daily':
             args = {'num_days': 1, 'hourly': True}
         projects_stats, total_stats = self._get_projects_stats(**args)
         errors = self._get_error_log(5)
         html_text = """\
-            <html>
-              <head></head>
-                <body>
-                    <h2>Crowdbreaks stream status</h2>
-                    Date: {date}<br><br>
-                    {total_stats}
-                    {projects_stats}
-                    <h2>Error log (past 7 days)</h2>
-                    {errors}
-                </body>
-            </html>
-        """.format(date=today, total_stats=total_stats, projects_stats=projects_stats, errors=errors, subtype='html')
+            <h2>Stream</h2>
+            {total_stats}
+            {projects_stats}
+            <h3>Stream error log (past 7 days)</h3>
+            {errors}
+        """.format(total_stats=total_stats.strip(), projects_stats=projects_stats, errors=errors)
         return html_text
 
     def _get_projects_stats(self, num_days=7, hourly=False):
@@ -88,7 +92,6 @@ class StreamStatusMailer(Mailer):
                     total[count_type] += count
                     total_by_project[count_type] += count
                 stats += 'Total: {:,}<br><br>'.format(total_by_project[count_type])
-
         total_stats = 'Total {}:'.format('today' if hourly else 'this week')
         total_stats += '<ul>'
         for count_type, count in total.items():

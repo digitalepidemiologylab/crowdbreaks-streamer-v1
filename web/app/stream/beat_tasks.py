@@ -43,7 +43,7 @@ def stream_status_daily(debug=False):
     logger = get_logger(debug)
     if (config.SEND_EMAILS == '1' and config.ENV == 'prd') or config.ENV == 'test-email':
         mailer = StreamStatusMailer(status_type='daily')
-        body = mailer.get_body()
+        body = mailer.get_full_html()
         mailer.send_status(body)
     else:
         logger.info('Not sending emails in this configuration.')

@@ -67,13 +67,6 @@ def test_send_email():
     resp = mailer.send_status(body)
     return json.dumps(resp)
 
-@blueprint.route('test/email/status', methods=['GET'])
-def test_email_status():
-    status_type = request.args.get('type', default='daily', type=str)
-    mailer = StreamStatusMailer(status_type=status_type)
-    body = mailer.get_body()
-    return body
-
 #################################################################
 # TWEET ID HANDLING
 @blueprint.route('tweet/new/<project>', methods=['GET'])
@@ -123,6 +116,15 @@ def remove_from_pq(project):
     tid = TweetIdQueue(project)
     tid.remove(data['tweet_id'])
     return Response('Successfully removed.', status=200, mimetype='text/plain')
+
+#################################################################
+# Email status
+@blueprint.route('email/status', methods=['GET'])
+def email_status():
+    status_type = request.args.get('type', default='daily', type=str)
+    mailer = StreamStatusMailer(status_type=status_type)
+    body = mailer.get_body()
+    return body
 
 #################################################################
 # All data
