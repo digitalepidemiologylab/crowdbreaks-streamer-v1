@@ -1,5 +1,5 @@
 from nltk import TweetTokenizer
-import fastText
+import fasttext
 import logging
 import re
 import os
@@ -14,7 +14,7 @@ class PredictSentiment:
         if text is None:
             return
         model_path = os.path.join(os.path.abspath('.'), 'bin', 'vaccine_sentiment', model)
-        m = fastText.load_model(model_path)
+        m = fasttext.load_model(model_path)
         pred = m.predict(text, k=num_classes)
         label_dict = {'__label__-1': ['anti-vaccine', -1], '__label__0': ['neutral', 0], '__label__1': ['pro-vaccine', 1]}
         return {'labels': [label_dict[l][0] for l in pred[0]], 'label_vals': [label_dict[l][1] for l in pred[0]],
