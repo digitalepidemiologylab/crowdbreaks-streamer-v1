@@ -51,6 +51,6 @@ statsmodels==0.9.0
 urllib3==1.24.2
 vine==1.2.0
 websocket-client==0.54.0
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 git+git://github.com/tweepy/tweepy@2efe385fc69385b57733f747ee62e6be12a1338b#egg=tweepy
 fasttext==0.9.1
