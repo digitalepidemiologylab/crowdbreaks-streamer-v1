@@ -26,7 +26,7 @@ kombu==4.2.2.post1
 mandrill==1.0.57
 MarkupSafe==1.1.0
 more-itertools==5.0.0
-nltk==3.4
+nltk==3.4.5
 numpy==1.16.0
 oauthlib==3.0.0
 pandas==0.23.4
