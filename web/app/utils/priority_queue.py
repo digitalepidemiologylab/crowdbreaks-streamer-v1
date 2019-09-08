@@ -27,7 +27,7 @@ class PriorityQueue(Redis):
     def __len__(self):
         return self._r.zcard(self.key)
 
-    def __str__(self):
+    def __repr__(self):
         output = "{}<key={}>\n".format(self.__class__.__name__, self.key)
         output += "#   Priority  Value\n"
         count = 1
@@ -50,9 +50,13 @@ class PriorityQueue(Redis):
 
     def add(self, value, priority=0):
         """Push value with given priority to queue. Enforce max length of queue by removing low-priority elements."""
+        removed = []
         while len(self) >= self.MAX_QUEUE_LENGTH:
-            self.remove_lowest_priority()
+            item = self.remove_lowest_priority()
+            if item is not None:
+                removed.extend(item)
         self._r.zadd(self.key, {value: priority})
+        return removed
 
     def pop(self, remove=False):
         """Get key with highest priority, optionally also remove that key from queue"""
@@ -74,10 +78,11 @@ class PriorityQueue(Redis):
         """Remove key with the lowest priority"""
         if not random_deletion:
             # Just delete lowest priority key
-            if self._r.zremrangebyrank(self.key, 0, 0) == 0:
+            items = self._r.zrevrange(self.key, 0, 0, withscores=True)
+            num_deleted = self._r.zremrangebyrank(self.key, 0, 0)
+            if num_deleted == 0:
                 report_error(self.logger, 'Tried to remove lowest ranking element but queue is empty.', level='warning')
-            return
-
+            return items
         # Remove a random lowest priority key
         items = self._r.zrevrange(self.key, 0, 0, withscores=True)
         if len(items) == 0:
@@ -90,14 +95,17 @@ class PriorityQueue(Redis):
             report_error(self.logger, msg)
             return
         elif num_elements == 1:
+            items = self._r.zrevrange(self.key, 0, 0, withscores=True)
             self._r.zremrangebyrank(self.key, 0, 0)
         else:
             # multiple elements with the same lowest score, randomly remove one
             rand_index = randint(0, num_elements-1)
             self.logger.debug('Picked {} as randindex between {} and {}'.format(rand_index, 0, num_elements-1))
-            res = self._r.zremrangebyrank(self.key, rand_index, rand_index)
-            if res != 1:
+            items = self._r.zrange(self.key, rand_index, rand_index, withscores=True)
+            num_deleted = self._r.zremrangebyrank(self.key, rand_index, rand_index)
+            if num_deleted != 1:
                 report_error(self.logger, 'Random key could not be deleted because it does not exist anymore')
+        return items
 
     def list(self, length=100):
         """Lists priority queue as HTML"""
@@ -138,10 +146,20 @@ class PriorityQueue(Redis):
 class TweetStore(Redis):
     """Stores tweets with the tweet ID as the key and the tweet as a hash"""
 
-    def __init__(self, namespace='cb', key_namespace='tweet_store'):
+    def __init__(self, namespace='cb', key_namespace='tweet_store', **kwargs):
         super().__init__(self)
         self.namespace = namespace
         self.key_namespace = key_namespace
+
+    def __repr__(self):
+        s = ''
+        for i, k in enumerate(self._r.scan_iter(self.key('*'))):
+            tid = k.decode().split(':')[-1]
+            s += '{:02d}) {}\n'.format(i+1, tid)
+        return s
+
+    def __len__(self):
+        return len(self._r.keys(self.key('*')))
 
     def key(self, tweet_id):
         return "{}:{}:{}".format(self.namespace, self.key_namespace, tweet_id)
@@ -152,11 +170,13 @@ class TweetStore(Redis):
     def get(self, tweet_id):
         tweet = self._r.get(self.key(tweet_id))
         if tweet is None:
-            return {'id': tweet_id}
+            return
         return json.loads(tweet.decode())
 
     def remove(self, tweet_id):
-        self._r.delete(self.key(tweet_id))
+        s = self._r.delete(self.key(tweet_id))
+        if s == 0:
+            print("Couldn't remove tweet_id {}".format(tweet_id))
 
     def remove_all(self):
         for k in self._r.scan_iter(self.key('*')):
@@ -190,7 +210,9 @@ class TweetIdQueue:
 
     def add_tweet(self, tweet, priority=0):
         """Adds a new tweet to its priority queue and stores it in the TweetStore"""
-        self.pq.add(tweet['id'], priority=priority)
+        removed_items = self.pq.add(tweet['id'], priority=priority)
+        for item in removed_items:
+            self.tweet_store.remove(item[0].decode())
         self.tweet_store.add(tweet)
 
     def get(self, user_id=None):
@@ -217,7 +239,11 @@ class TweetIdQueue:
         if tweet_id is None:
             return None
         else:
-            return self.tweet_store.get(tweet_id)
+            tweet = self.tweet_store.get(tweet_id)
+            if tweet is None:
+                return {'id': tweet_id}
+            else:
+                return tweet
 
     def retrieve_for_user(self, user_id):
         num = 3

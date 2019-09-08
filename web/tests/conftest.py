@@ -23,7 +23,7 @@ def rs():
 
 @pytest.fixture(scope='session')
 def tid_q():
-    tid_q = TweetIdQueue('test_project', namespace='test', priority_threshold=5)
+    tid_q = TweetIdQueue('test_project', namespace='test', priority_threshold=5, max_queue_length=10)
     yield tid_q
     tid_q.flush()
 

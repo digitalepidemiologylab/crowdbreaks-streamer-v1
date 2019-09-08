@@ -96,6 +96,31 @@ class TestPriorityQueue:
         assert tid_q.rset.num_members('321') == 0
         assert tid_q.rset.num_members('123') == 0
 
+    def test_tweet_store_and_pq_removal_on_max_queue_length(self, tid_q, tweet):
+        tid_q.flush()
+        assert len(tid_q.tweet_store) == 0
+        assert len(tid_q.pq) == 0
+        for i in range(11):
+            tweet['id'] = i + 100
+            tid_q.add_tweet(tweet, priority=0)
+        # The last item added should trigger deletion of the first one (max queue length = 10)
+        assert len(tid_q.tweet_store) == 10
+        assert len(tid_q.pq) == 10
+        tid_q.flush()
+
+    def test_remove_lowest_priority(self, tid_q):
+        tid_q.flush()
+        assert len(tid_q.pq) == 0
+        tid_q.pq.add('321', priority=1)
+        # adding a lot of new elements, all with same priority. Max queue length is set to 10
+        for i in range(20):
+            tid_q.pq.add(str(i), priority=0)
+        assert len(tid_q.pq) == 10
+        for i in range(9):
+            tid_q.pq.remove_lowest_priority()
+        # after removing everything the top priority element should only remain
+        assert len(tid_q.pq) == 1
+        assert '321' == tid_q.pq.pop()
 
 
 if __name__ == "__main__":
