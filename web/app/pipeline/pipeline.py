@@ -1,10 +1,8 @@
 from flask import Flask, request, Blueprint, jsonify, Response
 from flask import current_app as app
 from app.basic_auth import requires_auth_func
-import json
 import os, sys
 import json
-import pdb
 import subprocess
 import glob
 import time
@@ -25,7 +23,7 @@ def require_auth_all():
 @blueprint.route('/start', methods=['GET'])
 def start():
     d = DockerWrapper()
-    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
+    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME']
     status = d.container_status(stream_container_name)
     if status == 'running':
         return Response("Stream has already started.", status=400, mimetype='text/plain')
@@ -43,7 +41,7 @@ def start():
 @blueprint.route('/stop', methods=['GET'])
 def stop():
     d = DockerWrapper()
-    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
+    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME']
     status = d.container_status(stream_container_name)
     if status != 'running':
         return Response("Stream has already stopped.", status=400, mimetype='text/plain')
@@ -56,7 +54,7 @@ def stop():
 @blueprint.route('/restart', methods=['GET'])
 def restart():
     d = DockerWrapper()
-    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME'] 
+    stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME']
     status = d.container_status(stream_container_name)
     stream_config = StreamConfigReader()
     is_valid, response_invalid = stream_config.validate_streaming_config()

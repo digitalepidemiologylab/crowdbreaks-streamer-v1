@@ -43,6 +43,7 @@ class Config(object):
     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
     AWS_REGION = os.environ.get('AWS_REGION', 'eu-central-1')
     S3_BUCKET = os.environ.get('S3_BUCKET', '')
+    S3_BUCKET_SAGEMAKER = os.environ.get('S3_BUCKET_SAGEMAKER', 'crowdbreaks-sagemaker')
 
     # Email
     SEND_EMAILS = os.environ.get('SEND_EMAILS', '0')

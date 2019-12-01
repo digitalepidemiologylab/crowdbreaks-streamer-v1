@@ -2,6 +2,7 @@ from flask import Flask, got_request_exception
 from app import settings, main
 from app.pipeline import pipeline
 from app.es_interface import es_interface
+from app.ml import ml
 from app.extensions import es, redis
 import os
 import warnings
@@ -26,6 +27,7 @@ def create_app(config=settings.ProdConfig):
     app.register_blueprint(main.blueprint, url_prefix = '/')
     app.register_blueprint(pipeline.blueprint, url_prefix = '/pipeline')
     app.register_blueprint(es_interface.blueprint, url_prefix = '/elasticsearch')
+    app.register_blueprint(ml.blueprint, url_prefix = '/ml')
 
     # Pause stream container if running
     if app.config['PAUSE_STREAM_ON_STARTUP'] == '1':

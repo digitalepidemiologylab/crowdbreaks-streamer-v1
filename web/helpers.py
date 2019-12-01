@@ -2,6 +2,7 @@ import rollbar
 from app.settings import Config
 import pytz
 from datetime import datetime
+from flask import jsonify
 
 def report_error(logger, msg, level='error'):
     if level == 'error':
@@ -24,3 +25,11 @@ def get_tz_difference():
     utc = local.astimezone(pytz.utc)
     local_utc_replaced = local.replace(tzinfo=pytz.utc) # replace tz in order to be able to compare two UTC times objects
     return utc - local_utc_replaced
+
+def make_error(status_code, message):
+    response = jsonify({
+        'status': status_code,
+        'message': message
+        })
+    response.status_code = status_code
+    return response
