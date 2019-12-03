@@ -8,7 +8,7 @@ import glob
 import time
 import logging
 from app.utils.docker_wrapper import DockerWrapper
-from app.pipeline.stream_config import StreamConfig
+from app.pipeline.pipeline_config import PipelineConfig
 from app.stream.stream_config_reader import StreamConfigReader
 from app.extensions import es
 from datetime import datetime, timedelta
@@ -110,19 +110,19 @@ def status_container(container_name):
 @blueprint.route('/config', methods=['GET', 'POST'])
 def manage_config():
     logger = logging.getLogger('pipeline')
-    stream_config = StreamConfig(config=request.get_json(), app_config=app.config)
+    pipeline_config = PipelineConfig(config=request.get_json(), app_config=app.config)
     if request.method == 'GET':
         # read streaming config
-        config_data = stream_config.read()
+        config_data = pipeline_config.read()
         return jsonify(config_data)
     else:
         # write streaming config
         # make sure new configuration is valid
-        is_valid, resp = stream_config.is_valid()
+        is_valid, resp = pipeline_config.is_valid()
         if not is_valid:
             return resp
         # write everything to config
-        stream_config.write()
+        pipeline_config.write()
         # Create new Elasticsearch indices if needed
-        es.update_es_indices(stream_config.get_es_index_names())
+        es.update_es_indices(pipeline_config.get_es_index_names())
         return Response("Successfully updated configuration files. Make sure to restart stream for changes to be active.", status=200, mimetype='text/plain')

@@ -4,8 +4,8 @@ import logging
 from flask import Response
 from helpers import report_error
 
-class StreamConfig():
-    """Read and write twitter stream configuration"""
+class PipelineConfig():
+    """Read and write pipeline configuration"""
 
     def __init__(self, config=None, app_config=None):
         self.app_config = app_config
@@ -16,7 +16,7 @@ class StreamConfig():
     def write(self):
         config_path = self._get_config_path()
         if config_path is None or self.config is None:
-            report_error(self.logger, 'Cannot write stream config file.')
+            report_error(self.logger, 'Cannot write pipeline config file.')
             return
         new_config = self._extract_config()
         with open(config_path, 'w') as f:
@@ -25,7 +25,7 @@ class StreamConfig():
     def read(self):
         config_path = self._get_config_path()
         if config_path is None or not os.path.isfile(config_path):
-            report_error(self.logger, 'Cannot find stream config file.', level='warning')
+            report_error(self.logger, 'Cannot find pipeline config file.', level='warning')
             return []
         with open(config_path, 'r') as f:
             config = json.load(f)

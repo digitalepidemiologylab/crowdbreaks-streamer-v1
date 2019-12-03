@@ -22,22 +22,31 @@ class Sagemaker():
 
     def list_model_endpoints(self):
         models = self.list_models()
-        endpoints = self.list_endpoints(active=True)
-        endpoints = {e['EndpointName']: e['EndpointArn'] for e in endpoints}
+        endpoints = self.list_endpoints()
+        endpoints = {e['EndpointName']: [e['EndpointArn'], e['EndpointStatus']] for e in endpoints}
         for i, model in enumerate(models):
             models[i]['HasEndpoint'] = False
             models[i]['EndpointArn'] = ''
             if model['ModelName'] in list(endpoints.keys()):
                 models[i]['HasEndpoint'] = True
-                models[i]['EndpointArn'] = endpoints[model['ModelName']]
+                models[i]['EndpointArn'] = endpoints[model['ModelName']][0]
+                models[i]['EndpointStatus'] = endpoints[model['ModelName']][1]
         for i, model in enumerate(models):
             tags = self.list_tags(model['ModelArn'])
             models[i]['Tags'] = tags
         return models
 
+
     def list_models(self):
         models = self.paginate(self._client.list_models, 'Models')
         return models
+
+    def create_endpoint(self, endpoint_name):
+        config_name = f'{endpoint_name}-config'
+        self._client.create_endpoint(EndpointName=endpoint_name, EndpointConfigName=config_name)
+
+    def delete_endpoint(self, endpoint_name):
+        self._client.delete_endpoint(EndpointName=endpoint_name)
 
     def list_endpoints(self, active=False):
         endpoints = self.paginate(self._client.list_endpoints, 'Endpoints')
