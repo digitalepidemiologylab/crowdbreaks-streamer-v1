@@ -11,7 +11,7 @@ class PipelineConfig():
         self.app_config = app_config
         self.config = config
         self.logger = logging.getLogger('pipeline')
-        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode']
+        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints']
 
     def write(self):
         config_path = self._get_config_path()
@@ -37,11 +37,11 @@ class PipelineConfig():
         for d in self.config:
             if not self._keys_are_present(d):
                 msg = "One or more of the following keywords are not present in the sent configuration: {}".format(self.required_keys)
-                report_error(self.logger, mgs)
+                report_error(self.logger, msg)
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
             if not self._validate_data_types(d):
                 msg = "One or more of the following configurations is of wrong type: {}".format(d)
-                report_error(self.logger, mgs)
+                report_error(self.logger, msg)
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
         return True, None
 
@@ -57,7 +57,7 @@ class PipelineConfig():
         return True
 
     def _validate_data_types(self, obj):
-        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str]]
+        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str], ['model_endpoints', list]]
         for key, data_type in validations:
             if not isinstance(obj[key], data_type):
                 return False

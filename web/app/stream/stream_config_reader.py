@@ -8,7 +8,7 @@ class StreamConfigReader():
 
     def __init__(self):
         self.config_path = self._get_config_path()
-        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode']
+        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints']
 
     def get_pooled_config(self):
         """Pool all configs to run in single stream"""
