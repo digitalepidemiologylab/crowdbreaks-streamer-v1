@@ -4,6 +4,8 @@ import boto3
 import logging
 from helpers import report_error
 from botocore.exceptions import ClientError
+import json
+from flask import jsonify
 
 class Sagemaker():
     """Interface class to Sagemaker"""
@@ -38,7 +40,7 @@ class Sagemaker():
 
 
     def list_models(self):
-        models = self.paginate(self._client.list_models, 'Models')
+        models = self._paginate(self._client.list_models, 'Models')
         return models
 
     def create_endpoint(self, endpoint_name):
@@ -49,7 +51,7 @@ class Sagemaker():
         self._client.delete_endpoint(EndpointName=endpoint_name)
 
     def list_endpoints(self, active=False):
-        endpoints = self.paginate(self._client.list_endpoints, 'Endpoints')
+        endpoints = self._paginate(self._client.list_endpoints, 'Endpoints')
         if active:
             for e in endpoints:
                 if e['EndpointStatus'] != 'InService':
@@ -63,7 +65,12 @@ class Sagemaker():
             _tags[tag['Key']] = tag['Value']
         return _tags
 
-    def paginate(self, client_function, key, max_length=100):
+    def predict(self, endpoint_name, body):
+        return self._runtime_client.invoke_endpoint(EndpointName=endpoint_name, Body=json.dumps(body), ContentType='application/json')
+
+    # private methods
+
+    def _paginate(self, client_function, key, max_length=100):
         r = client_function()
         if key not in r:
             return []
@@ -76,8 +83,10 @@ class Sagemaker():
         return resp
 
 
-    # private methods
-
     @property
     def _client(self):
         return boto3.Session(region_name=self.config.AWS_REGION).client('sagemaker')
+
+    @property
+    def _runtime_client(self):
+        return boto3.Session(region_name=self.config.AWS_REGION).client('runtime.sagemaker')
