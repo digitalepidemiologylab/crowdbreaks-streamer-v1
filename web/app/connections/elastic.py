@@ -307,7 +307,18 @@ class Elastic():
     def get_all_agg(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
+        keywords = options.get('keywords', [])
+        not_keywords = options.get('not_keywords', [])
         s_date, e_date = self.parse_dates(start_date, end_date)
+        # query without keywords (only condition on s_date and e_date)
+        query = {'bool': {'must': [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}], 'must_not': []}}
+        # add a match_phrase condition for every keyword and not_keyword
+        if len(keywords) > 0:
+            for keyword in keywords:
+                query['bool']['must'].append({'match_phrase': {'text': keyword}})
+        if len(not_keywords) > 0:
+            for keyword in not_keywords:
+                query['bool']['must_not'].append({'match_phrase': {'text': keyword}})
         body = {'size': 0,
                 'aggs': {
                     'sentiment': {
@@ -317,7 +328,7 @@ class Elastic():
                             'format': 'yyyy-MM-dd HH:mm:ss' }
                         }
                     },
-                'query': { 'range': {'created_at': {'gte': s_date, 'lte': e_date}}}
+                'query': query
                 }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):

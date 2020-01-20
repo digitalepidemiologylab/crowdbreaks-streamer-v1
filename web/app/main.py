@@ -130,7 +130,7 @@ def email_status():
 # All data
 @blueprint.route('data/all/<index_name>', methods=['GET'])
 def get_all_data(index_name):
-    options = get_params(request.args)
+    options = request.get_json()
     res = es.get_all_agg(index_name, **options)
     return json.dumps(res)
 
