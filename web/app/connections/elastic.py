@@ -1,4 +1,5 @@
 import elasticsearch
+from elasticsearch import helpers as es_helpers
 import json
 import os
 import logging
@@ -96,6 +97,16 @@ class Elastic():
             report_error(self.logger, e)
         else:
             self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
+
+    def index_tweets(self, tweets, index_name):
+        """Indexes an array of tweets to a certain index using the bulk API"""
+        print(tweets)
+        actions = [{'_id': t['id'], 'doc': t} for t in tweets]
+        self.bulk_index(actions, index_name)
+
+    def bulk_index(self, actions, index_name):
+        self.logger.info('Bulk indexing...')
+        es_helpers.bulk(self.es, actions, index=index_name, doc_type='tweet', timeout='30s')
 
     def put_template(self, filename='project.json', template_path=None):
         """Put template to ES

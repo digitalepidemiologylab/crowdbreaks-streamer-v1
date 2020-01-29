@@ -8,6 +8,7 @@ from app.utils.priority_queue import TweetIdQueue
 from app.utils.predict_sentiment import PredictSentiment
 from app.stream.stream_config_reader import StreamConfigReader
 from app.stream.redis_s3_queue import RedisS3Queue
+from app.stream.es_queue import ESQueue
 from app.extensions import es
 import logging
 import os
@@ -34,6 +35,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
     # queue up for s3 upload and add to priority queue
     logger.info("SUCCESS: Found {} project(s) ({}) as a matching project for tweet".format(len(candidates), ', '.join(candidates)))
     redis_queue = RedisS3Queue()
+    es_queue = ESQueue()
     stream_config_reader = StreamConfigReader()
     for project in candidates:
         stream_config = stream_config_reader.get_config_by_project(project)
@@ -62,9 +64,8 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
                 # Do not store retweets on ES
                 return
             # send to ES
-            logger.debug('Sending tweet with id {} to ES'.format(processed_tweet['id']))
-            es.index_tweet(processed_tweet, stream_config['es_index_name'])
-
+            logger.debug('Pushing processed with id {} to ES queue'.format(processed_tweet['id']))
+            es_queue.push(json.dumps(processed_tweet).encode(), project)
 
 @celery.task
 def predict(text, model='fasttext_v1.ftz', num_classes=3, path_to_model='.'):

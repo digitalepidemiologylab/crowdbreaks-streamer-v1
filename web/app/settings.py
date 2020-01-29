@@ -26,6 +26,7 @@ class Config(object):
     REDIS_DB = os.environ.get('REDIS_DB', 0)
     REDIS_NAMESPACE = os.environ.get('REDIS_NAMESPACE', 'cb')
     REDIS_STREAM_QUEUE_KEY = os.environ.get('REDIS_STREAM_QUEUE_KEY', 'stream')
+    ES_QUEUE_KEY = os.environ.get('ES_QUEUE_KEY', 'es_queue')
 
     # stream config
     STREAM_CONFIG_FILE_PATH = os.path.join('stream', 'twitter_stream.json')

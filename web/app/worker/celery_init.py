@@ -31,6 +31,10 @@ celery.conf.beat_schedule = {
             'task': 's3-upload-task',
             'schedule': 10*60.0  # runs every 10min
             },
+        'es-bulk-index': {
+            'task': 'es-bulk-index-task',
+            'schedule': 5  # runs every 5 sec
+            },
         'email-daily': {
             'task': 'stream-status-daily',
             'schedule': crontab(hour=9, minute=0) # runs every day at 9am

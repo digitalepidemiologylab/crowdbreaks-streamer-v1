@@ -4,6 +4,7 @@ import json
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from app.utils.priority_queue import PriorityQueue, TweetIdQueue, RedisSet, TweetStore
 from app.stream.redis_s3_queue import RedisS3Queue
+from app.stream.es_queue import ESQueue
 from app.utils.process_media import ProcessMedia
 from app.settings import Config
 
@@ -38,6 +39,12 @@ def tweet_store():
     tweet_store = TweetStore()
     yield tweet_store
     tweet_store.remove_all()
+
+@pytest.fixture(scope='session')
+def es_queue():
+    es_queue = ESQueue()
+    yield es_queue
+    es_queue.clear()
 
 # test data
 @pytest.fixture(scope='session')

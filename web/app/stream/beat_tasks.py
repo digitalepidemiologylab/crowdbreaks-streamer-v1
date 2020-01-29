@@ -4,7 +4,9 @@ from app.settings import Config
 from app.stream.stream_config_reader import StreamConfigReader
 from app.stream.s3_handler import S3Handler
 from app.stream.redis_s3_queue import RedisS3Queue
+from app.stream.es_queue import ESQueue
 from app.utils.mailer import StreamStatusMailer
+from app.extensions import es
 import logging
 import os
 import json
@@ -34,6 +36,29 @@ def send_to_s3(debug=False):
             logging.info('Successfully uploaded file {} to S3'.format(s3_key))
         else:
             logging.error('ERROR: Upload of file {} to S3 not successful'.format(s3_key))
+
+
+@celery.task(name='es-bulk-index-task', ignore_result=True)
+def es_bulk_index(debug=False):
+    logger = get_logger(debug)
+    es_queue = ESQueue()
+    stream_config_reader = StreamConfigReader()
+    project_keys = es_queue.find_projects_in_queue()
+    if len(project_keys) == 0:
+        logger.info('No work available. Goodbye!')
+        return
+    for key in project_keys:
+        project = key.decode().split(':')[-1]
+        logger.info('Found {} new tweet(s) in project {}'.format(es_queue.num_elements_in_queue(key), project))
+        stream_config = stream_config_reader.get_config_by_project(project)
+        tweets = es_queue.pop_all(key)
+        if len(tweets) == 0:
+            logger.info(f'No tweets in queue for project {project}.')
+            return
+        logger.info(f'Found {len(tweets):,} tweets in queue for project {project}.')
+        # decode tweets
+        tweets = [json.loads(t.decode()) for t in tweets]
+        es.index_tweets(tweets, stream_config['es_index_name'])
 
 # ------------------------------------------
 # EMAIL TASKS
