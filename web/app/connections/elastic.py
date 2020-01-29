@@ -100,7 +100,7 @@ class Elastic():
 
     def index_tweets(self, tweets, index_name):
         """Indexes an array of tweets to a certain index using the bulk API"""
-        actions = [{'_id': t['id'], 'doc': t} for t in tweets]
+        actions = [{'_id': t['id'],  '_type': 'tweet', '_source': t} for t in tweets]
         self.bulk_index(actions, index_name)
 
     def bulk_index(self, actions, index_name):
