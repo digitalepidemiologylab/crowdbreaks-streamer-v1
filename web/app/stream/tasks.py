@@ -48,7 +48,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         # queue up on Redis for subsequent upload
         redis_queue.push(json.dumps(tweet).encode(), project)
         # preprocess tweet
-        pt = ProcessTweet(tweet=tweet, project=project)
+        pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
         processed_tweet = pt.process_and_predict()
         if use_pq and pt.should_be_annotated():
             # add to Tweet ID queue for crowd labelling

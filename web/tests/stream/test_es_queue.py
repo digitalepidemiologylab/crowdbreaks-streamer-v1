@@ -6,8 +6,6 @@ import json
 import sys;sys.path.append('../../../web/')
 
 class TestESQueue:
-
-    @pytest.mark.focus
     def test_pop_all(self, es_queue, tweet):
         es_queue.push(json.dumps(tweet).encode(), 'test')
         key = es_queue.queue_key('test')

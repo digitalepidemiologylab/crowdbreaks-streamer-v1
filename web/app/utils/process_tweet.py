@@ -45,12 +45,16 @@ class ProcessTweet(object):
         ]
 
 
-    def __init__(self, project=None, tweet=None):
+    def __init__(self, project=None, tweet=None, project_locales=None):
         self.tweet = tweet            # initial tweet
         self.extended_tweet = self._get_extended_tweet()
         self.processed_tweet = None   # processed tweet
         self.logger = logging.getLogger(__name__)
         self.project = project
+        if not isinstance(project_locales, list):
+            self.project_locales = []
+        else:
+            self.project_locales = project_locales
         self.control_char_regex = r'[\r\n\t]+'
 
     @property
@@ -68,8 +72,16 @@ class ProcessTweet(object):
         else:
             return False
 
+    def is_matching_project_locales(self):
+        if len(self.project_locales) == 0:
+            # We have no project language information
+            return True
+        return self.tweet['lang'] in self.project_locales
+
     def should_be_annotated(self):
         if self.is_retweet or self.has_quoted_status or self.is_possibly_sensitive:
+            return False
+        if not self.is_matching_project_locales():
             return False
         try:
             model = list(self.processed_tweet['meta']['sentiment'].keys())[0]

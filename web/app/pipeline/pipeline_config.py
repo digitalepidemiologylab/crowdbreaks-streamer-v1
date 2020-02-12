@@ -11,7 +11,7 @@ class PipelineConfig():
         self.app_config = app_config
         self.config = config
         self.logger = logging.getLogger('pipeline')
-        self.required_keys = ['keywords', 'es_index_name', 'lang', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints']
+        self.required_keys = ['keywords', 'es_index_name', 'lang',  'locales', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints']
 
     def write(self):
         config_path = self._get_config_path()
