@@ -7,6 +7,7 @@ import logging
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.predict_sentiment import PredictSentiment
 from app.stream.tasks import predict, handle_tweet
+from app.stream.trending_tweets import TrendingTweets
 import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
@@ -53,6 +54,13 @@ def test_pq():
     length = request.args.get('length', default=100, type=int)
     tid = TweetIdQueue(project)
     return tid.pq.list(length=length)
+
+@blueprint.route('test/tt', methods=['GET'])
+def test_tt():
+    project = request.args.get('project', default='project_vaccine_sentiment', type=str)
+    length = request.args.get('length', default=100, type=int)
+    tt = TrendingTweets(project)
+    return tt.pq.list(length=length)
 
 @blueprint.route('test/email/ping', methods=['GET'])
 def test_email_ping():

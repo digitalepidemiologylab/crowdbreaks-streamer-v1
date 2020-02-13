@@ -11,7 +11,7 @@ class PipelineConfig():
         self.app_config = app_config
         self.config = config
         self.logger = logging.getLogger('pipeline')
-        self.required_keys = ['keywords', 'es_index_name', 'lang',  'locales', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints']
+        self.required_keys = ['keywords', 'es_index_name', 'lang',  'locales', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints', 'compile_trending_tweets']
 
     def write(self):
         config_path = self._get_config_path()
@@ -57,7 +57,7 @@ class PipelineConfig():
         return True
 
     def _validate_data_types(self, obj):
-        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str], ['model_endpoints', list]]
+        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str], ['model_endpoints', list], ['locales', list], ['compile_trending_tweets', bool]]
         for key, data_type in validations:
             if not isinstance(obj[key], data_type):
                 return False

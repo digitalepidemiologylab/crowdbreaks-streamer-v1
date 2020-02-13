@@ -18,7 +18,6 @@ class PriorityQueue(Redis):
         super().__init__(self)
         # logging
         self.logger = logging.getLogger('PriorityQueue')
-
         self.project = project
         self.namespace = namespace
         self.key_namespace = key_namespace

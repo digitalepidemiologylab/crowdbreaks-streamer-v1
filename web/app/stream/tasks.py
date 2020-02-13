@@ -8,6 +8,7 @@ from app.utils.priority_queue import TweetIdQueue
 from app.utils.predict_sentiment import PredictSentiment
 from app.stream.stream_config_reader import StreamConfigReader
 from app.stream.redis_s3_queue import RedisS3Queue
+from app.stream.trending_tweets import TrendingTweets
 from app.stream.es_queue import ESQueue
 from app.extensions import es
 import logging
@@ -45,8 +46,12 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         # add tracking info
         tweet['_tracking_info'] = stream_config_reader.get_tracking_info(project)
         tweet['_tracking_info']['matching_keywords'] = rtm.matching_keywords[project]
-        # queue up on Redis for subsequent upload
+        # Queue up on Redis for subsequent upload
         redis_queue.push(json.dumps(tweet).encode(), project)
+        # Possibly add tweet to trending tweets
+        if stream_config['compile_trending_tweets']:
+            tt = TrendingTweets(project)
+            tt.process(tweet)
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
         processed_tweet = pt.process_and_predict()

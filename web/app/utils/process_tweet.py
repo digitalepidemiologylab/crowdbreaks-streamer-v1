@@ -47,7 +47,10 @@ class ProcessTweet(object):
 
     def __init__(self, project=None, tweet=None, project_locales=None):
         self.tweet = tweet            # initial tweet
-        self.extended_tweet = self._get_extended_tweet()
+        if self.tweet is None:
+            self.extended_tweet = None
+        else:
+            self.extended_tweet = self._get_extended_tweet()
         self.processed_tweet = None   # processed tweet
         self.logger = logging.getLogger(__name__)
         self.project = project

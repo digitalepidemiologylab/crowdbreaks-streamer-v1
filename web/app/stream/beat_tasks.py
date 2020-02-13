@@ -7,6 +7,7 @@ from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.es_queue import ESQueue
 from app.utils.mailer import StreamStatusMailer
 from app.extensions import es
+from app.stream.trending_tweets import TrendingTweets
 import logging
 import os
 import json
@@ -59,6 +60,16 @@ def es_bulk_index(debug=False):
         # decode tweets
         tweets = [json.loads(t.decode()) for t in tweets]
         es.index_tweets(tweets, stream_config['es_index_name'])
+
+@celery.task(name='trending-tweets-cleanup', ignore_result=True)
+def trending_tweets_cleanup_job(debug=False):
+    logger = get_logger(debug)
+    # Cleanup (remove old trending tweets from redis)
+    stream_config_reader = StreamConfigReader()
+    for project_config in stream_config_reader.read():
+        if project_config['compile_trending_tweets']:
+            tt = TrendingTweets(project_config['slug'])
+            tt.cleanup()
 
 # ------------------------------------------
 # EMAIL TASKS

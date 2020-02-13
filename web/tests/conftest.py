@@ -7,6 +7,7 @@ from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.es_queue import ESQueue
 from app.utils.process_media import ProcessMedia
 from app.settings import Config
+from app.stream.trending_tweets import TrendingTweets
 
 
 # session fixtures
@@ -45,6 +46,12 @@ def es_queue():
     es_queue = ESQueue()
     yield es_queue
     es_queue.clear()
+
+@pytest.fixture(scope='function')
+def tt():
+    tt = TrendingTweets('project_test', expiry_time_ms=10, max_queue_length=5)
+    yield tt
+    tt.self_remove()
 
 # test data
 @pytest.fixture(scope='session')

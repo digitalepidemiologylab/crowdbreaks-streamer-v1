@@ -120,6 +120,6 @@
         "keywords": [
             "test"
         ],
-        "es_index_name": "project_project"
+        "es_index_name": "project_test"
     }
 }
