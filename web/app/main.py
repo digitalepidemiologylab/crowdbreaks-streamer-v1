@@ -4,7 +4,6 @@ from app.basic_auth import requires_auth_func
 import json
 from app.extensions import es, redis
 import logging
-from app.utils.priority_queue import TweetIdQueue
 from app.utils.predict_sentiment import PredictSentiment
 from app.stream.tasks import predict, handle_tweet
 from app.stream.trending_tweets import TrendingTweets
@@ -74,6 +73,17 @@ def test_send_email():
     body = mailer.get_body()
     resp = mailer.send_status(body)
     return json.dumps(resp)
+
+#################################################################
+# TRENDING TWEETS
+@blueprint.route('trending_tweets/<project>', methods=['GET'])
+def get_trending_tweets(project):
+    num_tweets = request.args.get('num_tweets', default=10, type=int)
+    min_score = request.args.get('min_score', default=5, type=int)
+    sample_from = request.args.get('sample_from', default=100, type=int)
+    tt = TrendingTweets(project)
+    resp = tt.pq.multi_pop(num_tweets, sample_from=sample_from, min_score=min_score)
+    return jsonify(resp)
 
 #################################################################
 # TWEET ID HANDLING

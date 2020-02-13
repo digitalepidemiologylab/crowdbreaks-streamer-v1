@@ -1,11 +1,12 @@
 import redis
 import os
-from random import randint
+import random
 import logging
 from app.utils.redis import Redis
 from helpers import report_error
 import json
 import collections
+import numpy as np
 
 
 class PriorityQueue(Redis):
@@ -68,6 +69,34 @@ class PriorityQueue(Redis):
             self.remove(item)
         return item.decode()
 
+    def multi_pop(self, num, sample_from=0, min_score=0, remove=False):
+        """
+        Return multiple elements.
+        If sample_from > 0, compile a priority-weighted sample of `num` elements from the top `sample_from`
+        """
+        num_items = max(num, sample_from)
+        try:
+            items = self._r.zrevrangebyscore(self.key, '+Inf', min_score, start=min_score, num=num_items, withscores=True)
+        except IndexError:
+            # Queue is empty
+            return None
+        if sample_from > 0 and len(items) > num and len(items) > 0:
+            # subsample
+            keys, values = list(zip(*items))
+            values = np.array(values)
+            sum_values = np.sum(values)
+            if sum_values > 0:
+                probabilities = values / sum_values
+                keys = np.random.choice(keys, num, p=probabilities, replace=False)
+        else:
+            keys = [k for k, v in items]
+        if remove:
+            for key in keys:
+                self.remove(key)
+        # decode
+        keys = [k.decode() for k in keys]
+        return keys
+
     def increment_priority(self, val, incr=1):
         if self._r.zrank(self.key, val) is None:
             self.logger.debug("Priority of value {} cannot be changed, because it doesn't exist anymore".format(val))
@@ -98,7 +127,7 @@ class PriorityQueue(Redis):
             self._r.zremrangebyrank(self.key, 0, 0)
         else:
             # multiple elements with the same lowest score, randomly remove one
-            rand_index = randint(0, num_elements-1)
+            rand_index = random.randint(0, num_elements-1)
             self.logger.debug('Picked {} as randindex between {} and {}'.format(rand_index, 0, num_elements-1))
             items = self._r.zrange(self.key, rand_index, rand_index, withscores=True)
             num_deleted = self._r.zremrangebyrank(self.key, rand_index, rand_index)
