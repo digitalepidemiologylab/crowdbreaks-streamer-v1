@@ -73,7 +73,7 @@ class TrendingTweets(Redis):
         if 'possibly_sensitive' in tweet:
             if tweet['possibly_sensitive']:
                 return False
-        if 'possibly_sensitive' in tweet['retweeted_status']:
+        if 'possibly_sensitive' in tweet:
             if tweet['possibly_sensitive']:
                 return False
         return True
