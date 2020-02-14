@@ -76,7 +76,7 @@ class PriorityQueue(Redis):
         """
         num_items = max(num, sample_from)
         try:
-            items = self._r.zrevrangebyscore(self.key, '+Inf', min_score, start=min_score, num=num_items, withscores=True)
+            items = self._r.zrevrangebyscore(self.key, '+Inf', min_score, start=0, num=num_items, withscores=True)
         except IndexError:
             # Queue is empty
             return None

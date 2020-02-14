@@ -82,7 +82,7 @@ def get_trending_tweets(project):
     if args is None:
         args = {}
     num_tweets = args.get('num_tweets', 10)
-    min_score = args.get('min_score', 0)
+    min_score = args.get('min_score', 5)
     sample_from = args.get('sample_from', 100)
     query = args.get('query', '')
     tt = TrendingTweets(project)

@@ -61,5 +61,5 @@ class TestTrendingTweets:
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
-    pytest.main(['-s', '-m', 'focus'])
-    # pytest.main()
+    # pytest.main(['-s', '-m', 'focus'])
+    pytest.main()
