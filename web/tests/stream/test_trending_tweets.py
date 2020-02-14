@@ -45,6 +45,7 @@ class TestTrendingTweets:
         assert len(tt.pq) == 1
         assert tt.pq.get_score(retweeted_id) == 6
 
+    @pytest.mark.focus
     def test_pop(self, retweet, tt):
         retweet['retweeted_status']['id_str'] = '0'
         # add 0 twice (should be highest priority)
@@ -61,5 +62,5 @@ class TestTrendingTweets:
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
-    # pytest.main(['-s', '-m', 'focus'])
-    pytest.main()
+    pytest.main(['-s', '-m', 'focus'])
+    # pytest.main()

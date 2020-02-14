@@ -11,9 +11,10 @@ import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
 import os
-from helpers import report_error
+from helpers import report_error, json_response
 from app.utils.mailer import StreamStatusMailer, Mailer
 from app.utils.priority_queue import TweetIdQueue
+from app.stream.stream_config_reader import StreamConfigReader
 
 
 blueprint = Blueprint('main', __name__)
@@ -85,7 +86,11 @@ def get_trending_tweets(project):
     min_score = args.get('min_score', 5)
     sample_from = args.get('sample_from', 100)
     query = args.get('query', '')
-    tt = TrendingTweets(project)
+    scr = StreamConfigReader()
+    project_config = scr.get_config_by_project(project)
+    if not project_config['compile_trending_tweets']:
+        return json_response(400, 'This project is configured to not collect trending tweets information.')
+    tt = TrendingTweets(project, es_index_name=project_config['es_index_name'])
     resp = tt.get_trending_tweets(num_tweets, query=query, sample_from=sample_from, min_score=min_score)
     return jsonify(resp)
 

@@ -50,7 +50,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         redis_queue.push(json.dumps(tweet).encode(), project)
         # Possibly add tweet to trending tweets
         if stream_config['compile_trending_tweets']:
-            tt = TrendingTweets(project)
+            tt = TrendingTweets(project, project_locales=stream_config['locales'])
             tt.process(tweet)
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])

@@ -2,7 +2,6 @@ from app.settings import Config
 from app.utils.redis import Redis
 from app.connections.elastic import Elastic
 from app.utils.priority_queue import PriorityQueue
-from app.stream.stream_config_reader import StreamConfigReader
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +19,9 @@ class TrendingTweets(Redis):
     """
     def __init__(self,
             project,
+            project_config=None,
+            es_index_name=None,
+            project_locales=None,
             key_namespace='trending-tweets',
             max_queue_length=1e4,
             expiry_time_ms=2*24*3600*1000):
@@ -34,26 +36,25 @@ class TrendingTweets(Redis):
                 key_namespace=self.key_namespace,
                 max_queue_length=self.max_queue_length)
         self.expiry_time_ms = expiry_time_ms
-        self.scr = StreamConfigReader()
+        self.es_index_name = es_index_name
         self.es = Elastic()
+        self.project_locales = project_locales
 
     def expiry_key(self, tweet_id):
         return "{}:{}:{}:{}:{}".format(self.namespace, self.key_namespace, self.project, 'expiry-key', tweet_id)
 
     def get_trending_tweets(self, num_tweets, query='', sample_from=0, min_score=0):
-        if query == '':
+        if query == '' or self.es_index_name is None:
             items = self.pq.multi_pop(num_tweets, sample_from=sample_from, min_score=min_score)
         else:
             # Get large enough sample of IDs to search in
             items = self.pq.multi_pop(self.max_queue_length, min_score=min_score)
-            project = self.scr.get_config_by_project(self.project)
             # Match retrieved documents for specific query
-            items = self.es.get_matching_ids_for_query(project['es_index_name'], query, items, size=num_tweets)
+            items = self.es.get_matching_ids_for_query(self.es_index_name, query, items, size=num_tweets)
         return items
 
     def process(self, tweet):
-        if not 'retweeted_status' in tweet:
-            # If not retweet, do nothing
+        if not self.should_be_processed(tweet):
             return
         retweeted_id = tweet['retweeted_status']['id_str']
         if self.pq.exists(retweeted_id):
@@ -62,6 +63,21 @@ class TrendingTweets(Redis):
             self.pq.add(retweeted_id, priority=1)
             # set an expiry key
             self._r.psetex(self.expiry_key(retweeted_id), self.expiry_time_ms, 1)
+
+    def should_be_processed(self, tweet):
+        if not 'retweeted_status' in tweet:
+            return False
+        if self.project_locales is not None:
+            if len(self.project_locales) > 0:
+                if not tweet['lang'] in self.project_config['locales']:
+                    return False
+        if 'possibly_sensitive' in tweet:
+            if tweet['possibly_sensitive']:
+                return False
+        if 'possibly_sensitive' in tweet['retweeted_status']:
+            if tweet['possibly_sensitive']:
+                return False
+        return True
 
     def cleanup(self):
         num_deleted = 0
