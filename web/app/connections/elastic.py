@@ -121,7 +121,7 @@ class Elastic():
             return
         with open(template_path, 'r') as f:
             template = json.load(f)
-        res = self.es.indices.put_template(template_name, body=template)
+        res = self.es.indices.put_template(template_name, body=template, include_type_name=True)
         self.logger.info("Template {} added to Elasticsearch".format(template_path))
 
     def put_mapping(self, index_name, filename):
@@ -151,7 +151,7 @@ class Elastic():
         self.add_all_templates()
 
         # create new index
-        res = self.es.indices.create(index_name)
+        res = self.es.indices.create(index_name, include_type_name=True)
         self.logger.info("Index {} successfully created".format(index_name))
         return True
 
@@ -194,6 +194,14 @@ class Elastic():
         resp = self.es.update(index=index, doc_type=doc_type, id=id, body=body)
         return resp
 
+     #################################################################
+     # Trending tweets
+    def get_matching_ids_for_query(self, index_name, query, ids, size=10):
+        body =  {'query': {'bool': {'must': [{'match_phrase': {'text': query}}, {'ids': {'values': ids}}]}}}
+        body['_source'] = False
+        res = self.es.search(index=index_name, body=body, size=size)
+        res = [hit['_id'] for hit in res['hits']['hits']]
+        return res
 
     #################################################################
     # Sentiment data

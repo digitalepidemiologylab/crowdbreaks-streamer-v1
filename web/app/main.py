@@ -78,11 +78,15 @@ def test_send_email():
 # TRENDING TWEETS
 @blueprint.route('trending_tweets/<project>', methods=['GET'])
 def get_trending_tweets(project):
-    num_tweets = request.args.get('num_tweets', default=10, type=int)
-    min_score = request.args.get('min_score', default=5, type=int)
-    sample_from = request.args.get('sample_from', default=100, type=int)
+    args = request.get_json()
+    if args is None:
+        args = {}
+    num_tweets = args.get('num_tweets', 10)
+    min_score = args.get('min_score', 0)
+    sample_from = args.get('sample_from', 100)
+    query = args.get('query', '')
     tt = TrendingTweets(project)
-    resp = tt.pq.multi_pop(num_tweets, sample_from=sample_from, min_score=min_score)
+    resp = tt.get_trending_tweets(num_tweets, query=query, sample_from=sample_from, min_score=min_score)
     return jsonify(resp)
 
 #################################################################

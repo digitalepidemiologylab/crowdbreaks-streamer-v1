@@ -1,6 +1,8 @@
 from app.settings import Config
 from app.utils.redis import Redis
+from app.connections.elastic import Elastic
 from app.utils.priority_queue import PriorityQueue
+from app.stream.stream_config_reader import StreamConfigReader
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,21 +21,35 @@ class TrendingTweets(Redis):
     def __init__(self,
             project,
             key_namespace='trending-tweets',
-            max_queue_length=1e6,
+            max_queue_length=1e4,
             expiry_time_ms=2*24*3600*1000):
         super().__init__(self)
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.project = project
         self.key_namespace = key_namespace
+        self.max_queue_length = int(max_queue_length)
         self.pq = PriorityQueue(project,
                 namespace=self.namespace,
                 key_namespace=self.key_namespace,
-                max_queue_length=max_queue_length)
+                max_queue_length=self.max_queue_length)
         self.expiry_time_ms = expiry_time_ms
+        self.scr = StreamConfigReader()
+        self.es = Elastic()
 
     def expiry_key(self, tweet_id):
         return "{}:{}:{}:{}:{}".format(self.namespace, self.key_namespace, self.project, 'expiry-key', tweet_id)
+
+    def get_trending_tweets(self, num_tweets, query='', sample_from=0, min_score=0):
+        if query == '':
+            items = self.pq.multi_pop(num_tweets, sample_from=sample_from, min_score=min_score)
+        else:
+            # Get large enough sample of IDs to search in
+            items = self.pq.multi_pop(self.max_queue_length, min_score=min_score)
+            project = self.scr.get_config_by_project(self.project)
+            # Match retrieved documents for specific query
+            items = self.es.get_matching_ids_for_query(project['es_index_name'], query, items, size=num_tweets)
+        return items
 
     def process(self, tweet):
         if not 'retweeted_status' in tweet:
