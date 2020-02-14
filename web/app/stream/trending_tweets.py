@@ -19,7 +19,6 @@ class TrendingTweets(Redis):
     """
     def __init__(self,
             project,
-            project_config=None,
             es_index_name=None,
             project_locales=None,
             key_namespace='trending-tweets',
@@ -69,7 +68,7 @@ class TrendingTweets(Redis):
             return False
         if self.project_locales is not None:
             if len(self.project_locales) > 0:
-                if not tweet['lang'] in self.project_config['locales']:
+                if not tweet['lang'] in self.project_locales:
                     return False
         if 'possibly_sensitive' in tweet:
             if tweet['possibly_sensitive']:
