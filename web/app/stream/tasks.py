@@ -14,7 +14,6 @@ from app.extensions import es
 import logging
 import os
 import json
-from helpers import report_error
 
 @celery.task(ignore_result=True)
 def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatched_tweets=False):

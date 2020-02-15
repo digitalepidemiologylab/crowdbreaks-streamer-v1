@@ -28,23 +28,22 @@ def main():
     while run:
         logger.debug('Trying to connect to Twitter API...')
         stream = StreamManager(auth, listener)
-        try: 
+        try:
             stream.start()
         except KeyboardInterrupt:
             sys.exit()
         except (TweepError, ConnectionError, ConnectionResetError, ProtocolError) as e:
             stream.stop()
-            report_error(logger, e)
+            report_error(logger, exception=True)
             error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)
             time_last_error = time.time()
         except Exception as e:
             stream.stop()
-            report_error(logger, 'Uncaught stream exception.')
-            report_error(logger, e)
+            report_error(logger, msg='Uncaught stream exception.', exception=True)
             error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)
             time_last_error = time.time()
         if error_count_last_hour > 3:
-            report_error(logger, 'Failing to reconnect. Aborting.')
+            report_error(logger, msg='Failing to reconnect. Aborting.')
             sys.exit()
         wait_some_time(time_last_error, error_count_last_hour)
     logger.info('Shutting down...')

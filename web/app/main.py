@@ -45,7 +45,12 @@ def test_celery():
 
 @blueprint.route('test/rollbar', methods=['GET'])
 def test_rollbar():
-    report_error(logger, 'test error')
+    d = {}
+    try:
+        d['missing_key']
+    except:
+        report_error(logger, exception=True)
+    report_error(logger, msg='Test: report an arbitrary error message')
     return 'error reported'
 
 @blueprint.route('test/pq', methods=['GET'])
@@ -105,12 +110,12 @@ def get_new_tweet(project):
     tweet = tid.get_tweet(user_id=user_id)
     if tweet is None:
         msg = 'Could not get tweet id from priority queue. Getting random tweet from ES instead.'
-        report_error(logger, msg)
+        report_error(logger, msg=msg)
         # get a random tweet instead
         tweet = es.get_random_document(project)
         if tweet is None:
             msg = 'Could not get random tweet from elasticsearch.'
-            report_error(logger, msg)
+            report_error(logger, msg=msg)
             return jsonify({'error': msg}), 400
     tweet = {k: tweet.get(k) for k in fields}
     if 'id' in tweet:
@@ -125,7 +130,7 @@ def add_to_pq(project):
     data = request.get_json()
     logger.debug('Incoming request with data {}'.format(data))
     if data is None or 'user_id' not in data or 'tweet_id' not in data:
-        report_error(logger, 'No user_id was passed when updating ')
+        report_error(logger, msg='No user_id was passed when updating ')
         return Response(None, status=400, mimetype='text/plain')
     tid = TweetIdQueue(project)
     tid.update(data['tweet_id'], data['user_id'])
@@ -138,7 +143,7 @@ def remove_from_pq(project):
     data = request.get_json()
     logger.debug('Incoming request with data {}'.format(data))
     if data is None or 'tweet_id' not in data:
-        report_error(logger, 'No tweet_id was passed when updating')
+        report_error(logger, msg='No tweet_id was passed when updating')
         return Response(None, status=400, mimetype='text/plain')
     tid = TweetIdQueue(project)
     tid.remove(data['tweet_id'])

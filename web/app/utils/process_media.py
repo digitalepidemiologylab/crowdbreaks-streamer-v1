@@ -63,7 +63,7 @@ class ProcessMedia():
         try:
             urllib.request.urlretrieve(url, f_name)
         except Exception as e:
-            report_error(self.logger, e)
+            report_error(self.logger, exception=True)
 
     def get_f_name(self, url, media_type, tweet_id, idx, size_info):
         fmt = url.split('.')[-1]
@@ -84,8 +84,8 @@ class ProcessMedia():
         media_info = {'has_media': False,
                 'counts': defaultdict(lambda: 0),
                 'media_urls': defaultdict(list),
-                'tweet_ids': defaultdict(list), 
-                'sizes': defaultdict(list)} 
+                'tweet_ids': defaultdict(list),
+                'sizes': defaultdict(list)}
         # check both tweet and quoted tweet
         tweet_objs = [self.tweet]
         if 'quoted_status' in self.tweet:

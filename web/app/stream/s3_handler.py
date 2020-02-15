@@ -14,19 +14,19 @@ class S3Handler():
         self.logger = logging.getLogger(__name__)
 
     def upload_to_s3(self, content, key):
-        try: 
+        try:
             self._s3_client.put_object(Body=content, Bucket=self.bucket, Key=key)
         except Exception as e:
-            report_error(self.logger, e)
+            report_error(self.logger, exception=True)
             return False
         else:
             return True
 
     def upload_file(self, local_path, key):
-        try: 
+        try:
             self._s3_client.upload_file(local_path, self.bucket, key)
         except Exception as e:
-            report_error(self.logger, e)
+            report_error(self.logger, exception=True)
             return False
         else:
             return True
@@ -51,7 +51,7 @@ class S3Handler():
 
     def read_line(self, key):
         return self._s3_client.get_object(Bucket=self.bucket, Key=key)['Body'].read().splitlines()
-        
+
     # private methods
 
     @property

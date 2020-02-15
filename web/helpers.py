@@ -5,12 +5,16 @@ from datetime import datetime
 from flask import jsonify
 import sys
 
-def report_error(logger, msg, level='error'):
-    if level == 'error':
-        logger.error(msg)
+def report_error(logger, msg='', level='error', exception=False):
+    # exception reporting
+    if exception:
         rollbar.report_exc_info(sys.exc_info())
-    elif level == 'warning':
+    # logging
+    if level == 'warning' and msg != '':
         logger.warning(msg)
+    if msg != '':
+        logger.error(msg)
+        rollbar.report_message(msg, level)
 
 def get_user_tz():
     config = Config()

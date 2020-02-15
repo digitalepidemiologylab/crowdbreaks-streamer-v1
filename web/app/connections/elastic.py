@@ -77,7 +77,7 @@ class Elastic():
         if test:
             self.logger.info('Successfully connected to Elasticsearch host {}'.format(self.config['ELASTICSEARCH_HOST']))
         else:
-            report_error(self.logger, 'Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
+            report_error(self.logger, msg='Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
         return test
 
     def cluster_health(self):
@@ -94,7 +94,7 @@ class Elastic():
             # This usually happens when a document with the same ID already exists.
             self.logger.warning('Conflict Error')
         except elasticsearch.TransportError as e:
-            report_error(self.logger, e)
+            report_error(self.logger, exception=True)
         else:
             self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
 
@@ -117,7 +117,7 @@ class Elastic():
         else:
             template_path = os.path.abspath(os.path.join(template_path, filename))
         if not os.path.exists(template_path):
-            report_error(self.logger, 'No project file found under {}'.format(template_path))
+            report_error(self.logger, msg='No project file found under {}'.format(template_path))
             return
         with open(template_path, 'r') as f:
             template = json.load(f)
@@ -362,7 +362,7 @@ class Elastic():
         res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])
         hits = res['hits']['hits']
         if len(hits) == 0:
-            report_error(self.logger, 'Could not find a random document in index {}'.format(index_name))
+            report_error(self.logger, msg='Could not find a random document in index {}'.format(index_name))
             return None
         return hits[0]['_source']
 
@@ -377,7 +377,7 @@ class Elastic():
             try:
                 d_date = datetime.strptime(d, input_format)
             except:
-                report_error(self.logger, 'Date {} is not of format {}. Using "now" instead'.format(d, input_format))
+                report_error(self.logger, msg='Date {} is not of format {}. Using "now" instead'.format(d, input_format))
                 res.append('now')
             else:
                 d_date = d_date.replace(tzinfo=timezone.utc)

@@ -19,5 +19,5 @@ class Redis():
         if test:
             self.logger.info('Successfully connected to Redis host {}:{}'.format(self.host, self.port))
         else:
-            report_error(self.logger, 'FAILURE: Connection to Redis host {}:{} not successful'.format(self.host, self.port))
+            report_error(self.logger, msg='FAILURE: Connection to Redis host {}:{} not successful'.format(self.host, self.port))
         return test

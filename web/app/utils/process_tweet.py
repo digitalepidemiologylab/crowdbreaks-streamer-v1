@@ -212,7 +212,7 @@ class ProcessTweet(object):
             return self.processed_tweet
 
     def error(self, msg):
-        report_error(self.logger, msg)
+        report_error(self.logger, msg=msg)
 
     def remove_control_characters(self, s):
         if not isinstance(s, str):

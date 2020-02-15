@@ -16,7 +16,7 @@ class PipelineConfig():
     def write(self):
         config_path = self._get_config_path()
         if config_path is None or self.config is None:
-            report_error(self.logger, 'Cannot write pipeline config file.')
+            report_error(self.logger, msg='Cannot write pipeline config file.')
             return
         new_config = self._extract_config()
         with open(config_path, 'w') as f:
@@ -25,7 +25,7 @@ class PipelineConfig():
     def read(self):
         config_path = self._get_config_path()
         if config_path is None or not os.path.isfile(config_path):
-            report_error(self.logger, 'Cannot find pipeline config file.', level='warning')
+            report_error(self.logger, msg='Cannot find pipeline config file.', level='warning')
             return []
         with open(config_path, 'r') as f:
             config = json.load(f)
@@ -37,11 +37,11 @@ class PipelineConfig():
         for d in self.config:
             if not self._keys_are_present(d):
                 msg = "One or more of the following keywords are not present in the sent configuration: {}".format(self.required_keys)
-                report_error(self.logger, msg)
+                report_error(self.logger, msg=msg)
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
             if not self._validate_data_types(d):
                 msg = "One or more of the following configurations is of wrong type: {}".format(d)
-                report_error(self.logger, msg)
+                report_error(self.logger, msg=msg)
                 return False, Response("Invalid configuration", status=400, mimetype='text/plain')
         return True, None
 
@@ -76,5 +76,5 @@ class PipelineConfig():
         if self.app_config is not None:
             return os.path.join(self.app_config['CONFIG_PATH'], self.app_config['STREAM_CONFIG_FILE_PATH'])
         else:
-            report_error(self.logger, 'No app config provided. Config path not available.')
+            report_error(self.logger, msg='No app config provided. Config path not available.')
             return None
