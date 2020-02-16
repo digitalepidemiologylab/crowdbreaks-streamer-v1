@@ -98,14 +98,9 @@ class Elastic():
         else:
             self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
 
-    def index_tweets(self, tweets, index_name):
-        """Indexes an array of tweets to a certain index using the bulk API"""
-        actions = [{'_id': t['id'],  '_type': 'tweet', '_source': t} for t in tweets]
-        self.bulk_index(actions, index_name)
-
-    def bulk_index(self, actions, index_name):
+    def bulk_index(self, actions):
         self.logger.info('Bulk indexing...')
-        es_helpers.bulk(self.es, actions, index=index_name, doc_type='tweet', timeout='30s')
+        es_helpers.bulk(self.es, actions, timeout='60s')
 
     def put_template(self, filename='project.json', template_path=None):
         """Put template to ES

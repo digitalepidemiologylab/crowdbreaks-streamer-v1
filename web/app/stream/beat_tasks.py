@@ -8,6 +8,7 @@ from app.stream.es_queue import ESQueue
 from app.utils.mailer import StreamStatusMailer
 from app.extensions import es
 from app.stream.trending_tweets import TrendingTweets
+from helpers import report_error
 import logging
 import os
 import json
@@ -48,18 +49,36 @@ def es_bulk_index(debug=False):
     if len(project_keys) == 0:
         logger.info('No work available. Goodbye!')
         return
+    data = []
     for key in project_keys:
-        project = key.decode().split(':')[-1]
-        logger.info('Found {} new tweet(s) in project {}'.format(es_queue.num_elements_in_queue(key), project))
-        stream_config = stream_config_reader.get_config_by_project(project)
         tweets = es_queue.pop_all(key)
         if len(tweets) == 0:
-            logger.info(f'No tweets in queue for project {project}.')
-            return
+            continue
+        project = key.decode().split(':')[-1]
+        stream_config = stream_config_reader.get_config_by_project(project)
         logger.info(f'Found {len(tweets):,} tweets in queue for project {project}.')
         # decode tweets
         tweets = [json.loads(t.decode()) for t in tweets]
-        es.index_tweets(tweets, stream_config['es_index_name'])
+        actions = [
+            {'_id': t['id'],
+            '_type': 'tweet',
+            '_source': t,
+            '_index': stream_config['es_index_name']
+            } for t in tweets]
+        data.extend(actions)
+    # bulk index
+    num_docs = len(data)
+    if num_docs > 0:
+        batch_size = 1000
+        logger.info(f'Bulk-indexing {num_docs:,} documents to Elasticsearch...')
+        for i in range(0, num_docs, batch_size):
+            try:
+                es.bulk_index(data[i:(i+batch_size)])
+            except:
+                report_error(logger, exception=True)
+                es_queue.dump_to_disk(data[i:(i+batch_size)])
+    else:
+        logger.info(f'No documents to index for Elasticsearch')
 
 @celery.task(name='trending-tweets-cleanup', ignore_result=True)
 def trending_tweets_cleanup_job(debug=False):
