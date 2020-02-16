@@ -93,6 +93,8 @@ def get_trending_tweets(project):
     query = args.get('query', '')
     scr = StreamConfigReader()
     project_config = scr.get_config_by_project(project)
+    if project_config is None:
+        return json_response(400, 'No project found with this slug')
     if not project_config['compile_trending_tweets']:
         return json_response(400, 'This project is configured to not collect trending tweets information.')
     tt = TrendingTweets(project, es_index_name=project_config['es_index_name'])
