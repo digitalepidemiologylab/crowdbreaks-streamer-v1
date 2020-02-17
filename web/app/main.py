@@ -14,7 +14,7 @@ import os
 from helpers import report_error, json_response
 from app.utils.mailer import StreamStatusMailer, Mailer
 from app.utils.priority_queue import TweetIdQueue
-from app.stream.stream_config_reader import StreamConfigReader
+from app.utils.project_config import ProjectConfig
 
 
 blueprint = Blueprint('main', __name__)
@@ -91,8 +91,8 @@ def get_trending_tweets(project):
     min_score = args.get('min_score', 5)
     sample_from = args.get('sample_from', 100)
     query = args.get('query', '')
-    scr = StreamConfigReader()
-    project_config = scr.get_config_by_project(project)
+    pc = ProjectConfig()
+    project_config = pc.get_config_by_project(project)
     if project_config is None:
         return json_response(400, 'No project found with this slug')
     if not project_config['compile_trending_tweets']:

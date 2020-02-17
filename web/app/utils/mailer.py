@@ -1,7 +1,7 @@
 import logging
 from app.settings import Config
 from datetime import datetime, timedelta
-from app.stream.stream_config_reader import StreamConfigReader
+from app.utils.project_config import ProjectConfig
 from app.stream.redis_s3_queue import RedisS3Queue
 import os
 import re
@@ -61,7 +61,7 @@ class StreamStatusMailer(Mailer):
         return html_text
 
     def _get_projects_stats(self, num_days=7, hourly=False):
-        stream_config_reader = StreamConfigReader()
+        project_config = ProjectConfig()
         redis_s3_queue = RedisS3Queue()
         end_day = datetime.utcnow()
         start_day = end_day - timedelta(days=num_days)
@@ -70,7 +70,7 @@ class StreamStatusMailer(Mailer):
         now_utc = pytz.utc.localize(end_day)
         timezone_hour_delta = get_tz_difference()
         total = defaultdict(lambda: 0)
-        for stream in stream_config_reader.read():
+        for stream in project_config.read():
             total_by_project = defaultdict(lambda: 0)
             project = stream['es_index_name']
             project_slug = stream['slug']

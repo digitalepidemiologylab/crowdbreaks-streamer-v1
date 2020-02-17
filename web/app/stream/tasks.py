@@ -6,7 +6,7 @@ from app.utils.process_tweet import ProcessTweet
 from app.utils.process_media import ProcessMedia
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.predict_sentiment import PredictSentiment
-from app.stream.stream_config_reader import StreamConfigReader
+from app.utils.project_config import ProjectConfig
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.trending_tweets import TrendingTweets
 from app.stream.es_queue import ESQueue
@@ -36,7 +36,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
     logger.info("SUCCESS: Found {} project(s) ({}) as a matching project for tweet".format(len(candidates), ', '.join(candidates)))
     redis_queue = RedisS3Queue()
     es_queue = ESQueue()
-    stream_config_reader = StreamConfigReader()
+    stream_config_reader = ProjectConfig()
     for project in candidates:
         stream_config = stream_config_reader.get_config_by_project(project)
         if stream_config['storage_mode'] == 'test_mode':

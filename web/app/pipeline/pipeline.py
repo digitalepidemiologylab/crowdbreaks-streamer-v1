@@ -8,11 +8,11 @@ import glob
 import time
 import logging
 from app.utils.docker_wrapper import DockerWrapper
-from app.pipeline.pipeline_config import PipelineConfig
-from app.stream.stream_config_reader import StreamConfigReader
+from app.utils.project_config import ProjectConfig
 from app.extensions import es
 from datetime import datetime, timedelta
 from app.stream.redis_s3_queue import RedisS3Queue
+from helpers import json_response
 
 blueprint = Blueprint('pipeline', __name__)
 
@@ -27,7 +27,7 @@ def start():
     status = d.container_status(stream_container_name)
     if status == 'running':
         return Response("Stream has already started.", status=400, mimetype='text/plain')
-    stream_config = StreamConfigReader()
+    stream_config = ProjectConfig()
     is_valid, response_invalid = stream_config.validate_streaming_config()
     if not is_valid:
         return Response(response_invalid, status=400, mimetype='text/plain')
@@ -56,7 +56,7 @@ def restart():
     d = DockerWrapper()
     stream_container_name = app.config['STREAM_DOCKER_CONTAINER_NAME']
     status = d.container_status(stream_container_name)
-    stream_config = StreamConfigReader()
+    stream_config = ProjectConfig()
     is_valid, response_invalid = stream_config.validate_streaming_config()
     if not is_valid:
         return Response(response_invalid, status=400, mimetype='text/plain')
@@ -86,7 +86,7 @@ def stream_activity():
     e = datetime.now()
     s = e - timedelta(hours=redis_counts_threshold_hours)
     redis_s3_queue = RedisS3Queue()
-    stream_config_reader = StreamConfigReader()
+    stream_config_reader = ProjectConfig()
     dates = list(redis_s3_queue.daterange(s, e, hourly=True))
     redis_count = 0
     for stream in stream_config_reader.read():
@@ -110,19 +110,20 @@ def status_container(container_name):
 @blueprint.route('/config', methods=['GET', 'POST'])
 def manage_config():
     logger = logging.getLogger('pipeline')
-    pipeline_config = PipelineConfig(config=request.get_json(), app_config=app.config)
+    config = request.get_json()
+    pc = ProjectConfig()
     if request.method == 'GET':
         # read streaming config
-        config_data = pipeline_config.read()
-        return jsonify(config_data)
+        config = pc.read()
+        return jsonify(config), 200
     else:
         # write streaming config
         # make sure new configuration is valid
-        is_valid, resp = pipeline_config.is_valid()
+        is_valid, msg = pc.is_valid(config)
         if not is_valid:
-            return resp
+            return json_response(400, msg), 400
         # write everything to config
-        pipeline_config.write()
+        pc.write(config)
         # Create new Elasticsearch indices if needed
-        es.update_es_indices(pipeline_config.get_es_index_names())
-        return Response("Successfully updated configuration files. Make sure to restart stream for changes to be active.", status=200, mimetype='text/plain')
+        es.update_es_indices(pc.get_es_index_names(config))
+        return json_response(200, 'Successfully updated configuration files. Make sure to restart stream for changes to be active.')

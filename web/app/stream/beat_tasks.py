@@ -1,7 +1,7 @@
 from app.worker.celery_init import celery
 from celery.utils.log import get_task_logger
 from app.settings import Config
-from app.stream.stream_config_reader import StreamConfigReader
+from app.utils.project_config import ProjectConfig
 from app.stream.s3_handler import S3Handler
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.es_queue import ESQueue
@@ -23,14 +23,14 @@ def send_to_s3(debug=False):
     redis_queue = RedisS3Queue()
     logger.info('Pushing tweets to S3')
     project_keys = redis_queue.find_projects_in_queue()
-    stream_config_reader = StreamConfigReader()
+    project_config = ProjectConfig()
     if len(project_keys) == 0:
         logger.info('No work available. Goodbye!')
         return
     for key in project_keys:
         project = key.decode().split(':')[-1]
         logger.info('Found {} new tweet(s) in project {}'.format(redis_queue.num_elements_in_queue(key), project))
-        stream_config = stream_config_reader.get_config_by_project(project)
+        stream_config = project_config.get_config_by_project(project)
         tweets = b'\n'.join(redis_queue.pop_all(key))  # create json lines byte string
         now = datetime.datetime.now()
         s3_key = 'tweets/{}/{}/tweets-{}-{}.jsonl'.format(stream_config['es_index_name'], now.strftime("%Y-%m-%d"), now.strftime("%Y%m%d%H%M%S"), str(uuid.uuid4()))
@@ -44,7 +44,7 @@ def send_to_s3(debug=False):
 def es_bulk_index(debug=False):
     logger = get_logger(debug)
     es_queue = ESQueue()
-    stream_config_reader = StreamConfigReader()
+    project_config = ProjectConfig()
     project_keys = es_queue.find_projects_in_queue()
     if len(project_keys) == 0:
         logger.info('No work available. Goodbye!')
@@ -55,7 +55,7 @@ def es_bulk_index(debug=False):
         if len(tweets) == 0:
             continue
         project = key.decode().split(':')[-1]
-        stream_config = stream_config_reader.get_config_by_project(project)
+        stream_config = project_config.get_config_by_project(project)
         logger.info(f'Found {len(tweets):,} tweets in queue for project {project}.')
         # decode tweets
         tweets = [json.loads(t.decode()) for t in tweets]
@@ -72,11 +72,15 @@ def es_bulk_index(debug=False):
         batch_size = 1000
         logger.info(f'Bulk-indexing {num_docs:,} documents to Elasticsearch...')
         for i in range(0, num_docs, batch_size):
+            num_docs_in_batch = len(data[i:(i+batch_size)])
             try:
                 es.bulk_index(data[i:(i+batch_size)])
             except:
+                logger.error(f'Failed bulk-indexed batch of {num_docs_in_batch:,} documents to Elasticsearch')
                 report_error(logger, exception=True)
                 es_queue.dump_to_disk(data[i:(i+batch_size)])
+            else:
+                logger.info(f'Successfully bulk-indexed batch of {num_docs_in_batch:,} documents to Elasticsearch')
     else:
         logger.info(f'No documents to index for Elasticsearch')
 
@@ -84,8 +88,8 @@ def es_bulk_index(debug=False):
 def trending_tweets_cleanup_job(debug=False):
     logger = get_logger(debug)
     # Cleanup (remove old trending tweets from redis)
-    stream_config_reader = StreamConfigReader()
-    for project_config in stream_config_reader.read():
+    project_config = ProjectConfig()
+    for project_config in project_config.read():
         if project_config['compile_trending_tweets']:
             tt = TrendingTweets(project_config['slug'])
             tt.cleanup()

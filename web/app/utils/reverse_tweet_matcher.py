@@ -1,7 +1,7 @@
 import re
 import logging
 import os
-from app.stream.stream_config_reader import StreamConfigReader
+from app.utils.project_config import ProjectConfig
 from collections import defaultdict
 
 class ReverseTweetMatcher(object):
@@ -11,7 +11,7 @@ class ReverseTweetMatcher(object):
         self.is_retweet = self._is_retweet(tweet)
         self.tweet = self._get_tweet(tweet)
         self.logger = logging.getLogger(__name__)
-        self.stream_config_reader = StreamConfigReader()
+        self.stream_config_reader = ProjectConfig()
         self.relevant_text = ''
         self.matching_keywords = {}
 
@@ -27,7 +27,7 @@ class ReverseTweetMatcher(object):
         else:
             # try to match to configs
             return self._match_to_config(relevant_text, config)
-    
+
     def fetch_all_relevant_text(self):
         """Here we pool all relevant text within the tweet to do the matching. From the twitter docs:
         "Specifically, the text attribute of the Tweet, expanded_url and display_url for links and media, text for hashtags, and screen_name for user mentions are checked for matches."
@@ -125,7 +125,7 @@ class ReverseTweetMatcher(object):
             for user_mention in obj['entities']['user_mentions']:
                 t.append(user_mention['screen_name'])
         return ''.join(t)
-        
+
     def _get_tweet(self, tweet):
         if self.is_retweet:
             return tweet['retweeted_status']
