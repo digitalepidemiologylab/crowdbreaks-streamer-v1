@@ -55,3 +55,5 @@ Werkzeug==0.15.3
 git+git://github.com/tweepy/tweepy@2efe385fc69385b57733f747ee62e6be12a1338b#egg=tweepy
 fasttext==0.9.1
 flask-restful==0.3.7
+spacy==2.2.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz

@@ -8,6 +8,7 @@ from app.stream.es_queue import ESQueue
 from app.utils.mailer import StreamStatusMailer
 from app.extensions import es
 from app.stream.trending_tweets import TrendingTweets
+from app.stream.trending_topics import TrendingTopics
 from helpers import report_error
 import logging
 import os
@@ -93,6 +94,16 @@ def trending_tweets_cleanup_job(debug=False):
         if project_config['compile_trending_tweets']:
             tt = TrendingTweets(project_config['slug'])
             tt.cleanup()
+
+@celery.task(name='trending-topics-cleanup', ignore_result=True)
+def trending_topics_forgetting(debug=False):
+    logger = get_logger(debug)
+    # Cleanup (remove old trending tweets from redis)
+    project_config = ProjectConfig()
+    for project_config in project_config.read():
+        if project_config['compile_trending_topics']:
+            tt = TrendingTopics(project_config['slug'])
+            tt.forget_topics()
 
 # ------------------------------------------
 # EMAIL TASKS

@@ -9,6 +9,7 @@ from app.utils.predict_sentiment import PredictSentiment
 from app.utils.project_config import ProjectConfig
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.trending_tweets import TrendingTweets
+from app.stream.trending_topics import TrendingTopics
 from app.stream.es_queue import ESQueue
 from app.extensions import es
 import logging
@@ -49,8 +50,12 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         redis_queue.push(json.dumps(tweet).encode(), project)
         # Possibly add tweet to trending tweets
         if stream_config['compile_trending_tweets']:
-            tt = TrendingTweets(project, project_locales=stream_config['locales'])
-            tt.process(tweet)
+            trending_tweets = TrendingTweets(project, project_locales=stream_config['locales'])
+            trending_tweets.process(tweet)
+        # Extract trending topics
+        if stream_config['compile_trending_topics']:
+            trending_topics = TrendingTopics(project, project_locales=stream_config['locales'], project_keywords=tweet['_tracking_info']['matching_keywords'])
+            trending_topics.process(tweet)
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
         processed_tweet = pt.process_and_predict()

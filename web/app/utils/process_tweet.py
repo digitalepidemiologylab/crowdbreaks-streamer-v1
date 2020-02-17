@@ -237,9 +237,8 @@ class ProcessTweet(object):
         tweet_text = self.replace_urls(tweet_text)
         return tweet_text
 
-    def replace_user_mentions(self, tweet_text):
+    def replace_user_mentions(self, tweet_text, filler='@<user>'):
         """Replaces @user mentions in tweet text based on indices provided in entities.user_mentions.indices"""
-        filler = '@<user>'
         corr = 0
         try:
             user_mentions = self.extended_tweet['entities']['user_mentions']
@@ -253,8 +252,8 @@ class ProcessTweet(object):
             corr += (e-s) - len(filler)
         return tweet_text
 
-    def replace_urls(self, tweet_text):
-        return re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))','<url>', tweet_text)
+    def replace_urls(self, tweet_text, filler='<url>'):
+        return re.sub('((www\.[^\s]+)|(https?://[^\s]+)|(http?://[^\s]+))', filler, tweet_text)
 
 
     # private methods

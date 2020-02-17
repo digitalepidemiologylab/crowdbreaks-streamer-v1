@@ -8,6 +8,7 @@ from app.stream.es_queue import ESQueue
 from app.utils.process_media import ProcessMedia
 from app.settings import Config
 from app.stream.trending_tweets import TrendingTweets
+from app.stream.trending_topics import TrendingTopics
 
 
 # session fixtures
@@ -50,6 +51,12 @@ def es_queue():
 @pytest.fixture(scope='function')
 def tt():
     tt = TrendingTweets('project_test', expiry_time_ms=10, max_queue_length=5)
+    yield tt
+    tt.self_remove()
+
+@pytest.fixture(scope='function')
+def trending_topics():
+    tt = TrendingTopics('project_test', project_keywords=['test'])
     yield tt
     tt.self_remove()
 

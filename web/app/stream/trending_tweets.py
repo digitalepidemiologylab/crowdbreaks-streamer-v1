@@ -12,7 +12,7 @@ class TrendingTweets(Redis):
     Compiles a priority queue of recent popular (most retweeted) tweets.
 
     For this we maintain two data structures:
-    1) A Redis based priority queue: keys are tweet ids and integers are the number of retweets
+    1) A Redis based priority queue: keys are tweet ids and values are the number of retweets
     2) Eeach tweet id has a key which expires after a certain time. A cleanup crontab will then delete all keys from the priority queue which have been expired (see cleanup method).
 
     All tweets get processed by the process method.
@@ -70,9 +70,6 @@ class TrendingTweets(Redis):
             if len(self.project_locales) > 0:
                 if not tweet['lang'] in self.project_locales:
                     return False
-        if 'possibly_sensitive' in tweet:
-            if tweet['possibly_sensitive']:
-                return False
         if 'possibly_sensitive' in tweet:
             if tweet['possibly_sensitive']:
                 return False

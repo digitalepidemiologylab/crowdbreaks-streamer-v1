@@ -7,6 +7,7 @@ import logging
 from app.utils.predict_sentiment import PredictSentiment
 from app.stream.tasks import predict, handle_tweet
 from app.stream.trending_tweets import TrendingTweets
+from app.stream.trending_topics import TrendingTopics
 import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
@@ -60,11 +61,18 @@ def test_pq():
     tid = TweetIdQueue(project)
     return tid.pq.list(length=length)
 
-@blueprint.route('test/tt', methods=['GET'])
-def test_tt():
-    project = request.args.get('project', default='project_vaccine_sentiment', type=str)
+@blueprint.route('test/trending_tweets', methods=['GET'])
+def test_trending_tweets():
+    project = request.args.get('project', default='covid', type=str)
     length = request.args.get('length', default=100, type=int)
     tt = TrendingTweets(project)
+    return tt.pq.list(length=length)
+
+@blueprint.route('test/trending_topics', methods=['GET'])
+def test_trending_topics():
+    project = request.args.get('project', default='covid', type=str)
+    length = request.args.get('length', default=100, type=int)
+    tt = TrendingTopics(project)
     return tt.pq.list(length=length)
 
 @blueprint.route('test/email/ping', methods=['GET'])
@@ -94,11 +102,28 @@ def get_trending_tweets(project):
     pc = ProjectConfig()
     project_config = pc.get_config_by_project(project)
     if project_config is None:
-        return json_response(400, 'No project found with this slug')
+        return json_response(400, 'No project found with this slug'), 400
     if not project_config['compile_trending_tweets']:
         return json_response(400, 'This project is configured to not collect trending tweets information.')
     tt = TrendingTweets(project, es_index_name=project_config['es_index_name'])
     resp = tt.get_trending_tweets(num_tweets, query=query, sample_from=sample_from, min_score=min_score)
+    return jsonify(resp)
+
+# TRENDING TOPICS
+@blueprint.route('trending_topics/<project>', methods=['GET'])
+def get_trending_topics(project):
+    args = request.get_json()
+    if args is None:
+        args = {}
+    num_topics = args.get('num_topics', 10)
+    pc = ProjectConfig()
+    project_config = pc.get_config_by_project(project)
+    if project_config is None:
+        return json_response(400, 'No project found with this slug')
+    if not project_config['compile_trending_topics']:
+        return json_response(400, 'This project is configured to not collect trending topic information.')
+    tt = TrendingTopics(project)
+    resp = tt.get_trending_topics(num_topics)
     return jsonify(resp)
 
 #################################################################

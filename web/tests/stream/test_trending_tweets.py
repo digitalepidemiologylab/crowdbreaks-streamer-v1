@@ -13,7 +13,6 @@ class TestTrendingTweets:
         assert len(tt.pq) == 1
         assert tt._r.exists(tt.expiry_key(retweeted_id))
 
-    @pytest.mark.focus
     def test_expiry(self, retweet, tt):
         assert len(tt.pq) == 0
         retweeted_id = retweet['retweeted_status']['id_str']
@@ -45,7 +44,6 @@ class TestTrendingTweets:
         assert len(tt.pq) == 1
         assert tt.pq.get_score(retweeted_id) == 6
 
-    @pytest.mark.focus
     def test_pop(self, retweet, tt):
         retweet['retweeted_status']['id_str'] = '0'
         # add 0 twice (should be highest priority)
