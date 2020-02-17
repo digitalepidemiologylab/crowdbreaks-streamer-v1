@@ -314,6 +314,9 @@ class Elastic():
         else:
             return []
 
+    def refresh(self):
+        """Refreshes all indices, making new documents visible to search"""
+        self.es.indices.refresh()
 
     #################################################################
     # All data
