@@ -43,7 +43,6 @@ class TestTrendingTopics:
         # make sure topic is below
         trending_topics.pq_velocity.get_score('text') < 0
 
-    @pytest.mark.focus
     def test_velocity_2(self, trending_topics, tweet):
         # add tweet 10 times
         for _ in range(10):

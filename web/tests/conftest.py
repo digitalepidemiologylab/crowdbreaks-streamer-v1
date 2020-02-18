@@ -12,7 +12,7 @@ from app.stream.trending_topics import TrendingTopics
 
 
 # session fixtures
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def pq():
     pq = PriorityQueue('test_project', namespace='test', max_queue_length=10)
     yield pq
