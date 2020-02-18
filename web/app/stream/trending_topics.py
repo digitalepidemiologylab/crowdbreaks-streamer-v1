@@ -54,8 +54,8 @@ class TrendingTopics(Redis):
         self.blacklisted_tokens += ['#' + t for t in self.project_keywords]
         self.blacklisted_tokens = [t.lower() for t in self.blacklisted_tokens]
 
-    def get_trending_topics(self, num_topics, min_score=100):
-        items = self.pq_velocity.multi_pop(num_topics, min_score=min_score)
+    def get_trending_topics(self, num_topics):
+        items = self.pq_velocity.multi_pop(num_topics)
         return items
 
     def process(self, tweet):
