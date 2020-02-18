@@ -125,15 +125,18 @@ class TrendingTopics(Redis):
         tokens = [t for t in tokens if t.lower() not in self.blacklisted_tokens]
         return tokens
 
-    def compute_velocity(self, alpha=.9, top_n=100):
+    def compute_velocity(self, alpha=.9, top_n=200):
         if len(self.pq_counts_old) > 0:
             self.pq_velocity.self_remove()
-            for i, (key, current_val) in enumerate(self.pq_counts):
+            items = self.pq_counts.multi_pop(top_n)
+            for i, key in enumerate(items):
+                current_val = self.pq_counts.get_score(key)
+                old_val = 0
                 if self.pq_counts_old.exists(key):
                     old_val = self.pq_counts_old.get_score(key)
-                    # compute velocity of trend
-                    velocity = (current_val-old_val)/current_val**alpha
-                    self.pq_velocity.add(key, velocity)
+                # compute velocity of trend
+                velocity = (current_val-old_val)/current_val**alpha
+                self.pq_velocity.add(key, velocity)
                 if i > top_n:
                     break
         # First time we are running this we simply copy over the current counts to the old counts
