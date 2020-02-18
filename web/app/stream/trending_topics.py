@@ -129,12 +129,11 @@ class TrendingTopics(Redis):
         if len(self.pq_counts_old) > 0:
             self.pq_velocity.self_remove()
             for i, (key, current_val) in enumerate(self.pq_counts):
-                key_dec = key.decode().split(':')[-1]
-                if self.pq_counts_old.exists(key_dec):
-                    old_val = self.pq_counts_old.get_score(key_dec)
+                if self.pq_counts_old.exists(key):
+                    old_val = self.pq_counts_old.get_score(key)
                     # compute velocity of trend
                     velocity = (current_val-old_val)/current_val**alpha
-                    self.pq_velocity.add(key_dec, velocity)
+                    self.pq_velocity.add(key, velocity)
                 if i > top_n:
                     break
         # First time we are running this we simply copy over the current counts to the old counts
