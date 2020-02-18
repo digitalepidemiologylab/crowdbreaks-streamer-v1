@@ -125,7 +125,7 @@ class TrendingTopics(Redis):
         tokens = [t for t in tokens if t.lower() not in self.blacklisted_tokens]
         return tokens
 
-    def compute_velocity(self, alpha=.9, top_n=200):
+    def compute_velocity(self, alpha=.5, top_n=100):
         if len(self.pq_counts_old) > 0:
             self.pq_velocity.self_remove()
             items = self.pq_counts.multi_pop(top_n)
