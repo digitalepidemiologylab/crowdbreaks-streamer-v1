@@ -9,10 +9,13 @@ class Redis():
         self.port = os.environ.get('REDIS_PORT', 6379)
         self.db = os.environ.get('REDIS_DB', 0)
         self.logger = logging.getLogger('Redis')
+        self.connection = None
 
     @property
     def _r(self):
-        return redis.StrictRedis(host=self.host, port=self.port)
+        if self.connection is None:
+            self.connection = redis.StrictRedis(host=self.host, port=self.port)
+        return self.connection
 
     def test_connection(self):
         test = self._r.ping()
