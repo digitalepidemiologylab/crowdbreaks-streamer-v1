@@ -145,7 +145,7 @@ class PriorityQueue(Redis):
         output += "<p>List size: {} (max {} listed below)</p>".format(len(pq_list), length)
         output += "<p>Max list size: {}</p>".format(self.MAX_QUEUE_LENGTH)
         output += '<table align="left" border="1">'
-        output += "<thead><tr><th>#</th><th>Tweet ID</th><th>Priority</th></tr></thead>"
+        output += "<thead><tr><th>#</th><th>Item</th><th>Priority</th></tr></thead>"
         output += "<tbody>"
         for i, item in enumerate(pq_list):
             output += "<tr><td>{})</td><td>{}</td><td>{:.1f}</td></tr>".format(i + 1, item[0], item[1])

@@ -20,7 +20,9 @@ class TrendingTopics(Redis):
     def __init__(self,
             project,
             project_locales=None,
-            key_namespace='trending-topics',
+            key_namespace_counts='trending-topics-counts',
+            key_namespace_counts_old='trending-topics-counts-old',
+            key_namespace_velocity='trending-topics-velocity',
             max_queue_length=1e4,
             project_keywords=None
             ):
@@ -28,23 +30,32 @@ class TrendingTopics(Redis):
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.project = project
-        self.key_namespace = key_namespace
         self.max_queue_length = int(max_queue_length)
         self.project_locales = project_locales
         if not isinstance(project_keywords, list):
             self.project_keywords = []
         else:
             self.project_keywords = project_keywords
-        self.pq = PriorityQueue(project,
+        self.pq_counts = PriorityQueue(project,
                 namespace=self.namespace,
-                key_namespace=self.key_namespace,
+                key_namespace=key_namespace_counts,
                 max_queue_length=self.max_queue_length)
-        # set blacklisted tokens (ignored by tokenizer)
+        self.pq_counts_old = PriorityQueue(project,
+                namespace=self.namespace,
+                key_namespace=key_namespace_counts_old,
+                max_queue_length=self.max_queue_length)
+        self.pq_velocity = PriorityQueue(project,
+                namespace=self.namespace,
+                key_namespace=key_namespace_velocity,
+                max_queue_length=self.max_queue_length)
+        # set blacklisted tokens (to be ignored by tokenizer)
         self.blacklisted_tokens = ['RT'] + self.project_keywords
+        # add hashtag versions and lower case
+        self.blacklisted_tokens += ['#' + t for t in self.project_keywords]
         self.blacklisted_tokens = [t.lower() for t in self.blacklisted_tokens]
 
     def get_trending_topics(self, num_topics, min_score=100):
-        items = self.pq.multi_pop(num_topics, min_score=min_score)
+        items = self.pq_velocity.multi_pop(num_topics, min_score=min_score)
         return items
 
     def process(self, tweet):
@@ -52,10 +63,10 @@ class TrendingTopics(Redis):
             return
         tokens = self.tokenize_tweet(tweet)
         for token in tokens:
-            if self.pq.exists(token):
-                self.pq.increment_priority(token, incr=1)
+            if self.pq_counts.exists(token):
+                self.pq_counts.increment_priority(token, incr=1)
             else:
-                self.pq.add(token, priority=1)
+                self.pq_counts.add(token, priority=1)
 
     def should_be_processed(self, tweet):
         if self.project_locales is not None:
@@ -86,7 +97,10 @@ class TrendingTopics(Redis):
                 hashtag_pos.append(i)
         with doc.retokenize() as retokenizer:
             for i in hashtag_pos:
-                retokenizer.merge(doc[i:(i+2)])
+                try:
+                    retokenizer.merge(doc[i:(i+2)])
+                except ValueError:
+                    pass
         # add all nouns longer than 2 characters
         tokens = [t.text for t in doc if t.pos_ in ['NOUN'] and len(t) > 2]
         # add named entities
@@ -111,20 +125,26 @@ class TrendingTopics(Redis):
         tokens = [t for t in tokens if t.lower() not in self.blacklisted_tokens]
         return tokens
 
-    def forget_topics(self, top_counts=1000):
-        # get highest valued item
-        key = self.pq.pop()
-        highest_score = self.pq.get_score(key)
-        if highest_score < top_counts:
-            logger.info(f'Max topic has less than {top_counts:,} counts. Aborting.')
-            return
-        # calculate normalization factor for top candidate
-        forgetting_factor = top_counts/highest_score
-        logger.info(f'Shrinking all topic counts by a factor {forgetting_factor:.5f}')
-        for key, val in self.pq:
-            incr = forgetting_factor*val - val
-            self.pq.increment_priority(key, incr=incr)
+    def compute_velocity(self, alpha=.9, top_n=100):
+        if len(self.pq_counts_old) > 0:
+            self.pq_velocity.self_remove()
+            for i, (key, current_val) in enumerate(self.pq_counts):
+                key_dec = key.decode().split(':')[-1]
+                if self.pq_counts_old.exists(key_dec):
+                    old_val = self.pq_counts_old.get_score(key_dec)
+                    # compute velocity of trend
+                    velocity = (current_val-old_val)/current_val**alpha
+                    self.pq_velocity.add(key_dec, velocity)
+                if i > top_n:
+                    break
+        # First time we are running this we simply copy over the current counts to the old counts
+        self._r.rename(self.pq_counts.key, self.pq_counts_old.key)
+        # Todo: Instead of just replacing current with old: Calculate moving average
 
     def self_remove(self):
-        self.pq.self_remove()
-        assert len(self.pq) == 0
+        self.pq_counts.self_remove()
+        self.pq_counts_old.self_remove()
+        self.pq_velocity.self_remove()
+        assert len(self.pq_counts) == 0
+        assert len(self.pq_counts_old) == 0
+        assert len(self.pq_velocity) == 0

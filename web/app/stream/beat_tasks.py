@@ -96,14 +96,14 @@ def trending_tweets_cleanup_job(debug=False):
             tt.cleanup()
 
 @celery.task(name='trending-topics-cleanup', ignore_result=True)
-def trending_topics_forgetting(debug=False):
+def trending_topics_velocity(debug=False):
     logger = get_logger(debug)
     # Cleanup (remove old trending tweets from redis)
     project_config = ProjectConfig()
     for project_config in project_config.read():
         if project_config['compile_trending_topics']:
             tt = TrendingTopics(project_config['slug'])
-            tt.forget_topics()
+            tt.compute_velocity()
 
 # ------------------------------------------
 # EMAIL TASKS

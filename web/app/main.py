@@ -68,12 +68,26 @@ def test_trending_tweets():
     tt = TrendingTweets(project)
     return tt.pq.list(length=length)
 
-@blueprint.route('test/trending_topics', methods=['GET'])
-def test_trending_topics():
+@blueprint.route('test/trending_topics_counts', methods=['GET'])
+def test_trending_topics_counts():
     project = request.args.get('project', default='covid', type=str)
     length = request.args.get('length', default=100, type=int)
     tt = TrendingTopics(project)
-    return tt.pq.list(length=length)
+    return tt.pq_counts.list(length=length)
+
+@blueprint.route('test/trending_topics_counts_old', methods=['GET'])
+def test_trending_topics_counts_old():
+    project = request.args.get('project', default='covid', type=str)
+    length = request.args.get('length', default=100, type=int)
+    tt = TrendingTopics(project)
+    return tt.pq_counts_old.list(length=length)
+
+@blueprint.route('test/trending_topics', methods=['GET'])
+def test_trending_topics_velocity():
+    project = request.args.get('project', default='covid', type=str)
+    length = request.args.get('length', default=100, type=int)
+    tt = TrendingTopics(project)
+    return tt.pq_velocity.list(length=length)
 
 @blueprint.route('test/email/ping', methods=['GET'])
 def test_email_ping():
