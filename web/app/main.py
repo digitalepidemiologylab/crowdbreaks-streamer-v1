@@ -92,7 +92,6 @@ def test_trending_topics_velocity():
     df = tt.get_trending_topics_es(length)
     df = pd.DataFrame.from_dict(df, orient='index')
     if len(df) > 0 and sort_by in df:
-        df = df.set_index('term')
         df.sort_values(sort_by, inplace=True)
     return df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
 
