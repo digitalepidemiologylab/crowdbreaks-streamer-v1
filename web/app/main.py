@@ -89,7 +89,7 @@ def test_trending_topics_counts_old():
 def test_trending_topics_velocity():
     project = request.args.get('project', default='covid', type=str)
     length = request.args.get('length', default=100, type=int)
-    sort_by = request.args.get('sort_by', default='ms', type=int)
+    sort_by = request.args.get('sort_by', default='ms', type=str)
     f_name_cache = 'trending-topics-{}.pkl'.format(datetime.utcnow().strftime('%Y-%m-%d-%H'))
     if not os.path.isfile(f_name_cache):
         tt = TrendingTopics(project)
