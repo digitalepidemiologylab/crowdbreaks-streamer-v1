@@ -17,6 +17,8 @@ from app.utils.mailer import StreamStatusMailer, Mailer
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.project_config import ProjectConfig
 import pandas as pd
+import pickle
+from datetime import datetime
 
 
 blueprint = Blueprint('main', __name__)
@@ -88,11 +90,15 @@ def test_trending_topics_velocity():
     project = request.args.get('project', default='covid', type=str)
     length = request.args.get('length', default=100, type=int)
     sort_by = request.args.get('sort_by', default='ms', type=int)
-    tt = TrendingTopics(project)
-    df = tt.get_trending_topics_es(length)
-    df = pd.DataFrame.from_dict(df, orient='index')
+    f_name_cache = 'trending-topics-{}.pkl'.format(datetime.utcnow().strftime('%Y-%m-%d-%H'))
+    if not os.path.isfile(f_name_cache):
+        tt = TrendingTopics(project)
+        df = tt.get_trending_topics_es(length)
+        df = pd.DataFrame.from_dict(df, orient='index')
+        df.to_pickle(f_name_cache)
+    df = pd.read_pickle(f_name_cache)
     if len(df) > 0 and sort_by in df:
-        df.sort_values(sort_by, inplace=True)
+        df.sort_values(sort_by, inplace=True, ascending=False)
     return df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
 
 @blueprint.route('test/email/ping', methods=['GET'])
