@@ -1,0 +1,49 @@
+{
+  "index_patterns" : ["trending_topics*"],
+  "version" : 1,
+  "order": 0,
+  "settings" : {
+    "index.refresh_interval" : "5s",
+    "number_of_shards": 1
+  },
+  "mappings" : {
+    "_doc" : {
+      "dynamic": false,
+      "properties": {
+        "created_at": {
+          "type": "date"
+        },
+        "bucket_time": {
+          "type": "date"
+        },
+        "hour": {
+          "type": "integer"
+        },
+        "term": {
+          "type": "keyword"
+        },
+        "counts": {
+          "type": "float"
+        },
+        "rank": {
+          "type": "integer"
+        },
+        "rank_retweets": {
+          "type": "integer"
+        },
+        "rank_tweets": {
+          "type": "integer"
+        },
+        "counts_total": {
+          "type": "integer"
+        },
+        "counts_retweets": {
+          "type": "integer"
+        },
+        "counts_tweets": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

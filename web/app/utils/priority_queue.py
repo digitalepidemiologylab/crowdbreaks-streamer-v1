@@ -69,7 +69,7 @@ class PriorityQueue(Redis):
             self.remove(item)
         return item.decode()
 
-    def multi_pop(self, num, sample_from=0, min_score=0, remove=False):
+    def multi_pop(self, num, sample_from=0, min_score=0, remove=False, with_scores=False):
         """
         Return multiple elements.
         If sample_from > 0, compile a priority-weighted sample of `num` elements from the top `sample_from`
@@ -87,15 +87,24 @@ class PriorityQueue(Redis):
             sum_values = np.sum(values)
             if sum_values > 0:
                 probabilities = values / sum_values
-                keys = np.random.choice(keys, num, p=probabilities, replace=False)
+                index = np.arange(len(items))
+                index = np.random.choice(index, num, p=probabilities, replace=False)
+                keys = [keys[i] for i in index]
+                values = [values[i] for i in index]
         else:
-            keys = [k for k, v in items]
+            keys, values = list(zip(*items))
         if remove:
             for key in keys:
                 self.remove(key)
         # decode
         keys = [k.decode() for k in keys]
+        values = list(values)
+        if with_scores:
+            return list(zip(keys, values))
         return keys
+
+    def get_rank(self, val):
+        return self._r.zrevrank(self.key, val)
 
     def increment_priority(self, val, incr=1):
         if self._r.zrank(self.key, val) is None:
@@ -202,9 +211,7 @@ class TweetStore(Redis):
         return json.loads(tweet.decode())
 
     def remove(self, tweet_id):
-        s = self._r.delete(self.key(tweet_id))
-        if s == 0:
-            print("Couldn't remove tweet_id {}".format(tweet_id))
+        self._r.delete(self.key(tweet_id))
 
     def remove_all(self):
         for k in self._r.scan_iter(self.key('*')):
