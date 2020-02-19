@@ -73,7 +73,7 @@ class TrendingTopics(Redis):
         items = self.pq_velocity.multi_pop(num_topics)
         return items
 
-    def process(self, tweet, retweet_count_increment=0.2):
+    def process(self, tweet, retweet_count_increment=0.5):
         if not self.should_be_processed(tweet):
             return
         # get tokens
