@@ -69,7 +69,6 @@ class TestPriorityQueue:
         pq.add('d', priority=0)
         assert pq.pop() == 'd'
 
-    @pytest.mark.focus
     def test_multi_pop(self, pq):
         pq.add('e', priority=3)
         pq.add('a', priority=0)
@@ -77,9 +76,42 @@ class TestPriorityQueue:
         pq.add('c', priority=2)
         pq.add('d', priority=0)
         items = pq.multi_pop(3)
-        assert set(items) == set(['c', 'e', 'b'])
+        assert items == ['e', 'c', 'b']
+
+    def test_rank(self, pq):
+        pq.add('a', priority=3)
+        pq.add('b', priority=0)
+        assert pq.get_rank('a') == 0
+        assert pq.get_rank('b') == 1
+
+    @pytest.mark.focus
+    def test_multi_pop_with_scores(self, pq):
+        pq.add('e', priority=3)
+        pq.add('a', priority=0)
+        pq.add('b', priority=1)
+        pq.add('c', priority=2)
+        pq.add('d', priority=0)
+        items = pq.multi_pop(3, with_scores=True)
+        keys = [k for k, v in items]
+        values = [v for k, v in items]
+        assert keys == ['e', 'c', 'b']
+        assert values == [3, 2, 1]
+
+    def test_multi_pop_with_sampling(self, pq):
+        pq.add('e', priority=3)
+        pq.add('a', priority=0)
+        pq.add('b', priority=1)
+        pq.add('c', priority=2)
+        pq.add('d', priority=0)
+        items = pq.multi_pop(3, sample_from=5, with_scores=True)
+        keys = [k for k, v in items]
+        values = [v for k, v in items]
+        assert len(keys) == 3
+        assert len(values) == 3
+        assert set(keys) == set(['e', 'b', 'c']) # true because probabilties for others are zero
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     import os; os.environ["REDIS_HOST"] = "localhost"
     pytest.main(['-s', '-m', 'focus'])
+    # pytest.main(['-s'])

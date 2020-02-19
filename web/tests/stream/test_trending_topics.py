@@ -59,6 +59,21 @@ class TestTrendingTopics:
         assert term == 'text'
         assert trending_topics.pq_velocity.get_score(term) > 0
 
+    def test_retweet_tweet_count(self, trending_topics, tweet, retweet):
+        trending_topics.process(tweet)
+        trending_topics.process(retweet)
+        assert len(trending_topics.pq_counts) == 2
+        assert trending_topics.pq_counts.get_score('text') == 1
+        assert trending_topics.pq_counts.get_score('tweet') == 0.2
+        assert len(trending_topics.pq_counts_retweets) == 1
+        assert len(trending_topics.pq_counts_tweets) == 1
+
+    @pytest.mark.focus
+    def test_index_to_es(self, trending_topics, tweet, retweet):
+        trending_topics.process(tweet)
+        trending_topics.process(retweet)
+        trending_topics.index_counts_to_elasticsearch()
+
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     pytest.main(['-s', '-m', 'focus'])

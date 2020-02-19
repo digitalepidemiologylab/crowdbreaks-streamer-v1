@@ -24,7 +24,7 @@ def rs():
     yield rs
     rs.self_remove_all()
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def tid_q():
     tid_q = TweetIdQueue('test_project', namespace='test', priority_threshold=5, max_queue_length=10)
     yield tid_q
