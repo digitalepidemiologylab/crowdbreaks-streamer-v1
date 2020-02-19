@@ -90,7 +90,7 @@ def test_trending_topics_velocity():
     sort_by = request.args.get('sort_by', default='ms', type=int)
     tt = TrendingTopics(project)
     df = tt.get_trending_topics_es(length)
-    df = pd.DataFrame(df)
+    df = pd.DataFrame.from_dict(df, orient='index')
     if len(df) > 0 and sort_by in df:
         df = df.set_index('term')
         df.sort_values(sort_by, inplace=True)
