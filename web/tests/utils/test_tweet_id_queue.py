@@ -79,7 +79,6 @@ class TestPriorityQueue:
         assert tid_q.get(user_id='user_a') == '123'
         assert tid_q.get() == '321'  # empty user_id gives highest priority element
 
-    @pytest.mark.focus
     def test_removal_tweet(self, tid_q):
         tid_q.pq.add('321', priority=1)
         tid_q.pq.add('123', priority=0)

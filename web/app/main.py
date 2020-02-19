@@ -16,6 +16,7 @@ from helpers import report_error, json_response
 from app.utils.mailer import StreamStatusMailer, Mailer
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.project_config import ProjectConfig
+import pandas as pd
 
 
 blueprint = Blueprint('main', __name__)
@@ -86,8 +87,14 @@ def test_trending_topics_counts_old():
 def test_trending_topics_velocity():
     project = request.args.get('project', default='covid', type=str)
     length = request.args.get('length', default=100, type=int)
+    sort_by = request.args.get('sort_by', default='ms', type=int)
     tt = TrendingTopics(project)
-    return tt.pq_velocity.list(length=length)
+    df = tt.get_trending_topics_es(length)
+    df = pd.DataFrame(df)
+    if len(df) > 0 and sort_by in df:
+        df = df.set_index('term')
+        df.sort_values(sort_by, inplace=True)
+    return df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
 
 @blueprint.route('test/email/ping', methods=['GET'])
 def test_email_ping():

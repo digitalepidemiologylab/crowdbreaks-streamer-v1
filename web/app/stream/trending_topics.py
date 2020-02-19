@@ -7,6 +7,8 @@ import logging
 import re
 import en_core_web_sm
 from datetime import datetime
+import pandas as pd
+import numpy as np
 
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,39 @@ class TrendingTopics(Redis):
     def get_trending_topics(self, num_topics):
         items = self.pq_velocity.multi_pop(num_topics)
         return items
+
+    def get_trending_topics_es(self, num_topics, alpha=.5):
+        df = self.es.get_trending_topics(self.trending_topics_index_name, top_n=num_topics, s_date='now-1d', interval='hour', with_moving_average=True)
+        if len(df) == 0:
+            return df
+        df = pd.DataFrame.from_records(df, index='bucket_time')
+        trends = {}
+        for term, group in df.groupby('term'):
+            velocity = {}
+            # ms
+            group.sort_index(inplace=True)
+            current_value = group.iloc[-1].value
+            last_hour = group.iloc[-2].value
+            mean_24h = group.iloc[:-1].value.mean()
+            v_1h = (current_value - last_hour)/current_value**alpha
+            v_24h = (current_value - mean_24h)/current_value**alpha
+            velocity['ms'] = v_1h + v_24h
+            # z-scores
+            zscore = (current_value - group.value.mean())/group.value.std()
+            velocity['zscore'] = zscore
+            # v_1h
+            velocity['v1h'] = (current_value - last_hour)/current_value
+            velocity['v1h_alpha'] = (current_value - last_hour)/current_value**alpha
+            # moving average slope
+            moving_average = group.moving_average.dropna()
+            y = moving_average.values
+            x = (moving_average.index - moving_average.index[0]).total_seconds().values
+            fit = np.polyfit(x, y, 1)
+            velocity['polyfit_1'] = fit[-1]
+            fit = np.polyfit(x, y, 2)
+            velocity['polyfit_2'] = fit[-1]
+            trends[term] = velocity
+        return trends
 
     def process(self, tweet, retweet_count_increment=0.5):
         if not self.should_be_processed(tweet):
@@ -156,7 +191,10 @@ class TrendingTopics(Redis):
 
     def update(self):
         """Main function called by celery beat in a regular time interval"""
-        self.index_counts_to_elasticsearch()
+        if self.config.ENV in ['stg', 'prd']:
+            self.index_counts_to_elasticsearch()
+        else:
+            logging.info('Indexing of trending topic counts is only run in stg/prd environments')
         self.compute_velocity()
 
     def compute_velocity(self, alpha=.5, top_n=200):

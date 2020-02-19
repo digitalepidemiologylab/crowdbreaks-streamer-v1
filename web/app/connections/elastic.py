@@ -190,13 +190,52 @@ class Elastic():
         return resp
 
      #################################################################
-     # Trending tweets
+     # Trending tweets/topics
     def get_matching_ids_for_query(self, index_name, query, ids, size=10):
         body =  {'query': {'bool': {'must': [{'match_phrase': {'text': query}}, {'ids': {'values': ids}}]}}}
         body['_source'] = False
         res = self.es.search(index=index_name, body=body, size=size)
         res = [hit['_id'] for hit in res['hits']['hits']]
         return res
+
+    def get_trending_topics(self, index_name, interval='hour', s_date='now-1d', e_date='now', top_n=100, field='counts', with_moving_average=True, moving_average_window=5):
+        # build query
+        sort_agg = {"average_count_sort": { "bucket_sort": { "sort": [ { "average_count": { "order": "desc" } } ] } } }
+        if with_moving_average:
+            moving_average = {'moving_average': {'moving_avg': {'buckets_path': 'average_count', 'window': moving_average_window}}}
+        else:
+            moving_average = {}
+        average_count_agg = { "aggs": { "average_count": { "avg": { "field": field } }, **sort_agg, **moving_average } }
+        average_count_by_interval =  { "aggs": { "average_counts_by_interval": { "date_histogram": { "field": "bucket_time", "interval": interval }, **average_count_agg}}}
+        full_query = { "aggs": { "by_term": { "terms": { "field": "term", "size": top_n }, **average_count_by_interval } } }
+        query = {'range': {'bucket_time': {'gte': s_date, 'lte': e_date}}}
+        full_query['query'] = query
+        # run query
+        res = self.es.search(index=index_name, body=full_query, filter_path=['aggregations'])
+        try:
+            res = res['aggregations']['by_term']['buckets']
+        except KeyError:
+            return []
+        else:
+            data = []
+            for item in res:
+                key = item['key']
+                try:
+                    time_buckets = item['average_counts_by_interval']['buckets']
+                except:
+                    continue
+                for time_bucket in time_buckets:
+                    # parse UTC time
+                    time = datetime.strptime(time_bucket['key_as_string'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    value = time_bucket['average_count']['value']
+                    moving_average = {}
+                    if with_moving_average:
+                        try:
+                            moving_average = {'moving_average': time_bucket['moving_average']['value']}
+                        except:
+                            moving_average = {'moving_average': None}
+                    data.append({'term': key, 'bucket_time': time, 'value': value, **moving_average})
+            return data
 
     #################################################################
     # Sentiment data
