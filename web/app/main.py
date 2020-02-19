@@ -89,17 +89,30 @@ def test_trending_topics_counts_old():
 def test_trending_topics_velocity():
     project = request.args.get('project', default='covid', type=str)
     length = request.args.get('length', default=100, type=int)
+    alpha = request.args.get('alpha', default=.5, type=float)
     sort_by = request.args.get('sort_by', default='ms', type=str)
-    f_name_cache = 'trending-topics-{}.pkl'.format(datetime.utcnow().strftime('%Y-%m-%d-%H'))
-    if not os.path.isfile(f_name_cache):
+    field = request.args.get('field', default='counts', type=str)
+    use_cache = request.args.get('use_cache', default=1, type=int)
+    f_name_cache = '/home/app/trending-topics-{}-{}-{}-{}.pkl'.format(datetime.utcnow().strftime('%Y-%m-%d-%H'), length, alpha, field)
+    if not os.path.isfile(f_name_cache) or use_cache == 0:
         tt = TrendingTopics(project)
-        df = tt.get_trending_topics_es(length)
+        df = tt.get_trending_topics_es(length, alpha=alpha, field=field)
         df = pd.DataFrame.from_dict(df, orient='index')
         df.to_pickle(f_name_cache)
     df = pd.read_pickle(f_name_cache)
     if len(df) > 0 and sort_by in df:
         df.sort_values(sort_by, inplace=True, ascending=False)
-    return df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
+    df_html = df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
+    output = """
+    Available params:<br>
+    field: counts (weighted counts), counts_total (tweets + retweets), counts_retweets (retweets), counts_tweets (tweets) (default: counts)<br>
+    alpha: only applies for methods: ms and v1h_alpha (default 0.5)<br>
+    sort_by: sort by method (default ms)<br>
+    length: number of terms, max 300 (default 100)<br>
+    use_cache: cache results, disable with 0 (default: 1)<br><br>
+    {}
+    """.format(df_html)
+    return output
 
 @blueprint.route('test/email/ping', methods=['GET'])
 def test_email_ping():

@@ -75,8 +75,8 @@ class TrendingTopics(Redis):
         items = self.pq_velocity.multi_pop(num_topics)
         return items
 
-    def get_trending_topics_es(self, num_topics, alpha=.5):
-        df = self.es.get_trending_topics(self.trending_topics_index_name, top_n=num_topics, s_date='now-1d', interval='hour', with_moving_average=True)
+    def get_trending_topics_es(self, num_topics, alpha=.5, field='counts'):
+        df = self.es.get_trending_topics(self.trending_topics_index_name, top_n=num_topics, field=field, s_date='now-1d', interval='hour', with_moving_average=True)
         if len(df) == 0:
             return df
         df = pd.DataFrame.from_records(df, index='bucket_time')
@@ -87,9 +87,9 @@ class TrendingTopics(Redis):
             group.sort_index(inplace=True)
             current_value = group.iloc[-1].value
             last_hour = group.iloc[-2].value
-            mean_24h = group.iloc[:-1].value.mean()
+            at_24h = group.iloc[0].value
             v_1h = (current_value - last_hour)/current_value**alpha
-            v_24h = (current_value - mean_24h)/current_value**alpha
+            v_24h = (current_value - at_24h)/current_value**alpha
             velocity['ms'] = v_1h + v_24h
             # z-scores
             zscore = (current_value - group.value.mean())/group.value.std()
@@ -108,7 +108,7 @@ class TrendingTopics(Redis):
             trends[term] = velocity
         return trends
 
-    def process(self, tweet, retweet_count_increment=0.5):
+    def process(self, tweet, retweet_count_increment=0.8):
         if not self.should_be_processed(tweet):
             return
         # get tokens
@@ -196,6 +196,9 @@ class TrendingTopics(Redis):
         else:
             logging.info('Indexing of trending topic counts is only run in stg/prd environments')
         self.compute_velocity()
+        # clear all other counts
+        self.pq_counts_retweets.self_remove()
+        self.pq_counts_tweets.self_remove()
 
     def compute_velocity(self, alpha=.5, top_n=200):
         if len(self.pq_counts_old) > 0:
