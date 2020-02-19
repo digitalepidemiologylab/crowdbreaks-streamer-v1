@@ -41,7 +41,7 @@ celery.conf.beat_schedule = {
             },
         'trending-topics-update': {
             'task': 'trending-topics-update',
-            'schedule': crontab(minute=5) # runs every hour
+            'schedule': crontab(minute=0) # runs every hour
             },
         'email-daily': {
             'task': 'stream-status-daily',
