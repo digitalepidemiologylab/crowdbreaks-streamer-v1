@@ -9,6 +9,7 @@ from app.utils.process_media import ProcessMedia
 from app.settings import Config
 from app.stream.trending_tweets import TrendingTweets
 from app.stream.trending_topics import TrendingTopics
+from app.utils.redis import Redis
 
 
 # session fixtures
@@ -59,6 +60,10 @@ def trending_topics():
     tt = TrendingTopics('project_test', project_keywords=['test'])
     yield tt
     tt.self_remove()
+
+@pytest.fixture(scope='function')
+def r():
+    yield Redis()
 
 # test data
 @pytest.fixture(scope='session')

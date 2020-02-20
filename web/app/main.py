@@ -93,13 +93,8 @@ def test_trending_topics_velocity():
     sort_by = request.args.get('sort_by', default='ms', type=str)
     field = request.args.get('field', default='counts', type=str)
     use_cache = request.args.get('use_cache', default=1, type=int)
-    f_name_cache = '/home/app/trending-topics-{}-{}-{}-{}.pkl'.format(datetime.utcnow().strftime('%Y-%m-%d-%H'), length, alpha, field)
-    if not os.path.isfile(f_name_cache) or use_cache == 0:
-        tt = TrendingTopics(project)
-        df = tt.get_trending_topics_es(length, alpha=alpha, field=field)
-        df = pd.DataFrame.from_dict(df, orient='index')
-        df.to_pickle(f_name_cache)
-    df = pd.read_pickle(f_name_cache)
+    tt = TrendingTopics(project)
+    df = tt.get_trending_topics_df(length=length, alpha=alpha, field=field, use_cache=use_cache == 1)
     if len(df) > 0 and sort_by in df:
         df.sort_values(sort_by, inplace=True, ascending=False)
     df_html = df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')

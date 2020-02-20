@@ -84,7 +84,6 @@ class TestPriorityQueue:
         assert pq.get_rank('a') == 0
         assert pq.get_rank('b') == 1
 
-    @pytest.mark.focus
     def test_multi_pop_with_scores(self, pq):
         pq.add('e', priority=3)
         pq.add('a', priority=0)

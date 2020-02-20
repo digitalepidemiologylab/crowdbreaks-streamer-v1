@@ -26,8 +26,6 @@ class TrendingTopics(Redis):
             project,
             project_locales=None,
             key_namespace_counts='trending-topics-counts',
-            key_namespace_counts_old='trending-topics-counts-old',
-            key_namespace_velocity='trending-topics-velocity',
             max_queue_length=1e4,
             project_keywords=None
             ):
@@ -39,12 +37,13 @@ class TrendingTopics(Redis):
         self.project_locales = project_locales
         self.trending_topics_index_name = f'trending_topics_{project}'
         self.es = Elastic()
+        self.redis = Redis()
         if not isinstance(project_keywords, list):
             self.project_keywords = []
         else:
             self.project_keywords = project_keywords
         # Counts queue: holds mixture of retweet + tweet token counts
-        self.pq_counts = PriorityQueue(project,
+        self.pq_counts_weighted = PriorityQueue(project,
                 namespace=self.namespace,
                 key_namespace=key_namespace_counts,
                 max_queue_length=self.max_queue_length)
@@ -58,27 +57,33 @@ class TrendingTopics(Redis):
                 namespace=self.namespace,
                 key_namespace=key_namespace_counts + '-tweets',
                 max_queue_length=self.max_queue_length)
-        # Old counts queue: holds past counts (to be removed)
-        self.pq_counts_old = PriorityQueue(project,
-                namespace=self.namespace,
-                key_namespace=key_namespace_counts_old,
-                max_queue_length=self.max_queue_length)
-        # Velocity queue: Computed velocities of tokens (updated at regular time intervals)
-        self.pq_velocity = PriorityQueue(project,
-                namespace=self.namespace,
-                key_namespace=key_namespace_velocity,
-                max_queue_length=self.max_queue_length)
         # set blacklisted tokens (to be ignored by tokenizer)
         self.blacklisted_tokens = self._generate_blacklist_tokens(project_keywords=project_keywords)
 
-    def get_trending_topics(self, num_topics):
-        items = self.pq_velocity.multi_pop(num_topics)
+    def get_trending_topics(self, num_topics, method='ms', length=100, alpha=.5, field='counts', use_cache=True):
+        trends = self.get_trends(length=length, alpha=alpha, field=field, use_cache=use_cache)
+        if len(trends) == 0:
+            return []
+        df = pd.DataFrame.from_dict(trends, orient='index')
+        df.sort_values(method, inplace=True, ascending=False)
+        items = df.iloc[:num_topics][method].index.tolist()
         return items
 
-    def get_trending_topics_es(self, num_topics, alpha=.5, field='counts'):
-        df = self.es.get_trending_topics(self.trending_topics_index_name, top_n=num_topics, field=field, s_date='now-1d', interval='hour', with_moving_average=True)
+    def get_trending_topics_df(self, length=100, alpha=.5, field='counts', use_cache=True):
+        trends = self.get_trends(length=length, alpha=alpha, field=field, use_cache=use_cache)
+        df = pd.DataFrame.from_dict(trends, orient='index')
+        return df
+
+    def get_trends(self, length=100, alpha=.5, field='counts', use_cache=True):
+        current_hour = datetime.utcnow().strftime('%Y-%m-%d-%H')
+        cache_key = f'cb:cached-trending-topics-velocities-{current_hour}-{length}-{alpha}-{field}'
+        if self.redis.exists(cache_key) and use_cache:
+            return self.redis.get_cached(cache_key)
+        # retrieve all data from ES
+        df = self.es.get_trending_topics(self.trending_topics_index_name, top_n=length, field=field, s_date='now-1d', interval='hour', with_moving_average=True)
         if len(df) == 0:
-            return df
+            return {}
+        # compute velocities for a few different methods
         df = pd.DataFrame.from_records(df, index='bucket_time')
         trends = {}
         for term, group in df.groupby('term'):
@@ -106,6 +111,8 @@ class TrendingTopics(Redis):
             fit = np.polyfit(x, y, 2)
             velocity['polyfit_2'] = fit[-1]
             trends[term] = velocity
+        # set cache
+        self.redis.set_cached(cache_key, trends)
         return trends
 
     def process(self, tweet, retweet_count_increment=0.8):
@@ -119,7 +126,7 @@ class TrendingTopics(Redis):
         if pt.is_retweet:
             count_increment = retweet_count_increment
         # add tokens to queues
-        self.add_to_queue(self.pq_counts, tokens, count_increment)
+        self.add_to_queue(self.pq_counts_weighted, tokens, count_increment)
         if pt.is_retweet:
             self.add_to_queue(self.pq_counts_retweets, tokens, 1)
         else:
@@ -195,28 +202,10 @@ class TrendingTopics(Redis):
             self.index_counts_to_elasticsearch()
         else:
             logging.info('Indexing of trending topic counts is only run in stg/prd environments')
-        self.compute_velocity()
         # clear all other counts
+        self.pq_counts_weighted.self_remove()
         self.pq_counts_retweets.self_remove()
         self.pq_counts_tweets.self_remove()
-
-    def compute_velocity(self, alpha=.5, top_n=200):
-        if len(self.pq_counts_old) > 0:
-            self.pq_velocity.self_remove()
-            items = self.pq_counts.multi_pop(top_n)
-            for i, key in enumerate(items):
-                current_val = self.pq_counts.get_score(key)
-                old_val = 0
-                if self.pq_counts_old.exists(key):
-                    old_val = self.pq_counts_old.get_score(key)
-                # compute velocity of trend
-                velocity = (current_val-old_val)/current_val**alpha
-                self.pq_velocity.add(key, velocity)
-                if i > top_n:
-                    break
-        # First time we are running this we simply copy over the current counts to the old counts
-        self._r.rename(self.pq_counts.key, self.pq_counts_old.key)
-        # Todo: Instead of just replacing current with old: Calculate moving average
 
     def index_counts_to_elasticsearch(self, top_n=300):
         # create index if it doesn't exist yet
@@ -225,7 +214,7 @@ class TrendingTopics(Redis):
         # compile all count data
         data = []
         utc_now = datetime.utcnow()
-        for rank, (key, counts) in enumerate(self.pq_counts.multi_pop(top_n, with_scores=True)):
+        for rank, (key, counts) in enumerate(self.pq_counts_weighted.multi_pop(top_n, with_scores=True)):
             # rank/counts of retweets
             counts_retweets =  self.pq_counts_retweets.get_score(key)
             if counts_retweets is None:
@@ -261,11 +250,9 @@ class TrendingTopics(Redis):
         self.es.bulk_index(actions)
 
     def self_remove(self):
-        self.pq_counts.self_remove()
+        self.pq_counts_weighted.self_remove()
         self.pq_counts_retweets.self_remove()
         self.pq_counts_tweets.self_remove()
-        self.pq_counts_old.self_remove()
-        self.pq_velocity.self_remove()
 
     # private
 
