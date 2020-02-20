@@ -247,7 +247,7 @@ class TrendingTopics(Redis):
                 'bucket_time': utc_now.replace(microsecond=0, second=0, minute=0),
                 'hour': utc_now.hour,
                 'term': key,
-                'rank': rank,
+                'rank_weighted': rank,
                 'rank_tweets': rank_tweets,
                 'rank_retweets': rank_retweets,
                 'counts_weighted': counts,

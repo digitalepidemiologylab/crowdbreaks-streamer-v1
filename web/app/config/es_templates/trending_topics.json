@@ -25,7 +25,7 @@
         "counts": {
           "type": "integer"
         },
-        "rank": {
+        "rank_weighted": {
           "type": "integer"
         },
         "rank_retweets": {
