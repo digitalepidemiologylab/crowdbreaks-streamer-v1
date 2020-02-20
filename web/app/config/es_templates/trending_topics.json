@@ -23,7 +23,7 @@
           "type": "keyword"
         },
         "counts": {
-          "type": "float"
+          "type": "integer"
         },
         "rank": {
           "type": "integer"
@@ -34,8 +34,8 @@
         "rank_tweets": {
           "type": "integer"
         },
-        "counts_total": {
-          "type": "integer"
+        "counts_weighted": {
+          "type": "float"
         },
         "counts_retweets": {
           "type": "integer"

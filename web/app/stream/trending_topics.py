@@ -250,10 +250,10 @@ class TrendingTopics(Redis):
                 'rank': rank,
                 'rank_tweets': rank_tweets,
                 'rank_retweets': rank_retweets,
-                'counts': counts,
+                'counts_weighted': counts,
                 'counts_tweets': counts_tweets,
                 'counts_retweets': counts_retweets,
-                'counts_total': counts_total})
+                'counts': counts_total})
         # compile actions
         actions = [{'_source': d, '_index': self.trending_topics_index_name, '_type': '_doc'} for d in data]
         # bulk index
