@@ -63,7 +63,7 @@ class TestTrendingTopics:
         trending_topics.process(retweet)
         assert len(trending_topics.pq_counts) == 2
         assert trending_topics.pq_counts.get_score('text') == 1
-        assert trending_topics.pq_counts.get_score('tweet') == 0.2
+        assert trending_topics.pq_counts.get_score('tweet') < 1
         assert len(trending_topics.pq_counts_retweets) == 1
         assert len(trending_topics.pq_counts_tweets) == 1
 

@@ -91,8 +91,11 @@ class PriorityQueue(Redis):
                 index = np.random.choice(index, num, p=probabilities, replace=False)
                 keys = [keys[i] for i in index]
                 values = [values[i] for i in index]
-        else:
+        elif len(items) > 0:
             keys, values = list(zip(*items))
+        else:
+            keys = []
+            values = []
         if remove:
             for key in keys:
                 self.remove(key)
@@ -100,7 +103,7 @@ class PriorityQueue(Redis):
         keys = [k.decode() for k in keys]
         values = list(values)
         if with_scores:
-            return list(zip(keys, values))
+            return tuple(zip(keys, values))
         return keys
 
     def get_rank(self, val):

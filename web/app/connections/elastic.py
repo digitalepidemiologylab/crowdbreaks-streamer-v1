@@ -102,15 +102,10 @@ class Elastic():
         self.logger.info('Bulk indexing...')
         es_helpers.bulk(self.es, actions, timeout='60s')
 
-    def put_template(self, filename='project.json', template_path=None):
+    def put_template(self, template_path, template_name):
         """Put template to ES
         """
         # read template file
-        template_name = os.path.basename(filename).split('.json')[0]
-        if template_path is None:
-            template_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..' ,'config', 'es_templates', filename))
-        else:
-            template_path = os.path.abspath(os.path.join(template_path, filename))
         if not os.path.exists(template_path):
             report_error(self.logger, msg='No project file found under {}'.format(template_path))
             return
@@ -164,7 +159,7 @@ class Elastic():
         for template_file in template_files:
             template_name = os.path.basename(template_file).split('.json')[0]
             if template_name not in self.list_templates():
-                res = self.put_template(filename=template_file)
+                res = self.put_template(template_file, template_name)
 
     def delete_index(self, index_name):
         existing_indices = self.list_indices()
