@@ -3,7 +3,8 @@
   "version" : 1,
   "order": 0,
   "settings" : {
-    "index.refresh_interval" : "5s"
+    "index.refresh_interval" : "5s",
+    "number_of_shards" : 2
   },
   "mappings" : {
     "tweet" : {
