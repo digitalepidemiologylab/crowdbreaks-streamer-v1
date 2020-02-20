@@ -21,10 +21,6 @@ secrets.list
 **/*.log
 **/*.log.?
 
-# stuff
-scripts/retrieve_sent_data.py
-scripts/es_pull_data.py
-
 # binaries
 web/bin/
 

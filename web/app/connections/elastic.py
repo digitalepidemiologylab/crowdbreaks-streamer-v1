@@ -15,15 +15,15 @@ class Elastic():
     """Interaction with Elasticsearch
     """
 
-    def __init__(self, app=None, logger=None):
+    def __init__(self, app=None, logger=None, local_config=None):
         self.logger = logger
         self.app = app
         self.connection = None # only used outside of application context
         self.config = {}
+        self.local_config = local_config
         self.default_template_name = 'project' # default template name when creating new index
         if self.logger is None:
             self.logger = logging.getLogger('ES')
-
         if app is not None:
             self.init_app(app)
 
@@ -56,15 +56,19 @@ class Elastic():
             self.config = current_app.config
         except RuntimeError:
             self.logger.debug('No app context found!')
-            self.config['ELASTICSEARCH_HOST'] = os.environ.get('ELASTICSEARCH_HOST', 'localhost')
-            self.config['ELASTICSEARCH_PORT'] = os.environ.get('ELASTICSEARCH_PORT', 9200)
+            if self.local_config is not None:
+                self.logger.info('Using local configuration')
+                _config = self.local_config
+            else:
+                _config = self.environ
+            self.config['ELASTICSEARCH_HOST'] = _config.get('ELASTICSEARCH_HOST', 'localhost')
+            self.config['ELASTICSEARCH_PORT'] = _config.get('ELASTICSEARCH_PORT', 9200)
             if  self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
                 # Access Elasticsearch locally
                 return elasticsearch.Elasticsearch(["{}:{}".format(self.config['ELASTICSEARCH_HOST'], self.config['ELASTICSEARCH_PORT'])])
-            self.config['AWS_ACCESS_KEY_ID'] = os.environ.get('AWS_ACCESS_KEY_ID')
-            self.config['AWS_SECRET_ACCESS_KEY'] = os.environ.get('AWS_SECRET_ACCESS_KEY')
-            self.config['AWS_REGION'] = os.environ.get('AWS_REGION')
-
+            self.config['AWS_ACCESS_KEY_ID'] = _config.get('AWS_ACCESS_KEY_ID')
+            self.config['AWS_SECRET_ACCESS_KEY'] = _config.get('AWS_SECRET_ACCESS_KEY')
+            self.config['AWS_REGION'] = _config.get('AWS_REGION')
         auth = AWSRequestsAuth(aws_access_key=self.config['AWS_ACCESS_KEY_ID'], aws_secret_access_key=self.config['AWS_SECRET_ACCESS_KEY'],
                 aws_host=self.config['ELASTICSEARCH_HOST'], aws_region=self.config['AWS_REGION'], aws_service='es')
         return elasticsearch.Elasticsearch(host=self.config['ELASTICSEARCH_HOST'], port=int(self.config['ELASTICSEARCH_PORT']),
