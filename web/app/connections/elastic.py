@@ -162,8 +162,7 @@ class Elastic():
         template_files = glob.glob(os.path.join(template_dir, '*.json'))
         for template_file in template_files:
             template_name = os.path.basename(template_file).split('.json')[0]
-            if template_name not in self.list_templates():
-                res = self.put_template(template_file, template_name)
+            res = self.put_template(template_file, template_name)
 
     def delete_index(self, index_name):
         existing_indices = self.list_indices()
