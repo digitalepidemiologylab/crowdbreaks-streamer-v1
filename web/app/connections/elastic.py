@@ -60,7 +60,7 @@ class Elastic():
                 self.logger.info('Using local configuration')
                 _config = self.local_config
             else:
-                _config = self.environ
+                _config = os.environ
             self.config['ELASTICSEARCH_HOST'] = _config.get('ELASTICSEARCH_HOST', 'localhost')
             self.config['ELASTICSEARCH_PORT'] = _config.get('ELASTICSEARCH_PORT', 9200)
             if  self.config['ELASTICSEARCH_HOST'] in ['localhost', 'elasticsearch']:
