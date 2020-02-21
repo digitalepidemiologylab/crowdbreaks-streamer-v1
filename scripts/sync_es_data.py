@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 INDEX = 'trending_topics_covid'
 QUERY = {"query": {"match_all": {}}}
 DOC_TYPE = '_doc'
-QUERY = {'query': {'range': {'created_at': {'gte': 'now-1d', 'lte': 'now'}}}}
+QUERY = {'query': {'range': {'created_at': {'gte': 'now-3d', 'lte': 'now'}}}}
 
 def load_docs(es):
     scan = helpers.scan(es.es, scroll='1m', query=QUERY, index=INDEX, doc_type=DOC_TYPE)

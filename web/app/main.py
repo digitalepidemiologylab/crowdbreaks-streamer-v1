@@ -74,16 +74,20 @@ def test_trending_tweets():
 @blueprint.route('test/trending_topics_counts', methods=['GET'])
 def test_trending_topics_counts():
     project = request.args.get('project', default='covid', type=str)
-    length = request.args.get('length', default=100, type=int)
-    tt = TrendingTopics(project)
-    return tt.pq_counts.list(length=length)
-
-@blueprint.route('test/trending_topics_counts_old', methods=['GET'])
-def test_trending_topics_counts_old():
-    project = request.args.get('project', default='covid', type=str)
-    length = request.args.get('length', default=100, type=int)
-    tt = TrendingTopics(project)
-    return tt.pq_counts_old.list(length=length)
+    top_n = request.args.get('top_n', default=10, type=int)
+    field = request.args.get('field', default='counts', type=str)
+    index = f'trending_topics_{project}'
+    res = es.get_trending_topics(index, top_n=top_n, field=field)
+    df = pd.DataFrame.from_records(res)
+    df = df.pivot(index='bucket_time', columns='term', values='value')
+    df_html = df.to_html(border=1, index_names=False, float_format=lambda x: f'{x:.2f}')
+    output = """
+    Available params:<br>
+    field: counts (tweets + retweets), counts_weighted (tweets + w*retweets, w<1), counts_retweets (retweets), counts_tweets (tweets) (default: counts)<br>
+    top_n: top n terms<br><br>
+    {}
+    """.format(df_html)
+    return output
 
 @blueprint.route('test/trending_topics', methods=['GET'])
 def test_trending_topics_velocity():
@@ -100,7 +104,7 @@ def test_trending_topics_velocity():
     df_html = df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
     output = """
     Available params:<br>
-    field: counts (weighted counts), counts_total (tweets + retweets), counts_retweets (retweets), counts_tweets (tweets) (default: counts)<br>
+    field: counts (tweets + retweets), counts_weighted (tweets + w*retweets, w<1), counts_retweets (retweets), counts_tweets (tweets) (default: counts)<br>
     alpha: only applies for methods: ms and v1h_alpha (default 0.5)<br>
     sort_by: sort by method (default ms)<br>
     length: number of terms, max 300 (default 100)<br>
