@@ -33,7 +33,7 @@ celery.conf.beat_schedule = {
             },
         'es-bulk-index': {
             'task': 'es-bulk-index-task',
-            'schedule': 5  # runs every 5 sec
+            'schedule': 30  # runs every 30 sec
             },
         'trending-tweets-cleanup': {
             'task': 'trending-tweets-cleanup',
