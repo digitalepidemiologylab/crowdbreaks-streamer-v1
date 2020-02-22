@@ -161,7 +161,10 @@ def get_trending_topics(project):
     if not project_config['compile_trending_topics']:
         return json_response(400, 'This project is configured to not collect trending topic information.')
     tt = TrendingTopics(project)
-    resp = tt.get_trending_topics(num_topics)
+    try:
+        resp = tt.get_trending_topics(num_topics)
+    except:
+        return jsonify([])
     return jsonify(resp)
 
 #################################################################

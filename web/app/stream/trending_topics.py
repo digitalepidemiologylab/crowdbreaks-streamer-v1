@@ -58,6 +58,7 @@ class TrendingTopics(Redis):
                 key_namespace=key_namespace_counts + '-tweets',
                 max_queue_length=self.max_queue_length)
         # set blacklisted tokens (to be ignored by tokenizer)
+        self.default_blacklisted_tokens = ['RT', 'breaking', 'covid19']
         self.blacklisted_tokens = self._generate_blacklist_tokens(project_keywords=project_keywords)
 
     def get_trending_topics(self, num_topics, method='ms', length=200, alpha=.5, field='counts', use_cache=True):
@@ -259,7 +260,7 @@ class TrendingTopics(Redis):
     # private
 
     def _generate_blacklist_tokens(self, project_keywords=None):
-        bl_tokens = ['RT']
+        bl_tokens = self.default_blacklisted_tokens
         if project_keywords is not None:
             bl_tokens += project_keywords
             # add hashtag versions
