@@ -44,6 +44,7 @@ class TestTrendingTweets:
         assert len(tt.pq) == 1
         assert tt.pq.get_score(retweeted_id) == 6
 
+    @pytest.mark.focus
     def test_pop(self, retweet, tt):
         retweet['retweeted_status']['id_str'] = '0'
         # add 0 twice (should be highest priority)

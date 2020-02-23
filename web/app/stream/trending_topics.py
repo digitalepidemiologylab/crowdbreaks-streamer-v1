@@ -61,7 +61,7 @@ class TrendingTopics(Redis):
         self.default_blacklisted_tokens = ['RT', 'breaking', 'covid19']
         self.blacklisted_tokens = self._generate_blacklist_tokens(project_keywords=project_keywords)
 
-    def get_trending_topics(self, num_topics, method='ms', length=200, alpha=.5, field='counts', use_cache=True):
+    def get_trending_topics(self, num_topics, method='ms', length=300, alpha=.5, field='counts', use_cache=True):
         trends = self.get_trends(length=length, alpha=alpha, field=field, use_cache=use_cache)
         if len(trends) == 0:
             return []
@@ -70,18 +70,18 @@ class TrendingTopics(Redis):
         items = df.iloc[:num_topics][method].index.tolist()
         return items
 
-    def get_trending_topics_df(self, length=200, alpha=.5, field='counts', use_cache=True):
+    def get_trending_topics_df(self, length=300, alpha=.5, field='counts', use_cache=True):
         trends = self.get_trends(length=length, alpha=alpha, field=field, use_cache=use_cache)
         df = pd.DataFrame.from_dict(trends, orient='index')
         return df
 
-    def get_trends(self, length=200, alpha=.5, field='counts', use_cache=True):
+    def get_trends(self, length=300, alpha=.5, field='counts', use_cache=True):
         current_hour = datetime.utcnow().strftime('%Y-%m-%d-%H')
         cache_key = f'cb:cached-trending-topics-velocities-{current_hour}-{length}-{alpha}-{field}'
         if self.redis.exists(cache_key) and use_cache:
             return self.redis.get_cached(cache_key)
         # retrieve all data from ES
-        df = self.es.get_trending_topics(self.trending_topics_index_name, top_n=length, field=field, s_date='now-1d', interval='hour', with_moving_average=True)
+        df = self.es.get_trending_topics(self.trending_topics_index_name, field=field, s_date='now-1d', interval='hour', with_moving_average=True)
         if len(df) == 0:
             return {}
         # compute velocities for a few different methods
@@ -174,7 +174,7 @@ class TrendingTopics(Redis):
                 except ValueError:
                     pass
         # add all nouns longer than 2 characters
-        tokens = [t.text for t in doc if t.pos_ in ['NOUN'] and len(t) > 2]
+        tokens = [t.lemma_ for t in doc if t.pos_ in ['NOUN', 'PROPN'] and len(t) > 2]
         # add named entities
         allowed_entities = [
                 'PERSON',        # People, including fictional.
@@ -188,7 +188,7 @@ class TrendingTopics(Redis):
                 'WORK_OF_ART',   # Titles of books, songs, etc.
                 'LAW'            # Named documents made into laws.
                 ]
-        entities = [ent.text for ent in doc.ents if ent.label_ in allowed_entities]
+        entities = [ent.lemma_ for ent in doc.ents if ent.label_ in allowed_entities]
         entities = list(set(entities))
         tokens += [ent for ent in entities if ent not in tokens]
         # remove empty (whitespace) tokens

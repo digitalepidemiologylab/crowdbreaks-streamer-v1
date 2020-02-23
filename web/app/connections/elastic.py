@@ -196,7 +196,7 @@ class Elastic():
         res = [hit['_id'] for hit in res['hits']['hits']]
         return res
 
-    def get_trending_topics(self, index_name, interval='hour', s_date='now-1d', e_date='now', top_n=100, field='counts', with_moving_average=True, moving_average_window=5):
+    def get_trending_topics(self, index_name, interval='hour', s_date='now-1d', e_date='now', top_n=300, field='counts', with_moving_average=True, moving_average_window=5):
         # build query
         sort_agg = {"average_count_sort": { "bucket_sort": { "sort": [ { "average_count": { "order": "desc" } } ] } } }
         if with_moving_average:

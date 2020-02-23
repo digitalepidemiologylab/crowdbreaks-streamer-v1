@@ -7,8 +7,7 @@ class TestTrendingTopics:
     def test_tokenize_text(self, trending_topics):
         text = 'Donald Trump should be properly tokenized.'
         tokens = trending_topics.tokenize(text)
-        assert len(tokens) == 1
-        assert tokens[0] == 'Donald Trump'
+        assert len(tokens) == 3
 
     def test_ignores_blacklisted(self, trending_topics):
         text = 'The word test is part of the project keywords and therefore blacklisted.'
@@ -28,7 +27,6 @@ class TestTrendingTopics:
         assert trending_topics.pq_counts_weighted.get_score('tweet') < 1
         assert len(trending_topics.pq_counts_retweets) == 1
         assert len(trending_topics.pq_counts_tweets) == 1
-
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
