@@ -58,7 +58,7 @@ class TrendingTopics(Redis):
                 key_namespace=key_namespace_counts + '-tweets',
                 max_queue_length=self.max_queue_length)
         # set blacklisted tokens (to be ignored by tokenizer)
-        self.default_blacklisted_tokens = ['RT', 'breaking', 'covid19']
+        self.default_blacklisted_tokens = ['RT', 'breaking', 'amp', 'covid19', 'covid-19']
         self.blacklisted_tokens = self._generate_blacklist_tokens(project_keywords=project_keywords)
 
     def get_trending_topics(self, num_topics, method='ms', length=300, alpha=.5, field='counts', use_cache=True):
@@ -85,28 +85,37 @@ class TrendingTopics(Redis):
         if len(df) == 0:
             return {}
         # compute velocities for a few different methods
-        df = pd.DataFrame.from_records(df, index='bucket_time')
+        df = pd.DataFrame.from_records(df)
+        # pivot table and make sure we only have one value per bucket (take the mean if there are multiple)
+        df_counts = df.pivot(index='bucket_time', columns='term', values='value').resample('H').mean()
+        df_ma = df.pivot(index='bucket_time', columns='term', values='moving_average').resample('H').mean()
+        # fill all nans with zero
+        df_counts = df_counts.fillna(0)
+        df_ma = df_ma.fillna(0)
         trends = {}
-        for term, group in df.groupby('term'):
+        for term in df_counts:
             velocity = {}
+            counts = df_counts[term]
+            # make sure index is sorted
+            counts.sort_index(inplace=True)
             # ms
-            group.sort_index(inplace=True)
-            current_value = group.iloc[-1].value
-            last_hour = group.iloc[-2].value
-            at_24h = group.iloc[0].value
+            current_value = counts.iloc[-1]
+            last_hour = counts.iloc[-2]
+            at_24h = counts.iloc[0]
             v_1h = (current_value - last_hour)/current_value**alpha
             v_24h = (current_value - at_24h)/current_value**alpha
             velocity['ms'] = v_1h + v_24h
             # z-scores
-            zscore = (current_value - group.value.mean())/group.value.std()
+            zscore = (current_value - counts.mean())/counts.std()
             velocity['zscore'] = zscore
             # v_1h
             velocity['v1h'] = (current_value - last_hour)/current_value
             velocity['v1h_alpha'] = (current_value - last_hour)/current_value**alpha
             # moving average slope
-            moving_average = group.moving_average.dropna()
-            y = moving_average.values
-            x = (moving_average.index - moving_average.index[0]).total_seconds().values
+            ma = df_ma[term]
+            ma.sort_index(inplace=True)
+            y = ma.values
+            x = (ma.index - ma.index[0]).total_seconds().values
             fit = np.polyfit(x, y, 1)
             velocity['polyfit_1'] = fit[-1]
             fit = np.polyfit(x, y, 2)
