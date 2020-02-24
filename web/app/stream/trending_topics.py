@@ -212,7 +212,7 @@ class TrendingTopics(Redis):
             else:
                 text_token = t.lemma_.strip()
                 # remove all tokens which are officially blacklisted
-                if text_token in self.blacklisted_tokens:
+                if text_token.lower() in self.blacklisted_tokens:
                     continue
                 tokens.append(text_token)
         return tokens
