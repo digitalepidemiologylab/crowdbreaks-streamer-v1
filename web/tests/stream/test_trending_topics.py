@@ -6,7 +6,7 @@ import json
 class TestTrendingTopics:
     @pytest.mark.focus
     def test_tokenize_text(self, trending_topics):
-        text = 'Donald Trump should be properly tokenized.'
+        text = 'South Korea'
         tokens = trending_topics.tokenize(text)
         assert len(tokens) == 1
 

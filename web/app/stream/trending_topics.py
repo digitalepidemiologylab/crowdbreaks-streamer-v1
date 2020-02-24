@@ -188,7 +188,7 @@ class TrendingTopics(Redis):
                 'NORP',          # Nationalities or religious or political groups.
                 'FAC',           # Buildings, airports, highways, bridges, etc.
                 'ORG',           # Companies, agencies, institutions, etc.
-                'ORG',           # Companies, agencies, institutions, etc.
+                'GPE',           # Countries, cities, states.
                 'LOC',           # Non-GPE locations, mountain ranges, bodies of water.
                 'PRODUCT',       # Objects, vehicles, foods, etc. (Not services.)
                 'EVENT',         # Named hurricanes, battles, wars, sports events, etc.
