@@ -58,7 +58,7 @@ class TrendingTopics(Redis):
                 key_namespace=key_namespace_counts + '-tweets',
                 max_queue_length=self.max_queue_length)
         # set blacklisted tokens (to be ignored by tokenizer)
-        self.default_blacklisted_tokens = ['RT', 'breaking', 'amp', 'covid19', 'covid-19']
+        self.default_blacklisted_tokens = ['RT', 'breaking', 'amp', 'covid19', 'covid-19', 'coronaviru']
         self.blacklisted_tokens = self._generate_blacklist_tokens(project_keywords=project_keywords)
 
     def get_trending_topics(self, num_topics, method='ms', length=300, alpha=.5, field='counts', use_cache=True):
@@ -182,8 +182,6 @@ class TrendingTopics(Redis):
                     retokenizer.merge(doc[i:(i+2)])
                 except ValueError:
                     pass
-        # add all nouns longer than 2 characters
-        tokens = [t.lemma_ for t in doc if t.pos_ in ['NOUN', 'PROPN'] and len(t) > 2]
         # add named entities
         allowed_entities = [
                 'PERSON',        # People, including fictional.
@@ -199,11 +197,24 @@ class TrendingTopics(Redis):
                 ]
         entities = [ent.lemma_ for ent in doc.ents if ent.label_ in allowed_entities]
         entities = list(set(entities))
-        tokens += [ent for ent in entities if ent not in tokens]
-        # remove empty (whitespace) tokens
-        tokens = [t for t in tokens if len(t.strip()) > 0]
-        # remove blacklisted tokens
-        tokens = [t for t in tokens if t.lower() not in self.blacklisted_tokens]
+        # add all entities to tokens
+        tokens = entities
+        # remove entities from doc
+        for t in doc:
+            # add all nouns longer than 2 characters
+            # print(t, t.tag_)
+            if t.pos_ not in ['NOUN', 'PROPN'] or len(t) <= 2:
+                continue
+            # make sure token was not already part of entities
+            for ent in entities:
+                if str(t.lemma_) in ent:
+                    break
+            else:
+                text_token = t.lemma_.strip()
+                # remove all tokens which are officially blacklisted
+                if text_token in self.blacklisted_tokens:
+                    continue
+                tokens.append(text_token)
         return tokens
 
     def update(self):

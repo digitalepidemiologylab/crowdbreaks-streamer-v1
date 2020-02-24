@@ -8,8 +8,9 @@ class TestTrendingTopics:
     def test_tokenize_text(self, trending_topics):
         text = 'Donald Trump should be properly tokenized.'
         tokens = trending_topics.tokenize(text)
-        assert len(tokens) == 3
+        assert len(tokens) == 1
 
+    @pytest.mark.focus
     def test_ignores_blacklisted(self, trending_topics):
         text = 'The word test is part of the project keywords and therefore blacklisted.'
         tokens = trending_topics.tokenize(text)
