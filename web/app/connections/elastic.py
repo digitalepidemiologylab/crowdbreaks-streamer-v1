@@ -196,16 +196,15 @@ class Elastic():
         res = [hit['_id'] for hit in res['hits']['hits']]
         return res
 
-    def get_trending_topics(self, index_name, interval='hour', s_date='now-1d', e_date='now', top_n=300, field='counts', with_moving_average=True, moving_average_window=5):
+    def get_trending_topics(self, index_name, interval='hour', s_date='now-1d', e_date='now', top_n=4000, field='counts', with_moving_average=True, moving_average_window=5):
         # build query
-        sort_agg = {"average_count_sort": { "bucket_sort": { "sort": [ { "average_count": { "order": "desc" } } ] } } }
         if with_moving_average:
             moving_average = {'moving_average': {'moving_avg': {'buckets_path': 'average_count', 'window': moving_average_window}}}
         else:
             moving_average = {}
-        average_count_agg = { "aggs": { "average_count": { "avg": { "field": field } }, **sort_agg, **moving_average } }
-        average_count_by_interval =  { "aggs": { "average_counts_by_interval": { "date_histogram": { "field": "bucket_time", "interval": interval }, **average_count_agg}}}
-        full_query = { "aggs": { "by_term": { "terms": { "field": "term", "size": top_n }, **average_count_by_interval } } }
+        average_count_agg = { "aggs": { "average_count": { "avg": { "field": field } }, **moving_average } }
+        average_count_by_interval =  { "aggs": { "sum_counts": { "sum": { "field": "counts" } }, "average_counts_by_interval": { "date_histogram": { "field": "bucket_time", "interval": interval }, **average_count_agg}}}
+        full_query = { "aggs": { "by_term": { "terms": { "field": "term", "size": top_n, "order": { "sum_counts": "desc" } }, **average_count_by_interval } } }
         query = {'range': {'bucket_time': {'gte': s_date, 'lte': e_date}}}
         full_query['query'] = query
         # run query

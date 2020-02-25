@@ -92,13 +92,12 @@ def test_trending_topics_counts():
 @blueprint.route('test/trending_topics', methods=['GET'])
 def test_trending_topics_velocity():
     project = request.args.get('project', default='covid', type=str)
-    length = request.args.get('length', default=100, type=int)
     alpha = request.args.get('alpha', default=.5, type=float)
     sort_by = request.args.get('sort_by', default='ms', type=str)
     field = request.args.get('field', default='counts', type=str)
     use_cache = request.args.get('use_cache', default=1, type=int)
     tt = TrendingTopics(project)
-    df = tt.get_trending_topics_df(length=length, alpha=alpha, field=field, use_cache=use_cache == 1)
+    df = tt.get_trending_topics_df(alpha=alpha, field=field, use_cache=use_cache == 1)
     if len(df) > 0 and sort_by in df:
         df.sort_values(sort_by, inplace=True, ascending=False)
     df_html = df.to_html(border=1, col_space=100, index_names=False, float_format=lambda x: f'{x:.2f}')
@@ -107,7 +106,6 @@ def test_trending_topics_velocity():
     field: counts (tweets + retweets), counts_weighted (tweets + w*retweets, w<1), counts_retweets (retweets), counts_tweets (tweets) (default: counts)<br>
     alpha: only applies for methods: ms and v1h_alpha (default 0.5)<br>
     sort_by: sort by method (default ms)<br>
-    length: number of terms, max 300 (default 100)<br>
     use_cache: cache results, disable with 0 (default: 1)<br><br>
     {}
     """.format(df_html)

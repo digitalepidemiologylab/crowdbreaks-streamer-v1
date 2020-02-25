@@ -61,8 +61,8 @@ class TrendingTopics(Redis):
         self.default_blacklisted_tokens = ['RT', 'breaking', 'amp', 'covid19', 'covid-19', 'coronaviru']
         self.blacklisted_tokens = self._generate_blacklist_tokens(project_keywords=project_keywords)
 
-    def get_trending_topics(self, num_topics, method='ms', length=300, alpha=.5, field='counts', use_cache=True):
-        trends = self.get_trends(length=length, alpha=alpha, field=field, use_cache=use_cache)
+    def get_trending_topics(self, num_topics, method='ms', alpha=.5, field='counts', use_cache=True):
+        trends = self.get_trends(alpha=alpha, field=field, use_cache=use_cache)
         if len(trends) == 0:
             return []
         df = pd.DataFrame.from_dict(trends, orient='index')
@@ -70,14 +70,14 @@ class TrendingTopics(Redis):
         items = df.iloc[:num_topics][method].index.tolist()
         return items
 
-    def get_trending_topics_df(self, length=300, alpha=.5, field='counts', use_cache=True):
-        trends = self.get_trends(length=length, alpha=alpha, field=field, use_cache=use_cache)
+    def get_trending_topics_df(self, alpha=.5, field='counts', use_cache=True):
+        trends = self.get_trends(alpha=alpha, field=field, use_cache=use_cache)
         df = pd.DataFrame.from_dict(trends, orient='index')
         return df
 
-    def get_trends(self, length=300, alpha=.5, field='counts', use_cache=True):
+    def get_trends(self, alpha=.5, field='counts', use_cache=True):
         current_hour = datetime.utcnow().strftime('%Y-%m-%d-%H')
-        cache_key = f'cb:cached-trending-topics-velocities-{current_hour}-{length}-{alpha}-{field}'
+        cache_key = f'cb:cached-trending-topics-velocities-{current_hour}-{alpha}-{field}'
         if self.redis.exists(cache_key) and use_cache:
             return self.redis.get_cached(cache_key)
         # retrieve all data from ES
@@ -225,7 +225,7 @@ class TrendingTopics(Redis):
         else:
             logging.info('Indexing of trending topic counts is only run in stg/prd environments')
         # Compute trending topics so they are cached
-        trends = self.get_trends(length=200, alpha=.5, field='counts')
+        trends = self.get_trends(alpha=.5, field='counts')
         # clear all other counts
         self.pq_counts_weighted.self_remove()
         self.pq_counts_retweets.self_remove()
