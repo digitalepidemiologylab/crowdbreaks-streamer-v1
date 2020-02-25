@@ -54,7 +54,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             trending_tweets.process(tweet)
         # Extract trending topics
         if stream_config['compile_trending_topics']:
-            trending_topics = TrendingTopics(project, project_locales=stream_config['locales'], project_keywords=tweet['_tracking_info']['matching_keywords'])
+            trending_topics = TrendingTopics(project, project_locales=stream_config['locales'], project_keywords=stream_config['keywords'])
             trending_topics.process(tweet)
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])

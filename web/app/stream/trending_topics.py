@@ -195,7 +195,7 @@ class TrendingTopics(Redis):
                 'WORK_OF_ART',   # Titles of books, songs, etc.
                 'LAW'            # Named documents made into laws.
                 ]
-        entities = [ent.lemma_ for ent in doc.ents if ent.label_ in allowed_entities]
+        entities = [ent for ent in doc.ents if ent.label_ in allowed_entities]
         entities = list(set(entities))
         # add all entities to tokens
         tokens = entities
@@ -207,13 +207,15 @@ class TrendingTopics(Redis):
                 continue
             # make sure token was not already part of entities
             for ent in entities:
-                if str(t.lemma_) in ent:
+                if str(t.lemma_) in ent.lemma_:
                     break
             else:
-                text_token = t.lemma_.strip()
-                tokens.append(text_token)
+                tokens.append(t)
         # remove all tokens which are officially blacklisted
-        tokens = [t for t in tokens if t.lower() not in self.blacklisted_tokens]
+        tokens = [t for t in tokens if t.text.lower().strip() not in self.blacklisted_tokens]
+        tokens = [t for t in tokens if t.lemma_.lower().strip() not in self.blacklisted_tokens]
+        # fetch lemmas
+        tokens = [t.lemma_ for t in tokens]
         return tokens
 
     def update(self):
