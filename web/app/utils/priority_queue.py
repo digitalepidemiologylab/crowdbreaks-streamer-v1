@@ -132,7 +132,7 @@ class PriorityQueue(Redis):
         num_elements = self._r.zcount(self.key, lowest_score, lowest_score)
         if num_elements == 0:
             msg = 'Element with score {} could not be found. Possibly it has been removed before. Aborting.'.format(lowest_score)
-            report_error(self.logger, msg=msg, level='warning')
+            self.logger.warning(msg)
             return
         elif num_elements == 1:
             items = self._r.zrevrange(self.key, 0, 0, withscores=True)
