@@ -165,6 +165,8 @@ class TrendingTopics(Redis):
         # remove mentions and urls
         text = pt.replace_user_mentions(text, filler='')
         text = pt.replace_urls(text, filler='')
+        # replace &amp;
+        text = text.replace('&amp;', '&')
         tokens = self.tokenize(text)
         return tokens
 
