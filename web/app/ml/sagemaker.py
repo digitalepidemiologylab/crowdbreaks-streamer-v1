@@ -76,8 +76,8 @@ class Sagemaker():
             return []
         resp = r[key]
         while 'NextToken' in r:
+            r = client_function(NextToken=r['NextToken'])
             resp.extend(r[key])
-            r = client_function(next_token=r['NextToken'])
             if len(resp) > max_length:
                 break
         return resp
