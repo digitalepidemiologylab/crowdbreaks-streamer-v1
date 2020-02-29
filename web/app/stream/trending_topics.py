@@ -88,10 +88,12 @@ class TrendingTopics(Redis):
         df = pd.DataFrame.from_records(df)
         if min_tweets_counts > 0:
             # filter out terms which had only min_tweets_counts mentions in tweets total in the past hour bucket
-            df_tweets_counts = self.es.get_trending_topics(self.trending_topics_index_name, field='counts_tweets', s_date='now-2h', interval='hour', with_moving_average=False)
-            df_tweets_counts = pd.DataFrame.from_records(df_tweets_counts)
-            df_tweets_counts = df_tweets_counts[df_tweets_counts.value > min_tweets_counts]
-            df = df[df.term.isin(df_tweets_counts.term)]
+            df_tweets_counts = self.es.get_trending_topics(self.trending_topics_index_name, field='counts_tweets', s_date='now-1h', interval='hour', with_moving_average=False)
+            if len(df_tweets_counts) > 0:
+                df_tweets_counts = pd.DataFrame.from_records(df_tweets_counts)
+                df_tweets_counts = df_tweets_counts[df_tweets_counts.value > min_tweets_counts]
+                if len(df_tweets_counts) > 10:
+                    df = df[df.term.isin(df_tweets_counts.term)]
         # pivot table and make sure we only have one value per bucket (take the mean if there are multiple)
         df_counts = df.pivot(index='bucket_time', columns='term', values='value').resample('H').mean()
         df_ma = df.pivot(index='bucket_time', columns='term', values='moving_average').resample('H').mean()
