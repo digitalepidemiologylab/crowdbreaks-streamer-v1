@@ -12,7 +12,7 @@ from app.utils.project_config import ProjectConfig
 from app.extensions import es
 from datetime import datetime, timedelta
 from app.stream.redis_s3_queue import RedisS3Queue
-from helpers import json_response
+from helpers import error_response, success_response
 
 blueprint = Blueprint('pipeline', __name__)
 
@@ -121,9 +121,9 @@ def manage_config():
         # make sure new configuration is valid
         is_valid, msg = pc.is_valid(config)
         if not is_valid:
-            return json_response(400, msg), 400
+            return error_response(400, msg)
         # write everything to config
         pc.write(config)
         # Create new Elasticsearch indices if needed
         es.update_es_indices(pc.get_es_index_names(config))
-        return json_response(200, 'Successfully updated configuration files. Make sure to restart stream for changes to be active.')
+        return success_response(200, 'Successfully updated configuration files. Make sure to restart stream for changes to be active.')

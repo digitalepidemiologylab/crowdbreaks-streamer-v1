@@ -31,10 +31,17 @@ def get_tz_difference():
     local_utc_replaced = local.replace(tzinfo=pytz.utc) # replace tz in order to be able to compare two UTC times objects
     return utc - local_utc_replaced
 
-def json_response(status_code, message):
-    response = jsonify({
-        'status': status_code,
-        'message': message
-        })
-    response.status_code = status_code
-    return response
+def success_response(status_code=200, message=''):
+    response = {'success': True, 'message': message}
+    return jsonify(response), status_code
+
+def error_response(status_code=400, message='', error_type=''):
+    error_obj = {}
+    if error_type != '':
+        error_obj['type'] = error_type
+    response = {
+            'success': False,
+            'message': message,
+            'error': error_obj
+            }
+    return jsonify(response), status_code

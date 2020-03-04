@@ -2,6 +2,7 @@ from flask import Flask, got_request_exception
 from app import settings, main
 from app.pipeline import pipeline
 from app.es_interface import es_interface
+import app.errors as errors
 from app.ml import ml
 from app.extensions import es, redis
 import os
@@ -23,7 +24,7 @@ def create_app(config=settings.ProdConfig):
     redis.init_app(app)
     es.init_app(app)
 
-    # Blueprints
+    app.register_blueprint(errors.blueprint)
     app.register_blueprint(main.blueprint, url_prefix = '/')
     app.register_blueprint(pipeline.blueprint, url_prefix = '/pipeline')
     app.register_blueprint(es_interface.blueprint, url_prefix = '/elasticsearch')
@@ -36,7 +37,6 @@ def create_app(config=settings.ProdConfig):
     # Rollbar
     if app.config['ENV'] == 'prd':
         init_rollbar(app)
-
     return app
 
 
@@ -74,3 +74,4 @@ def init_rollbar(app):
             )
         # send exceptions from `app` to rollbar, using flask's signal system.
         got_request_exception.connect(rollbar.contrib.flask.report_exception, app)
+

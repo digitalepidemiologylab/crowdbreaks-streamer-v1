@@ -12,7 +12,7 @@ import time
 from statsmodels.nonparametric.smoothers_lowess import lowess
 import numpy as np
 import os
-from helpers import report_error, json_response
+from helpers import report_error, success_response, error_response
 from app.utils.mailer import StreamStatusMailer, Mailer
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.project_config import ProjectConfig
@@ -138,9 +138,9 @@ def get_trending_tweets(project):
     pc = ProjectConfig()
     project_config = pc.get_config_by_project(project)
     if project_config is None:
-        return json_response(400, 'No project found with this slug'), 400
+        return error_response(400, 'No project found with this slug')
     if not project_config['compile_trending_tweets']:
-        return json_response(400, 'This project is configured to not collect trending tweets information.')
+        return error_response(400, 'This project is configured to not collect trending tweets information.')
     tt = TrendingTweets(project, es_index_name=project_config['es_index_name'])
     resp = tt.get_trending_tweets(num_tweets, query=query, sample_from=sample_from, min_score=min_score)
     return jsonify(resp)
@@ -155,9 +155,9 @@ def get_trending_topics(project):
     pc = ProjectConfig()
     project_config = pc.get_config_by_project(project)
     if project_config is None:
-        return json_response(400, 'No project found with this slug')
+        return error_response(400, 'No project found with this slug')
     if not project_config['compile_trending_topics']:
-        return json_response(400, 'This project is configured to not collect trending topic information.')
+        return error_response(400, 'This project is configured to not collect trending topic information.')
     tt = TrendingTopics(project)
     try:
         resp = tt.get_trending_topics(num_topics)

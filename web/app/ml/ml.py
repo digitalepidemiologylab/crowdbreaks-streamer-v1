@@ -3,7 +3,7 @@ from flask import current_app as app
 from flask_restful import reqparse
 from app.basic_auth import requires_auth_func
 from app.ml.sagemaker import Sagemaker
-from helpers import json_response
+from helpers import success_response, error_response
 import json
 
 blueprint = Blueprint('ml', __name__)
@@ -36,14 +36,14 @@ def create_endpoint():
     reqparse.add_argument('model_name', type=str, required=True)
     args = reqparse.parse_args()
     resp = sagemaker.create_endpoint(endpoint_name=args.model_name)
-    return json_response(200, 'Successfully created endpoint.')
+    return success_response(200, 'Successfully created endpoint.')
 
 @blueprint.route('/delete_endpoint', methods=['POST'])
 def delete_endpoint():
     reqparse.add_argument('model_name', type=str, required=True)
     args = reqparse.parse_args()
     resp = sagemaker.delete_endpoint(endpoint_name=args.model_name)
-    return json_response(200, 'Successfully created endpoint.')
+    return success_response(200, 'Successfully created endpoint.')
 
 @blueprint.route('/predict', methods=['POST'])
 def predict():
@@ -54,6 +54,6 @@ def predict():
     resp = sagemaker.predict(args.model_endpoint, {'text': args.text})
     status_code = resp['ResponseMetadata']['HTTPStatusCode']
     if status_code != 200:
-        return json_response(status_code, 'Prediction unsuccessful.')
+        return error_response(status_code, 'Prediction unsuccessful.', error_type=resp['Error']['Code'])
     prediction = json.loads(resp['Body'].read())
     return jsonify(prediction)

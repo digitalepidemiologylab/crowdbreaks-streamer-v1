@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, Response
-from helpers import json_response
+from helpers import success_response
 from app.basic_auth import requires_auth_func
 from app.extensions import es
 import logging
@@ -28,8 +28,7 @@ def get_health():
 @blueprint.route('/refresh', methods=['GET'])
 def refresh():
     es.refresh()
-    return json_response(200, 'Successfully refreshed Elasticsearch indices')
-
+    return success_response(200, 'Successfully refreshed Elasticsearch indices')
 
 @blueprint.route('/create', methods=['POST'])
 def create_index():
