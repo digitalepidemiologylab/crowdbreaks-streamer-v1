@@ -34,7 +34,12 @@ def refresh():
 @blueprint.route('/create', methods=['POST'])
 def create_index():
     params = request.get_json()
-    if es.create_index(params['name']):
+    setting_params = ['number_of_shards', 'number_of_replicas']
+    settings = {}
+    for setting_param in setting_params:
+        if setting_param in params:
+            settings[setting_param] = params[setting_param]
+    if es.create_index(params['name'], settings=settings):
         return Response("Index successfully created.", status=200, mimetype='text/plain')
     else:
         return Response("Index creation not successful.", status=400, mimetype='text/plain')

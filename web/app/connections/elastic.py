@@ -134,18 +134,18 @@ class Elastic():
         res = self.es.indices.delete_template(template_name)
         self.logger.info("Template {} successfully deleted".format(template_name))
 
-    def create_index(self, index_name, template_name=None):
+    def create_index(self, index_name, settings={}, mapping={}):
         # abort if index already exists
         existing_indices = list(self.es.indices.get_alias('*').keys())
         if index_name in existing_indices:
             self.logger.warning("Aborted. Index {} already exists. Delete index first.".format(index_name))
             return False
-
         # add templates
         self.add_all_templates()
-
+        # get setting/mapping
+        body = {'settings': {'index': settings}, 'mapping': mapping}
         # create new index
-        res = self.es.indices.create(index_name, include_type_name=True)
+        res = self.es.indices.create(index=index_name, body=body, include_type_name=True)
         self.logger.info("Index {} successfully created".format(index_name))
         return True
 
