@@ -8,7 +8,9 @@ import json
 from flask import jsonify
 
 class Sagemaker():
-    """Interface class to Sagemaker"""
+    """Interface class to Sagemaker.
+    Note that we are naming models and corresponding endpoints the same. Endpoint configs are named "{model_name/endpoint_name}-config"
+    """
 
     def __init__(self):
         self.config = Config()
@@ -49,6 +51,13 @@ class Sagemaker():
 
     def delete_endpoint(self, endpoint_name):
         self._client.delete_endpoint(EndpointName=endpoint_name)
+
+    def delete_model(self, model_name):
+        self._client.delete_model(ModelName=model_name)
+        self.delete_endpoint_configuration(f'{model_name}-config')
+
+    def delete_endpoint_configuration(self, endpoint_config_name):
+        self._client.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
 
     def list_endpoints(self, active=False):
         endpoints = self._paginate(self._client.list_endpoints, 'Endpoints')

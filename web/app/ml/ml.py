@@ -45,6 +45,13 @@ def delete_endpoint():
     resp = sagemaker.delete_endpoint(endpoint_name=args.model_name)
     return success_response(200, 'Successfully created endpoint.')
 
+@blueprint.route('/delete_model', methods=['POST'])
+def delete_model():
+    reqparse.add_argument('model_name', type=str, required=True)
+    args = reqparse.parse_args()
+    resp = sagemaker.delete_model(model_name=args.model_name)
+    return success_response(200, 'Successfully created endpoint.')
+
 @blueprint.route('/predict', methods=['POST'])
 def predict():
     reqparse.add_argument('text', type=str, required=True)
