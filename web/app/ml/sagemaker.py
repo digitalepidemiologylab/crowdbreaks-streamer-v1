@@ -47,7 +47,8 @@ class Sagemaker():
 
     def create_endpoint(self, endpoint_name):
         config_name = f'{endpoint_name}-config'
-        self._client.create_endpoint(EndpointName=endpoint_name, EndpointConfigName=config_name)
+        tags = [{'Key': 'project', 'Value': 'crowdbreaks'}]
+        self._client.create_endpoint(EndpointName=endpoint_name, EndpointConfigName=config_name, Tags=tags)
 
     def delete_endpoint(self, endpoint_name):
         self._client.delete_endpoint(EndpointName=endpoint_name)
