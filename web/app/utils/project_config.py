@@ -87,7 +87,7 @@ class ProjectConfig():
         return True
 
     def _validate_data_types(self, obj):
-        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str], ['model_endpoints', list], ['locales', list], ['compile_trending_tweets', bool], ['compile_trending_topics', bool]]
+        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str], ['model_endpoints', dict], ['locales', list], ['compile_trending_tweets', bool], ['compile_trending_topics', bool]]
         for key, data_type in validations:
             if not isinstance(obj[key], data_type):
                 return False
