@@ -36,8 +36,6 @@ services:
       - "ES_JAVA_OPTS=-Xms400m -Xmx400m"
     ports:
       - 9200:9200
-    volumes:
-      - './elasticsearch/data:/usr/share/elasticsearch/data'
     depends_on:
       - web
   kibana:
