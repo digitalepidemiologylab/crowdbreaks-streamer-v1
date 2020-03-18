@@ -10,6 +10,8 @@ from app.settings import Config
 from app.stream.trending_tweets import TrendingTweets
 from app.stream.trending_topics import TrendingTopics
 from app.utils.redis import Redis
+from app.utils.predict_queue import PredictQueue
+from app.utils.predict import Predict
 
 
 # session fixtures
@@ -56,6 +58,12 @@ def tt():
     tt.self_remove()
 
 @pytest.fixture(scope='function')
+def predict_queue():
+    predict_queue = PredictQueue('project_test')
+    yield predict_queue
+    predict_queue.clear_queue()
+
+@pytest.fixture(scope='function')
 def trending_topics():
     tt = TrendingTopics('project_test', project_keywords=['test'])
     yield tt
@@ -64,6 +72,10 @@ def trending_topics():
 @pytest.fixture(scope='function')
 def r():
     yield Redis()
+
+@pytest.fixture(scope='function')
+def predictor():
+    yield Predict('test_endpoint', 'fasttext')
 
 # test data
 @pytest.fixture(scope='session')

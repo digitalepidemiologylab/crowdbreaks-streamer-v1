@@ -43,7 +43,7 @@ def main():
     batch_size = 1000
     for i in range(0, num_docs, batch_size):
         try:
-            es_client.bulk_index(data[i:(i+batch_size)])
+            es_client.bulk_action(data[i:(i+batch_size)])
         except Exception as e:
             logger.error(f'Failed to index batch {i}')
             raise e

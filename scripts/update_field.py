@@ -1,12 +1,12 @@
 """
 This script updates a field
-Run this script from within <PROJECT_ROOT>/scripts 
+Run this script from within <PROJECT_ROOT>/scripts
 Make sure to set all global vars first!
 
 This script has to be run on a server with access to Elasticsearch!
 """
 
-import sys 
+import sys
 sys.path.append('..')
 sys.path.append('../web/')
 from multiprocessing import Pool, current_process
@@ -15,21 +15,20 @@ from elasticsearch import helpers
 import requests
 import json
 import logging.config
-from web.app.stream.tasks import predict
 from web.app.utils.process_tweet import ProcessTweet
 
 
 def count_to_be_updated():
     """counts labelled tweets in index"""
-    
+
     # label should exist on all considered records
     default_exist = {'exists': {'field': 'meta.sentiment.{}.label'.format(MODEL)}}
     body_all = {'query': default_exist}
     body_exists = {'query': {'bool': {'must': [{'exists': {'field': 'meta.sentiment.{}.label_val'.format(MODEL)}}, default_exist]}}}
     body_not_exists = {'query': {'bool': {'must_not': {'exists': {'field': 'meta.sentiment.{}.label_val'.format(MODEL)}}, 'must': default_exist}}}
-    count_all = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_all)['count'] 
-    count_updated = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_exists)['count'] 
-    count_not_updated = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_not_exists)['count'] 
+    count_all = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_all)['count']
+    count_updated = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_exists)['count']
+    count_not_updated = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=body_not_exists)['count']
     logger.info('index {} contains a total of {} records of which {} are already updated and {} are not updated'\
             .format(INDEX, count_all, count_updated, count_not_updated))
     return count_not_updated
@@ -99,7 +98,7 @@ if __name__ == "__main__":
         logger.info('No work available... exiting')
         sys.exit()
 
-    # Run script 
+    # Run script
     yes_no = input('Would you like to update all tweets (n={}) (y/n)?'.format(num_docs))
     if not yes_no == 'y':
         logger.info('OK good night!')

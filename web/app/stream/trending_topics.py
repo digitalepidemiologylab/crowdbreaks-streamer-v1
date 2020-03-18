@@ -281,7 +281,7 @@ class TrendingTopics(Redis):
         actions = [{'_source': d, '_index': self.trending_topics_index_name, '_type': '_doc'} for d in data]
         # bulk index
         logger.info(f'Bulk indexing of {len(actions):,} documents to index {self.trending_topics_index_name}...')
-        self.es.bulk_index(actions)
+        self.es.bulk_action(actions)
 
     def self_remove(self):
         self.pq_counts_weighted.self_remove()

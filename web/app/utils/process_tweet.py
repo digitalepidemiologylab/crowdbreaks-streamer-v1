@@ -1,17 +1,18 @@
 import math
 import re
 import logging
-from app.utils.predict_sentiment import PredictSentiment
 from helpers import report_error
 import unicodedata
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProcessTweet(object):
     """Wrapper class for functions to process/modify tweets"""
 
     # Fields to extract from tweet object
     KEEP_FIELDS = [
-            'id',
             'created_at',
             'text',
             'lang',
@@ -52,7 +53,6 @@ class ProcessTweet(object):
         else:
             self.extended_tweet = self._get_extended_tweet()
         self.processed_tweet = None   # processed tweet
-        self.logger = logging.getLogger(__name__)
         self.project = project
         if not isinstance(project_locales, list):
             self.project_locales = []
@@ -98,11 +98,6 @@ class ProcessTweet(object):
                 return False
         return True
 
-    def process_and_predict(self):
-        _ = self.process()
-        self.predict()
-        return self.get_processed_tweet()
-
     def process(self):
         # reduce to only certain fields
         self.strip()
@@ -111,23 +106,11 @@ class ProcessTweet(object):
         # compute average location from bounding box (reducing storage on ES)
         if self.tweet['place'] is not None and self.tweet['place']['bounding_box'] is not None:
             self.compute_average_location()
-            self.logger.debug('Computed average location {} and average radius {}'.format(self.processed_tweet['place']['average_location'],
+            logger.debug('Computed average location {} and average radius {}'.format(self.processed_tweet['place']['average_location'],
                 self.processed_tweet['place']['location_radius']))
-        return self.get_processed_tweet()
-
-    def predict(self):
-        if self.project == 'vaccine-sentiment-tracking' and 'text' in self.KEEP_FIELDS:
-            ps = PredictSentiment()
-            model = 'fasttext_v1.ftz'
-            prediction = ps.predict(self.processed_tweet['text'], model=model)
-            if prediction is not None:
-                meta = {'sentiment': {str(model.split('.')[0]): {'label': prediction['labels'][0], 'label_val': prediction['label_vals'][0], 'probability': prediction['probabilities'][0]}}}
-                self.logger.debug('meta: {}'.format(meta))
-                self.add_meta(meta)
 
     def strip(self):
-        """Strip fields before sending to ElasticSearch
-        """
+        """Strip fields before sending to Elasticsearch"""
         tweet_stripped = {}
         if self.processed_tweet is not None:
             tweet_stripped = self.processed_tweet
@@ -149,8 +132,7 @@ class ProcessTweet(object):
         self.processed_tweet = tweet_stripped
 
     def compute_average_location(self):
-        """Compute average location from bounding box
-        """
+        """Compute average location from bounding box"""
         if self.tweet is None:
             return None
         coords = self.tweet.get('place', {}).get('bounding_box', {}).get('coordinates', None)
@@ -186,17 +168,6 @@ class ProcessTweet(object):
         self.processed_tweet['place']['average_location'] = [av_lon, av_lat]
         self.processed_tweet['place']['location_radius'] = radius
 
-    def add_meta(self, meta):
-        if self.processed_tweet is None:
-            self.error('Cannot add meta to empty tweet.')
-            return
-        if 'meta' not in self.processed_tweet:
-            self.processed_tweet['meta'] = {}
-        if not isinstance(meta, dict):
-            self.error('To be added meta must be a dictionary.')
-        # merge with existing meta
-        self.processed_tweet['meta'] = {**self.processed_tweet['meta'], **meta}
-
     def add_retweet_info(self):
         if self.tweet is None:
             return
@@ -212,13 +183,15 @@ class ProcessTweet(object):
             return self.processed_tweet
 
     def error(self, msg):
-        report_error(self.logger, msg=msg)
+        report_error(logger, msg=msg)
 
     def remove_control_characters(self, s):
         if not isinstance(s, str):
             return s
         # replace \t, \n and \r characters by a whitespace
         s = re.sub(self.control_char_regex, ' ', s)
+        # replace HTML codes for new line characters
+        s = s.replace('&#13;', '').replace('&#10;', '')
         # removes all other control characters and the NULL byte (which causes issues when parsing with pandas)
         return "".join(ch for ch in s if unicodedata.category(ch)[0]!="C")
 
@@ -230,6 +203,15 @@ class ProcessTweet(object):
             tweet_text = prefix + self._get_full_text(self.tweet['retweeted_status'])
         else:
             tweet_text = self._get_full_text(self.tweet)
+        return self.remove_control_characters(str(tweet_text))
+
+    def get_text_for_prediction(self):
+        """Get full text for predictions"""
+        if self.is_retweet:
+            tweet = self.tweet['retweeted_status']
+        else:
+            tweet = self.tweet
+        tweet_text = self._get_full_text(tweet)
         return self.remove_control_characters(str(tweet_text))
 
     def anonymize_text(self, tweet_text):

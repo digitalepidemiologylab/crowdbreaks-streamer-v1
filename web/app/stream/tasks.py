@@ -5,7 +5,6 @@ from app.utils.reverse_tweet_matcher import ReverseTweetMatcher
 from app.utils.process_tweet import ProcessTweet
 from app.utils.process_media import ProcessMedia
 from app.utils.priority_queue import TweetIdQueue
-from app.utils.predict_sentiment import PredictSentiment
 from app.utils.project_config import ProjectConfig
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.trending_tweets import TrendingTweets
@@ -24,13 +23,14 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
     # reverse match to find project
     rtm = ReverseTweetMatcher(tweet=tweet)
     candidates = rtm.get_candidates()
+    tweet_id = tweet['id_str']
     if len(candidates) == 0:
         # Could not match keywords. This might occur quite frequently e.g. when tweets are collected accross different languages/keywords
-        logger.info('Tweet {} could not be matched against any existing projects.'.format(tweet['id']))
+        logger.info(f'Tweet {tweet_id} could not be matched against any existing projects.')
         if store_unmatched_tweets:
             # store to separate file for later analysis
             config = Config()
-            with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', tweet['id_str'] + '.json'), 'w') as f:
+            with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', f'{tweet_id}.json'), 'w') as f:
                 json.dump(tweet, f)
         return
     # queue up for s3 upload and add to priority queue
@@ -58,13 +58,14 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
             trending_topics.process(tweet)
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
-        processed_tweet = pt.process_and_predict()
+        pt.process()
+        processed_tweet = pt.get_processed_tweet()
         if use_pq and pt.should_be_annotated():
             # add to Tweet ID queue for crowd labelling
-            logger.info('Add tweet {} to priority queue...'.format(processed_tweet['id']))
+            logger.info(f'Add tweet {tweet_id} to priority queue...')
             tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
             processed_tweet['text'] = pt.anonymize_text(processed_tweet['text'])
-            tid.add_tweet(processed_tweet, priority=0)
+            tid.add_tweet(tweet_id, processed_tweet, priority=0)
         if stream_config['image_storage_mode'] != 'inactive':
             pm = ProcessMedia(tweet, project, image_storage_mode=stream_config['image_storage_mode'])
             pm.process()
@@ -73,11 +74,9 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
                 # Do not store retweets on ES
                 return
             # send to ES
-            logger.debug('Pushing processed with id {} to ES queue'.format(processed_tweet['id']))
-            es_queue.push(json.dumps(processed_tweet).encode(), project)
-
-@celery.task
-def predict(text, model='fasttext_v1.ftz', num_classes=3, path_to_model='.'):
-    ps = PredictSentiment()
-    prediction = ps.predict(text, model=model)
-    return prediction
+            logger.debug(f'Pushing processed with id {tweet_id} to ES queue')
+            es_tweet_obj = {'processed_tweet': processed_tweet, 'id': tweet_id}
+            if len(stream_config['model_endpoints']) > 0:
+                # prepare for prediction
+                es_tweet_obj['text_for_prediction'] = {'text': pt.get_text_for_prediction(), 'id': tweet_id}
+            es_queue.push(json.dumps(es_tweet_obj).encode(), project)

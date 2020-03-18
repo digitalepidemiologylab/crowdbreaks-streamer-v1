@@ -4,8 +4,7 @@ from app.basic_auth import requires_auth_func
 import json
 from app.extensions import es, redis
 import logging
-from app.utils.predict_sentiment import PredictSentiment
-from app.stream.tasks import predict, handle_tweet
+from app.stream.tasks import handle_tweet
 from app.stream.trending_tweets import TrendingTweets
 from app.stream.trending_topics import TrendingTopics
 import time
@@ -172,6 +171,7 @@ def get_new_tweet(project):
     """"Get new tweet from priority queue"""
     user_id = request.args.get('user_id', None)
     fields = request.args.get('fields', ['id', 'text'])
+    logger.info(f"Getting tweet for project {project} for user {user_id}")
     tid = TweetIdQueue(project)
     tweet = tid.get_tweet(user_id=user_id)
     if tweet is None:
@@ -188,6 +188,7 @@ def get_new_tweet(project):
         # rename fields
         tweet['tweet_id'] = str(tweet.pop('id'))
         tweet['tweet_text'] = tweet.pop('text')
+    logger.info(f"Retrieving tweet {tweet['tweet_id']} for user {user_id}")
     return jsonify(tweet)
 
 @blueprint.route('tweet/update/<project>', methods=['POST'])
@@ -198,6 +199,7 @@ def add_to_pq(project):
     if data is None or 'user_id' not in data or 'tweet_id' not in data:
         report_error(logger, msg='No user_id was passed when updating ')
         return Response(None, status=400, mimetype='text/plain')
+    logger.info(f"Adding {data['tweet_id']} to project {project} for user {data['user_id']}")
     tid = TweetIdQueue(project)
     tid.update(data['tweet_id'], data['user_id'])
     return Response('Update successful.', status=200, mimetype='text/plain')
@@ -211,6 +213,7 @@ def remove_from_pq(project):
     if data is None or 'tweet_id' not in data:
         report_error(logger, msg='No tweet_id was passed when updating')
         return Response(None, status=400, mimetype='text/plain')
+    logger.info(f"Removing {data['tweet_id']} for project {project}")
     tid = TweetIdQueue(project)
     tid.remove(data['tweet_id'])
     return Response('Successfully removed.', status=200, mimetype='text/plain')
@@ -234,21 +237,6 @@ def get_all_data(index_name):
 
 #################################################################
 # Sentiment data
-@blueprint.route('sentiment/vaccine/', methods=['POST', 'GET'])
-def get_vaccine_sentiment(model='fasttext_v1.ftz'):
-    text = None
-    if request.method == 'POST':
-        data = request.get_json()
-        logger.debug('Incoming request with data {}'.format(data))
-        text = data.get('text', None)
-        if text is None:
-            return Response(None, status=400, mimetype='text/plain')
-    else:
-        text = 'This is just a test string'
-    ps = PredictSentiment()
-    prediction = ps.predict(text, model=model)
-    return json.dumps(prediction)
-
 @blueprint.route('sentiment/data/<value>', methods=['GET'])
 def get_vaccine_data(value):
     options = get_params(request.args)

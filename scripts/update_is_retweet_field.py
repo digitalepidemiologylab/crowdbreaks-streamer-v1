@@ -1,12 +1,12 @@
 """
 This script updates a field
-Run this script from within <PROJECT_ROOT>/scripts 
+Run this script from within <PROJECT_ROOT>/scripts
 Make sure to set all global vars first!
 
 This script has to be run on a server with access to Elasticsearch!
 """
 
-import sys 
+import sys
 sys.path.append('..')
 sys.path.append('../web/')
 from multiprocessing import Pool, current_process
@@ -15,14 +15,13 @@ from elasticsearch import helpers
 import requests
 import json
 import logging.config
-from web.app.stream.tasks import predict
 from web.app.utils.process_tweet import ProcessTweet
 import re
 
 
 def count_to_be_updated():
     """counts labelled tweets in index"""
-    count = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=get_query())['count'] 
+    count = es_client.es.count(index=INDEX, doc_type=DOC_TYPE, body=get_query())['count']
     logger.info('index {} contains a total of {} records which need to be updated...'.format(INDEX, count))
     return count
 
@@ -104,7 +103,7 @@ if __name__ == "__main__":
         logger.info('No work available... exiting')
         sys.exit()
 
-    # Run script 
+    # Run script
     yes_no = input('Would you like to update all tweets (n={}) (y/n)?'.format(num_docs))
     if not yes_no == 'y':
         logger.info('OK good night!')

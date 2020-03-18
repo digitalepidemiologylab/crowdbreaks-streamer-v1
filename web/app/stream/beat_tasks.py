@@ -2,6 +2,8 @@ from app.worker.celery_init import celery
 from celery.utils.log import get_task_logger
 from app.settings import Config
 from app.utils.project_config import ProjectConfig
+from app.utils.predict_queue import PredictQueue
+from app.utils.predict import Predict
 from app.stream.s3_handler import S3Handler
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.es_queue import ESQueue
@@ -42,7 +44,7 @@ def send_to_s3(debug=False):
 
 
 @celery.task(name='es-bulk-index-task', ignore_result=True)
-def es_bulk_index(debug=False):
+def es_bulk_index(debug=True):
     logger = get_logger(debug)
     es_queue = ESQueue()
     project_config = ProjectConfig()
@@ -50,40 +52,97 @@ def es_bulk_index(debug=False):
     if len(project_keys) == 0:
         logger.info('No work available. Goodbye!')
         return
-    data = []
+    predictions_by_project = {}
+    es_actions = []
     for key in project_keys:
-        tweets = es_queue.pop_all(key)
-        if len(tweets) == 0:
+        es_queue_objs = es_queue.pop_all(key)
+        if len(es_queue_objs) == 0:
             continue
         project = key.decode().split(':')[-1]
+        logger.info(f'Found {len(es_queue_objs):,} tweets in queue for project {project}.')
         stream_config = project_config.get_config_by_project(project)
-        logger.info(f'Found {len(tweets):,} tweets in queue for project {project}.')
-        # decode tweets
-        tweets = [json.loads(t.decode()) for t in tweets]
+        # compile actions for bulk indexing
+        es_queue_objs = [json.loads(t.decode()) for t in es_queue_objs]
         actions = [
             {'_id': t['id'],
             '_type': 'tweet',
-            '_source': t,
+            '_source': t['processed_tweet'],
             '_index': stream_config['es_index_name']
-            } for t in tweets]
-        data.extend(actions)
+            } for t in es_queue_objs]
+        es_actions.extend(actions)
+        # compile predictions to be added to prediction queue after indexing
+        predictions_by_project[project] = [t['text_for_prediction'] for t in es_queue_objs if 'text_for_prediction' in t]
     # bulk index
-    num_docs = len(data)
-    if num_docs > 0:
-        batch_size = 1000
-        logger.info(f'Bulk-indexing {num_docs:,} documents to Elasticsearch...')
-        for i in range(0, num_docs, batch_size):
-            num_docs_in_batch = len(data[i:(i+batch_size)])
-            try:
-                es.bulk_index(data[i:(i+batch_size)])
-            except:
-                logger.error(f'Failed bulk-indexed batch of {num_docs_in_batch:,} documents to Elasticsearch')
-                report_error(logger, exception=True)
-                es_queue.dump_to_disk(data[i:(i+batch_size)])
-            else:
-                logger.info(f'Successfully bulk-indexed batch of {num_docs_in_batch:,} documents to Elasticsearch')
-    else:
-        logger.info(f'No documents to index for Elasticsearch')
+    if len(es_actions) > 0:
+        success = es.bulk_actions_in_batches(es_actions, batch_size=1000)
+        if not success:
+            # dump data to disk
+            es_queue.dump_to_disk(es_actions, 'es_bulk_indexing_errors')
+            return
+        # Queue up for prediction
+        for project, objs_to_predict in predictions_by_project.items():
+            predict_queue = PredictQueue(project)
+            predict_queue.multi_push(objs_to_predict)
+
+@celery.task(name='es-predict', ignore_result=True)
+def es_predict(debug=True):
+    logger = get_logger(debug)
+    project_config = ProjectConfig()
+    predictions = {}
+    for project_config in project_config.read():
+        if len(project_config['model_endpoints']) > 0:
+            project = project_config['slug']
+            predict_queue = PredictQueue(project)
+            predict_objs = predict_queue.pop_all()
+            if len(predict_objs) == 0:
+                logger.info(f'Nothing to predict for project {project}')
+            texts = [t['text'] for t in predict_objs]
+            ids = [t['id'] for t in predict_objs]
+            es_index_name = project_config['es_index_name']
+            for question_tag, endpoints_obj in project_config['model_endpoints'].items():
+                for endpoint_name, endpoint_info in  endpoints_obj['active'].items():
+                    model_type = endpoint_info['model_type']
+                    run_name = endpoint_info['run_name']
+                    predictor = Predict(endpoint_name, model_type)
+                    preds = predictor.predict(texts)
+                    for _id, _pred in zip(ids, preds):
+                        if es_index_name not in predictions:
+                            predictions[es_index_name] = {}
+                        if _id not in predictions[es_index_name]:
+                            predictions[es_index_name][_id] = {}
+                        if question_tag not in predictions[es_index_name][_id]:
+                            predictions[es_index_name][_id][question_tag] = {'endpoints': {}}
+                        predictions[es_index_name][_id][question_tag]['endpoints'][run_name] = {
+                                'label': _pred['labels'][0],
+                                'probability': _pred['probabilities'][0]
+                                }
+                        # if present, add label vals (numeric values of labels)
+                        if 'label_vals' in _pred:
+                            predictions[es_index_name][_id][question_tag]['endpoints'][run_name]['label_val'] = _pred['label_vals'][0]
+                        if endpoints_obj['primary'] == endpoint_name:
+                            # current endpoint is primary endpoint
+                            predictions[es_index_name][_id][question_tag]['primary_label'] = _pred['labels'][0]
+                            if 'label_vals' in _pred:
+                                predictions[es_index_name][_id][question_tag]['primary_label_val'] = _pred['label_vals'][0]
+    if len(predictions) > 0:
+        actions = []
+        for es_index_name, pred_es_index in predictions.items():
+            for _id, pred_obj in pred_es_index.items():
+                actions.append({
+                    '_id': _id,
+                    '_type': 'tweet',
+                    '_op_type': 'update',
+                    '_index': es_index_name,
+                    '_source': {
+                        'doc': {
+                            'meta': pred_obj
+                            }
+                        }
+                    })
+        success = es.bulk_actions_in_batches(actions)
+        if not success:
+            # dump data to disk
+            es_queue.dump_to_disk(actions, 'es_bulk_update_errors')
 
 @celery.task(name='trending-tweets-cleanup', ignore_result=True)
 def trending_tweets_cleanup_job(debug=False):

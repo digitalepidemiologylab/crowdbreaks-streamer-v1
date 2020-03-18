@@ -204,8 +204,8 @@ class TweetStore(Redis):
     def key(self, tweet_id):
         return "{}:{}:{}".format(self.namespace, self.key_namespace, tweet_id)
 
-    def add(self, tweet):
-        self._r.set(self.key(tweet['id']), json.dumps(tweet).encode())
+    def add(self, tweet_id, tweet):
+        self._r.set(self.key(tweet_id), json.dumps(tweet).encode())
 
     def get(self, tweet_id):
         tweet = self._r.get(self.key(tweet_id))
@@ -246,12 +246,12 @@ class TweetIdQueue:
         """Simply adds a new tweet_id to its priority queue"""
         self.pq.add(tweet_id, priority=priority)
 
-    def add_tweet(self, tweet, priority=0):
+    def add_tweet(self, tweet_id, tweet, priority=0):
         """Adds a new tweet to its priority queue and stores it in the TweetStore"""
-        removed_items = self.pq.add(tweet['id'], priority=priority)
+        removed_items = self.pq.add(tweet_id, priority=priority)
         for item in removed_items:
             self.tweet_store.remove(item[0].decode())
-        self.tweet_store.add(tweet)
+        self.tweet_store.add(tweet_id, tweet)
 
     def get(self, user_id=None):
         """Get new tweet ID to classify for user ID """
@@ -276,12 +276,11 @@ class TweetIdQueue:
         tweet_id = self.get(user_id=user_id)
         if tweet_id is None:
             return None
-        else:
-            tweet = self.tweet_store.get(tweet_id)
-            if tweet is None:
-                return {'id': tweet_id}
-            else:
-                return tweet
+        tweet = self.tweet_store.get(tweet_id)
+        if tweet is None:
+            tweet = {}
+        tweet['id'] = tweet_id
+        return tweet
 
     def retrieve_for_user(self, user_id):
         num = 3

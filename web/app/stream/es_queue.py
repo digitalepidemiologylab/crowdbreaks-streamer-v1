@@ -12,8 +12,7 @@ class ESQueue(Redis):
         super().__init__()
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
-        today = time.strftime('%Y-%m-%d')
-        self.dump_fname = os.path.join(self.config.PROJECT_ROOT, 'logs', 'es_bulk_indexing_errors', f'{today}.jsonl')
+        self.dump_folder = os.path.join(self.config.PROJECT_ROOT, 'logs')
 
     def queue_key(self, project):
         return "{}:{}:{}".format(self.namespace, self.config.ES_QUEUE_KEY, project)
@@ -39,10 +38,12 @@ class ESQueue(Redis):
         for key in self._r.scan_iter("{}:{}:*".format(self.config.REDIS_NAMESPACE, self.config.ES_QUEUE_KEY)):
             self._r.delete(key)
 
-    def dump_to_disk(self, data):
+    def dump_to_disk(self, data, data_type):
         """Dump documents to disk when bulk indexing fails"""
         data = ''.join([json.dumps(d) + '\n' for d in data])
-        with open(self.dump_fname, 'a') as f:
+        today = time.strftime('%Y-%m-%d')
+        f_name = os.path.join(self.dump_folder, data_type, f'{today}.jsonl')
+        with open(f_name, 'a') as f:
             # activate file lock
             fcntl.flock(f, fcntl.LOCK_EX)
             f.write(data)

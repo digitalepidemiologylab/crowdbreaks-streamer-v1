@@ -13,10 +13,9 @@ class TestProcessTweet:
 
     def test_should_be_annotated(self, tweet):
         pt = ProcessTweet(tweet=tweet, project='project_test', project_locales=['en'])
-        processed_tweet = pt.process_and_predict()
+        pt.process()
         assert pt.should_be_annotated()
         pt = ProcessTweet(tweet=tweet, project='project_test', project_locales=['de'])
-        processed_tweet = pt.process_and_predict()
         assert not pt.should_be_annotated()
 
 if __name__ == "__main__":

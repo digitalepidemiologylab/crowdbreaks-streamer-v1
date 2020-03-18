@@ -10,20 +10,18 @@ import glob
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from helpers import report_error
 
+logger = logging.getLogger(__name__)
 
 class Elastic():
     """Interaction with Elasticsearch
     """
 
     def __init__(self, app=None, logger=None, local_config=None):
-        self.logger = logger
         self.app = app
         self.connection = None # only used outside of application context
         self.config = {}
         self.local_config = local_config
         self.default_template_name = 'project' # default template name when creating new index
-        if self.logger is None:
-            self.logger = logging.getLogger('ES')
         if app is not None:
             self.init_app(app)
 
@@ -55,9 +53,9 @@ class Elastic():
         try:
             self.config = current_app.config
         except RuntimeError:
-            self.logger.debug('No app context found!')
+            logger.debug('No app context found!')
             if self.local_config is not None:
-                self.logger.info('Using local configuration')
+                logger.info('Using local configuration')
                 _config = self.local_config
             else:
                 _config = os.environ
@@ -79,9 +77,9 @@ class Elastic():
         """test_connection"""
         test = self.es.ping()
         if test:
-            self.logger.info('Successfully connected to Elasticsearch host {}'.format(self.config['ELASTICSEARCH_HOST']))
+            logger.info('Successfully connected to Elasticsearch host {}'.format(self.config['ELASTICSEARCH_HOST']))
         else:
-            report_error(self.logger, msg='Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
+            report_error(logger, msg='Connection to Elasticsearch host {} not successful!'.format(self.config['ELASTICSEARCH_HOST']))
         return test
 
     def cluster_health(self):
@@ -96,14 +94,29 @@ class Elastic():
             self.es.index(index=index_name, id=tweet['id'], doc_type='tweet', body=tweet, op_type='create')
         except elasticsearch.ConflictError as e:
             # This usually happens when a document with the same ID already exists.
-            self.logger.warning('Conflict Error')
+            logger.warning('Conflict Error')
         except elasticsearch.TransportError as e:
-            report_error(self.logger, exception=True)
+            report_error(logger, exception=True)
         else:
-            self.logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
+            logger.debug('Tweet with id {} sent to index {}'.format(tweet['id'], index_name))
 
-    def bulk_index(self, actions):
-        self.logger.info('Bulk indexing...')
+    def bulk_actions_in_batches(self, actions, batch_size=1000):
+        num_actions = len(actions)
+        logger.info(f'Processing {num_actions:,} bulk actions...')
+        for i in range(0, num_actions, batch_size):
+            num_actions_in_batch = len(actions[i:(i+batch_size)])
+            try:
+                self.bulk_action(actions[i:(i+batch_size)])
+            except:
+                logger.error(f'Elasticsearch failed to process batch of {num_actions_in_batch:,} actions')
+                report_error(logger, exception=True)
+                return False
+            else:
+                logger.info(f'Successfully processed batch of {num_actions_in_batch:,} actions')
+        return True
+
+    def bulk_action(self, actions):
+        logger.info('Bulk operation...')
         es_helpers.bulk(self.es, actions, timeout='60s')
 
     def put_template(self, template_path, template_name):
@@ -111,19 +124,19 @@ class Elastic():
         """
         # read template file
         if not os.path.exists(template_path):
-            report_error(self.logger, msg='No project file found under {}'.format(template_path))
+            report_error(logger, msg='No project file found under {}'.format(template_path))
             return
         with open(template_path, 'r') as f:
             template = json.load(f)
         res = self.es.indices.put_template(template_name, body=template, include_type_name=True)
-        self.logger.info("Template {} added to Elasticsearch".format(template_path))
+        logger.info("Template {} added to Elasticsearch".format(template_path))
 
     def put_mapping(self, index_name, filename):
         mapping_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..' ,'config', 'es_mappings', filename))
         with open(mapping_path) as f:
             mapping = json.load(f)
         res = self.es.indices.put_mapping(index=index_name, doc_type='tweet', body=mapping)
-        self.logger.info("Mapping {} added to Elasticsearch index {}".format(mapping_path, index_name))
+        logger.info("Mapping {} added to Elasticsearch index {}".format(mapping_path, index_name))
 
     def list_templates(self):
         templates = self.es.cat.templates(format='json', h=['name'])
@@ -132,13 +145,13 @@ class Elastic():
     def delete_template(self, template_name):
         """Delete template"""
         res = self.es.indices.delete_template(template_name)
-        self.logger.info("Template {} successfully deleted".format(template_name))
+        logger.info("Template {} successfully deleted".format(template_name))
 
     def create_index(self, index_name, settings={}, mapping={}):
         # abort if index already exists
         existing_indices = list(self.es.indices.get_alias('*').keys())
         if index_name in existing_indices:
-            self.logger.warning("Aborted. Index {} already exists. Delete index first.".format(index_name))
+            logger.warning("Aborted. Index {} already exists. Delete index first.".format(index_name))
             return False
         # add templates
         self.add_all_templates()
@@ -146,7 +159,7 @@ class Elastic():
         body = {'settings': {'index': settings}, 'mapping': mapping}
         # create new index
         res = self.es.indices.create(index=index_name, body=body, include_type_name=True)
-        self.logger.info("Index {} successfully created".format(index_name))
+        logger.info("Index {} successfully created".format(index_name))
         return True
 
     def update_es_indices(self, indices):
@@ -167,10 +180,10 @@ class Elastic():
     def delete_index(self, index_name):
         existing_indices = self.list_indices()
         if index_name not in existing_indices:
-            self.logger.warning("Aborted. Index {} doesn't exist".format(index_name))
+            logger.warning("Aborted. Index {} doesn't exist".format(index_name))
             return
         res = self.es.indices.delete(index_name)
-        self.logger.info("Index {} successfully deleted".format(index_name))
+        logger.info("Index {} successfully deleted".format(index_name))
 
     def indices_stats(self):
         return self.es.indices.stats(filter_path=['indices'])
@@ -396,7 +409,7 @@ class Elastic():
         res =  self.es.search(index=index_name, doc_type=doc_type, body=body, size=1, filter_path=['hits.hits'])
         hits = res['hits']['hits']
         if len(hits) == 0:
-            report_error(self.logger, msg='Could not find a random document in index {}'.format(index_name))
+            report_error(logger, msg='Could not find a random document in index {}'.format(index_name))
             return None
         return hits[0]['_source']
 
@@ -411,7 +424,7 @@ class Elastic():
             try:
                 d_date = datetime.strptime(d, input_format)
             except:
-                report_error(self.logger, msg='Date {} is not of format {}. Using "now" instead'.format(d, input_format))
+                report_error(logger, msg='Date {} is not of format {}. Using "now" instead'.format(d, input_format))
                 res.append('now')
             else:
                 d_date = d_date.replace(tzinfo=timezone.utc)

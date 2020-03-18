@@ -11,13 +11,14 @@ class TestPriorityQueue:
         no_old_tweet_present = tweet_store.get(tweet['id'])
         assert no_old_tweet_present is None
         # add and then get again
-        tweet_store.add(tweet)
+        tweet_store.add(tweet['id_str'], tweet)
         retweet_from_tweet_store = tweet_store.get(tweet['id'])
         assert retweet_from_tweet_store == tweet
 
     def test_tweet_id_queue_with_full_tweets(self, tid_q, tweet):
-        tid_q.add_tweet(tweet)
+        tid_q.add_tweet(tweet['id_str'], tweet)
         r_tweet = tid_q.get_tweet()
+        tweet['id'] = str(tweet['id'])
         assert r_tweet == tweet
 
     def test_increase_over_threshold(self, tid_q):
@@ -37,7 +38,7 @@ class TestPriorityQueue:
         assert tid_q.rset.num_members(tweet_id) == 0
 
     def test_get_highest_priority_item_full_tweet(self, tid_q, tweet, retweet):
-        tid_q.add_tweet(tweet)
+        tid_q.add_tweet(tweet['id_str'], tweet)
         tweet_id = tweet['id_str']
         tid_q.update(tweet_id, 'the_dude')
         assert tid_q.get(user_id='the_dude') is None  # has already classified this tweet
@@ -46,7 +47,7 @@ class TestPriorityQueue:
         assert tid_q.get(user_id='another_dude') is None  # has already classified this tweet
 
         # new tweet is added to queue
-        tid_q.add_tweet(retweet)
+        tid_q.add_tweet(retweet['id_str'], retweet)
         new_tweet_id = retweet['id_str']
         assert new_tweet_id != tweet_id
         assert tid_q.get(user_id='another_dude') == new_tweet_id
@@ -94,8 +95,8 @@ class TestPriorityQueue:
         assert len(tid_q.tweet_store) == 0
         assert len(tid_q.pq) == 0
         for i in range(11):
-            tweet['id'] = i + 100
-            tid_q.add_tweet(tweet, priority=0)
+            tweet['id_str'] = str(i + 100)
+            tid_q.add_tweet(tweet['id_str'], tweet, priority=0)
         # The last item added should trigger deletion of the first one (max queue length = 10)
         assert len(tid_q.tweet_store) == 10
         assert len(tid_q.pq) == 10
