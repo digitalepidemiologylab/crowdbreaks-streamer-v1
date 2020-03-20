@@ -121,6 +121,7 @@ def es_predict(debug=True):
                             predictions[es_index_name][_id][question_tag]['endpoints'][run_name]['label_val'] = _pred['label_vals'][0]
                         if endpoints_obj['primary'] == endpoint_name:
                             # current endpoint is primary endpoint
+                            predictions[es_index_name][_id][question_tag]['primary_endpoint'] = endpoint_name
                             predictions[es_index_name][_id][question_tag]['primary_label'] = _pred['labels'][0]
                             if 'label_vals' in _pred:
                                 predictions[es_index_name][_id][question_tag]['primary_label_val'] = _pred['label_vals'][0]
