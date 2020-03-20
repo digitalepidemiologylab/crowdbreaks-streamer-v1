@@ -200,6 +200,10 @@ class Elastic():
         resp = self.es.update(index=index, doc_type=doc_type, id=id, body=body)
         return resp
 
+    def refresh(self):
+        """Refreshes all indices, making new documents visible to search"""
+        self.es.indices.refresh()
+
      #################################################################
      # Trending tweets/topics
     def get_matching_ids_for_query(self, index_name, query, ids, size=10):
@@ -247,52 +251,9 @@ class Elastic():
                     data.append({'term': key, 'bucket_time': time, 'value': value, **moving_average})
             return data
 
+
     #################################################################
     # Sentiment data
-    def get_sentiment_data(self, index_name, value, **options):
-        start_date = options.get('start_date', 'now-20y')
-        end_date = options.get('end_date', 'now')
-        include_retweets = options.get('include_retweets', False)
-        s_date, e_date = self.parse_dates(start_date, end_date)
-        # Time range condition
-        query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
-        # Sentiment label condition
-        field = 'meta.sentiment.{}.label'.format(options.get('model', 'fasttext_v1'))
-        if value == '*':
-            # match all three labels
-            match_phrase_conditions = []
-            for label_value in ['pro-vaccine', 'anti-vaccine', 'neutral']:
-                match_phrase_conditions.append({'match_phrase': {field: label_value}})
-            query_conditions.append({'bool': {'should': match_phrase_conditions}})
-        else:
-            query_conditions.append({'match_phrase': {field: value}})
-        # Include retweets condition
-        if include_retweets:
-            query_conditions.append({'exists': {'field': 'is_retweet'}}) # needs to have is_retweet field
-        else:
-            exclude_retweets_query = [
-                    {'bool': {'must_not': [{'exists': {'field': 'is_retweet'}}]}}, # if field does not exist it is not a retweet, OR ...
-                    {'bool': {'must': [{'exists': {'field': 'is_retweet'}}, {'term': {'is_retweet': False}}]}} # if is_retweet field exists it has to be False
-                ]
-            query_conditions.append({'bool': {'should': exclude_retweets_query}}) # needs to exclude retweets condition
-        # full query
-        body = {'size': 0,
-                'aggs': {
-                    'sentiment': {
-                        'date_histogram': {
-                            'field': 'created_at',
-                            'interval': options.get('interval', 'month'),
-                            'format': 'yyyy-MM-dd HH:mm:ss'
-                            }
-                        }
-                    },
-                'query': {'bool': {'must': query_conditions}}
-                }
-        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
-        if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
-            return res['aggregations']['sentiment']['buckets']
-        else:
-            return []
 
     def get_av_sentiment(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')
@@ -363,12 +324,44 @@ class Elastic():
         else:
             return []
 
-    def refresh(self):
-        """Refreshes all indices, making new documents visible to search"""
-        self.es.indices.refresh()
-
     #################################################################
-    # All data
+    # Data
+    def get_predictions(self, index_name, question_tag, answer_tags, **options):
+        start_date = options.get('start_date', 'now-20y')
+        end_date = options.get('end_date', 'now')
+        end_date = 'now'
+        include_retweets = options.get('include_retweets', True)
+        s_date, e_date = self.parse_dates(start_date, end_date)
+        # Time range condition
+        query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
+        # for certain old data we don't have retweet information, exclude those
+        query_conditions.append({'exists': {'field': 'is_retweet'}})
+        # Include retweets condition
+        if not include_retweets:
+            query_conditions.append({'field': {'is_retweet': False}})
+        predictions = {}
+        field = f'meta.{question_tag}.primary_label'
+        for answer_tag in answer_tags:
+            query_conditions.append({'match_phrase': {field: answer_tag}})
+            # full query
+            body = {'aggs': {
+                        'prediction_agg': {
+                            'date_histogram': {
+                                'field': 'created_at',
+                                'interval': options.get('interval', 'month'),
+                                'format': 'yyyy-MM-dd HH:mm:ss'
+                                }
+                            }
+                        },
+                    'query': {'bool': {'must': query_conditions}}
+                    }
+            res = self.es.search(index=index_name, body=body, filter_path=['aggregations.prediction_agg'])
+            if keys_exist(res, 'aggregations', 'prediction_agg', 'buckets'):
+                predictions[answer_tag] = res['aggregations']['prediction_agg']['buckets']
+            else:
+                predictions[answer_tag] = []
+        return predictions
+
     def get_all_agg(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')

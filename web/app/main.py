@@ -235,17 +235,16 @@ def get_all_data(index_name):
     res = es.get_all_agg(index_name, **options)
     return json.dumps(res)
 
-#################################################################
-# Sentiment data
-@blueprint.route('sentiment/data/<value>', methods=['GET'])
-def get_vaccine_data(value):
-    options = get_params(request.args)
-    res = es.get_sentiment_data('project_vaccine_sentiment', value, **options)
-    for d in res:
-        if d['doc_count'] == 0:
-            d['doc_count'] = 'null'
+@blueprint.route('data/predictions/<index_name>', methods=['POST'])
+def get_predictions(index_name):
+    body = request.get_json()
+    question_tag = body.pop('question_tag')
+    answer_tags = body.pop('answer_tags')
+    res = es.get_predictions(index_name, question_tag, answer_tags, **body)
     return json.dumps(res)
 
+#################################################################
+# Sentiment data
 @blueprint.route('sentiment/average', methods=['GET'])
 def get_average_sentiment():
     options = get_params(request.args)
