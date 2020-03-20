@@ -341,8 +341,9 @@ class Elastic():
             query_conditions.append({'field': {'is_retweet': False}})
         predictions = {}
         field = f'meta.{question_tag}.primary_label'
+        query_conditions.append({'match_phrase': {field: ''}})
         for answer_tag in answer_tags:
-            query_conditions.append({'match_phrase': {field: answer_tag}})
+            query_conditions[-1]['match_phrase'][field] = answer_tag
             # full query
             body = {'aggs': {
                         'prediction_agg': {
