@@ -1,15 +1,13 @@
-import sys 
-sys.path.append('..')
-sys.path.append('../web/')
-from web.app.connections import elastic
-import logging.config
-
+from utils import get_es_client
+import logging
 import random
 import time
 from datetime import datetime
 import string
 from faker import Faker
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)-5.5s] [%(name)-12.12s]: %(message)s')
+logger = logging.getLogger(__name__)
 
 def get_random_lon_lat():
     return [random.uniform(-180,180), random.uniform(-90, 90)]
@@ -63,8 +61,19 @@ def generate_fake_tweet():
             }
 
     if INDEX == 'project_vaccine_sentiment':
-        predictions = {0: 'pro-vaccine', 1: 'anti-vaccine', 2:'neutral'}
-        sentiment = {str(MODEL.split('.')[0]): {'label': predictions[random.randint(0,2)], 'probability': random.random(), 'label_val': int(random.randint(-1,1))}}
+        predictions = {0: 'positive', 1: 'negative', 2:'neutral'}
+        sentiment = {
+                'primary_label': predictions[random.randint(0,2)],
+                'primary_label_val': int(random.randint(-1,1)),
+                'primary_endpoint': MODEL,
+                'endpoints': {
+                    MODEL: {
+                        'label': predictions[random.randint(0,2)],
+                        'probability': random.random(),
+                        'label_val': int(random.randint(-1,1))
+                        }
+                    }
+                }
         t['meta'] = {'sentiment': sentiment}
         t['sentiment'] = sentiment
     return t
@@ -78,13 +87,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # logging
-    logging.config.fileConfig('script_logging.conf')
-    logger = logging.getLogger('script')
-
     # initialize ES
-    es_client = elastic.Elastic()
-    es_client.test_connection()
+    es_client = get_es_client()
 
     # global vars
     INDEX = 'project_vaccine_sentiment'
