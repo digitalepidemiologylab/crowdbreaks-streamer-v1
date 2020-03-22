@@ -195,23 +195,19 @@ class ProcessTweet(object):
         # removes all other control characters and the NULL byte (which causes issues when parsing with pandas)
         return "".join(ch for ch in s if unicodedata.category(ch)[0]!="C")
 
-    def get_text(self):
+    def get_text(self, anonymize=False, with_retweet_prefix=True):
         """Get full text (for both retweets and normal tweets)"""
         tweet_text = ''
         if self.is_retweet:
-            prefix = self._get_retweet_prefix()
+            if with_retweet_prefix:
+                prefix = self._get_retweet_prefix()
+            else:
+                prefix = ''
             tweet_text = prefix + self._get_full_text(self.tweet['retweeted_status'])
         else:
             tweet_text = self._get_full_text(self.tweet)
-        return self.remove_control_characters(str(tweet_text))
-
-    def get_text_for_prediction(self):
-        """Get full text for predictions"""
-        if self.is_retweet:
-            tweet = self.tweet['retweeted_status']
-        else:
-            tweet = self.tweet
-        tweet_text = self._get_full_text(tweet)
+        if anonymize:
+            tweet_text = self.anonymize_text(tweet_text)
         return self.remove_control_characters(str(tweet_text))
 
     def anonymize_text(self, tweet_text):

@@ -135,7 +135,7 @@ def get_trending_tweets(project):
     sample_from = args.get('sample_from', 100)
     query = args.get('query', '')
     pc = ProjectConfig()
-    project_config = pc.get_config_by_project(project)
+    project_config = pc.get_config_by_slug(project)
     if project_config is None:
         return error_response(400, 'No project found with this slug')
     if not project_config['compile_trending_tweets']:
@@ -152,7 +152,7 @@ def get_trending_topics(project):
         args = {}
     num_topics = args.get('num_topics', 10)
     pc = ProjectConfig()
-    project_config = pc.get_config_by_project(project)
+    project_config = pc.get_config_by_slug(project)
     if project_config is None:
         return error_response(400, 'No project found with this slug')
     if not project_config['compile_trending_topics']:

@@ -42,7 +42,7 @@ def preprocess(text,
     text = standardize_text(text)
     # replace <@user> tags
     if isinstance(replace_user_tags_with, str):
-        text = text.replace('<@user>', replace_user_tags_with)
+        text = text.replace('@<user>', replace_user_tags_with)
     # replace <url> tags
     if isinstance(replace_url_tags_with, str):
         text = text.replace('<url>', replace_url_tags_with)

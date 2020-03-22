@@ -58,10 +58,16 @@ class ProjectConfig():
                 return False, msg
         return True, None
 
-    def get_config_by_project(self, project):
+    def get_config_by_slug(self, project):
         config = self.read()
         for stream in config:
             if stream['slug'] == project:
+                return stream
+
+    def get_config_by_index_name(self, es_index_name):
+        config = self.read()
+        for stream in config:
+            if stream['es_index_name'] == es_index_name:
                 return stream
 
     def validate_streaming_config(self):

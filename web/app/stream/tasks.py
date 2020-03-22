@@ -39,7 +39,7 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
     es_queue = ESQueue()
     stream_config_reader = ProjectConfig()
     for project in candidates:
-        stream_config = stream_config_reader.get_config_by_project(project)
+        stream_config = stream_config_reader.get_config_by_slug(project)
         if stream_config['storage_mode'] == 'test_mode':
             logger.debug('Running in test mode. Not sending to S3 or ES.')
             return
@@ -59,12 +59,12 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
         pt.process()
-        processed_tweet = pt.get_processed_tweet()
         if use_pq and pt.should_be_annotated():
             # add to Tweet ID queue for crowd labelling
             logger.info(f'Add tweet {tweet_id} to priority queue...')
+            processed_tweet = pt.get_processed_tweet()
             tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
-            processed_tweet['text'] = pt.anonymize_text(processed_tweet['text'])
+            processed_tweet['text'] = pt.get_text(anonymize=True)
             tid.add_tweet(tweet_id, processed_tweet, priority=0)
         if stream_config['image_storage_mode'] != 'inactive':
             pm = ProcessMedia(tweet, project, image_storage_mode=stream_config['image_storage_mode'])
@@ -74,9 +74,10 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
                 # Do not store retweets on ES
                 return
             # send to ES
+            processed_tweet = pt.get_processed_tweet()
             logger.debug(f'Pushing processed with id {tweet_id} to ES queue')
             es_tweet_obj = {'processed_tweet': processed_tweet, 'id': tweet_id}
             if len(stream_config['model_endpoints']) > 0:
                 # prepare for prediction
-                es_tweet_obj['text_for_prediction'] = {'text': pt.get_text_for_prediction(), 'id': tweet_id}
+                es_tweet_obj['text_for_prediction'] = {'text': pt.get_text(anonymize=True), 'id': tweet_id}
             es_queue.push(json.dumps(es_tweet_obj).encode(), project)

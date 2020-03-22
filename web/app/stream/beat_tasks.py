@@ -33,7 +33,7 @@ def send_to_s3(debug=False):
     for key in project_keys:
         project = key.decode().split(':')[-1]
         logger.info('Found {} new tweet(s) in project {}'.format(redis_queue.num_elements_in_queue(key), project))
-        stream_config = project_config.get_config_by_project(project)
+        stream_config = project_config.get_config_by_slug(project)
         tweets = b'\n'.join(redis_queue.pop_all(key))  # create json lines byte string
         now = datetime.datetime.now()
         s3_key = 'tweets/{}/{}/tweets-{}-{}.jsonl'.format(stream_config['es_index_name'], now.strftime("%Y-%m-%d"), now.strftime("%Y%m%d%H%M%S"), str(uuid.uuid4()))
@@ -60,7 +60,7 @@ def es_bulk_index(debug=True):
             continue
         project = key.decode().split(':')[-1]
         logger.info(f'Found {len(es_queue_objs):,} tweets in queue for project {project}.')
-        stream_config = project_config.get_config_by_project(project)
+        stream_config = project_config.get_config_by_slug(project)
         # compile actions for bulk indexing
         es_queue_objs = [json.loads(t.decode()) for t in es_queue_objs]
         actions = [
@@ -121,7 +121,7 @@ def es_predict(debug=True):
                             predictions[es_index_name][_id][question_tag]['endpoints'][run_name]['label_val'] = _pred['label_vals'][0]
                         if endpoints_obj['primary'] == endpoint_name:
                             # current endpoint is primary endpoint
-                            predictions[es_index_name][_id][question_tag]['primary_endpoint'] = endpoint_name
+                            predictions[es_index_name][_id][question_tag]['primary_endpoint'] = run_name
                             predictions[es_index_name][_id][question_tag]['primary_label'] = _pred['labels'][0]
                             if 'label_vals' in _pred:
                                 predictions[es_index_name][_id][question_tag]['primary_label_val'] = _pred['label_vals'][0]
