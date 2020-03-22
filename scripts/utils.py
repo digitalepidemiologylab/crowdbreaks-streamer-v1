@@ -25,11 +25,14 @@ def get_config():
 def get_es_client(env='dev'):
     if env == 'dev':
         config = {'ELASTICSEARCH_HOST': 'localhost', 'ELASTICSEARCH_PORT': 9200}
-    if env == 'prd':
+    elif env in ['stg', 'prd']:
         config = get_config()
-        for env_var in ['ELASTICSEARCH_HOST_PRD', 'ELASTICSEARCH_PORT_PRD', 'AWS_ACCESS_KEY_ID_PRD', 'AWS_SECRET_ACCESS_KEY_PRD', 'AWS_REGION_PRD']:
-            new_env_var = env_var.split('_PRD')[0]
+        ENV = env.upper()
+        for env_var in [f'ELASTICSEARCH_HOST_{ENV}', f'ELASTICSEARCH_PORT_{ENV}', f'AWS_ACCESS_KEY_ID_{ENV}', f'AWS_SECRET_ACCESS_KEY_{ENV}', f'AWS_REGION_{ENV}']:
+            new_env_var = env_var.split(f'_{ENV}')[0]
             if env_var not in config:
                 raise KeyError(f'Key {env_var} must be present in secrets.list file!')
             config[new_env_var] = config[env_var]
+    else:
+        raise ValueError(f'Invalid environment {env}')
     return Elastic(local_config=config)
