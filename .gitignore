@@ -21,9 +21,6 @@ secrets.list
 **/*.log
 **/*.log.?
 
-# binaries
-web/bin/
-
 # celery binaries
 celerybeat-schedule
 celerybeat-schedule.db
