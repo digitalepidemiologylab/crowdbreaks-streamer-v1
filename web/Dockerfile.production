@@ -7,11 +7,6 @@ WORKDIR /home/app
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install -r requirements.txt
 
-# Install fastText
-RUN apt-get update && apt-get install git
-RUN git clone https://github.com/facebookresearch/fastText
-RUN pip3 install ./fastText/
-
 # Copy files
 COPY . /home/app
 
