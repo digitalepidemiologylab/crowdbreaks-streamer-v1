@@ -20,3 +20,4 @@ flask-restful==0.3.7
 spacy==2.2.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz
 unidecode==1.1.1
+blinker==1.4
