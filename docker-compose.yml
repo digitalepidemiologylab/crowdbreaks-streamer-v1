@@ -11,7 +11,6 @@ services:
       - secrets.list
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-      - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
       - './web/app/tmp/:/home/app/app/tmp/'
@@ -29,7 +28,6 @@ services:
     env_file:
       - secrets.list
     volumes:
-      - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
       - './web/app/tmp/:/home/app/app/tmp/'
@@ -43,7 +41,6 @@ services:
     env_file:
       - secrets.list
     volumes:
-      - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
       - './web/app/tmp/:/home/app/app/tmp/'
@@ -55,7 +52,6 @@ services:
     depends_on:
       - redis
     volumes:
-      - './web/bin/:/home/app/bin/'
       - './web/logs/:/home/app/logs/'
       - './web/app/config/:/home/app/app/config/'
       - './web/app/tmp/:/home/app/app/tmp/'
