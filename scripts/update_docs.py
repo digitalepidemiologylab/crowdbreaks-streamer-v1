@@ -32,7 +32,7 @@ def main(args):
             logger.error('Bulk updating not unsuccessful!')
             print(e)
         else:
-            logger.info(f'Successfully indexed {resp[0]:,} docs...')
+            logger.info(f'Successfully indexed {resp[0]:,} batches of docs...')
 
 def parse_args():
     parser = argparse.ArgumentParser()
