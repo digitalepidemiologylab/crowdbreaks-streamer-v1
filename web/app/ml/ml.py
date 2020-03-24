@@ -5,6 +5,7 @@ from app.basic_auth import requires_auth_func
 from app.ml.sagemaker import Sagemaker
 from helpers import success_response, error_response
 import json
+from app.utils.predict import Predict
 
 blueprint = Blueprint('ml', __name__)
 reqparse = reqparse.RequestParser(bundle_errors=True)
@@ -64,3 +65,35 @@ def predict():
         return error_response(status_code, 'Prediction unsuccessful.', error_type=resp['Error']['Code'])
     prediction = json.loads(resp['Body'].read())
     return jsonify(prediction)
+
+@blueprint.route('/endpoint_config', methods=['POST'])
+def endpoint_config():
+    reqparse.add_argument('model_endpoint', type=str, required=True)
+    args = reqparse.parse_args()
+    resp = sagemaker.predict(args.model_endpoint, {'text': 'this is just a test', 'include_run_config': True})
+    status_code = resp['ResponseMetadata']['HTTPStatusCode']
+    if status_code != 200:
+        return error_response(status_code, 'Getting config unsuccessful.', error_type=resp['Error']['Code'])
+    prediction = json.loads(resp['Body'].read())
+    config = prediction['run_config']
+    return jsonify(config)
+
+@blueprint.route('/endpoint_labels', methods=['POST'])
+def endpoint_labels():
+    reqparse.add_argument('model_endpoint', type=str, required=True)
+    args = reqparse.parse_args()
+    resp = sagemaker.predict(args.model_endpoint, {'text': 'this is just a test'})
+    status_code = resp['ResponseMetadata']['HTTPStatusCode']
+    if status_code != 200:
+        return error_response(status_code, 'Getting endpoint labels unsuccessful.', error_type=resp['Error']['Code'])
+    prediction = json.loads(resp['Body'].read())
+    print(prediction)
+    labels = prediction['predictions'][0]['labels_fixed']
+    print(labels)
+    print(Predict)
+    label_vals = Predict.labels_to_int(labels)
+    label_obj = {'labels': labels}
+    print(label_obj)
+    if label_vals is not None:
+        label_obj = {**label_obj, 'label_vals': label_vals}
+    return jsonify(label_obj)

@@ -329,7 +329,7 @@ class Elastic():
     def get_predictions(self, index_name, question_tag, answer_tags, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
-        end_date = 'now'
+        run_name = options.get('run_name', '')
         include_retweets = options.get('include_retweets', True)
         s_date, e_date = self.parse_dates(start_date, end_date)
         # Time range condition
@@ -340,7 +340,11 @@ class Elastic():
         if not include_retweets:
             query_conditions.append({'field': {'is_retweet': False}})
         predictions = {}
-        field = f'meta.{question_tag}.primary_label'
+        if run_name == '':
+            # if run_name is not provided, fall back to primary label
+            field = f'meta.{question_tag}.primary_label'
+        else:
+            field = f'meta.{question_tag}.endpoints.{run_name}.label'
         query_conditions.append({'match_phrase': {field: ''}})
         for answer_tag in answer_tags:
             query_conditions[-1]['match_phrase'][field] = answer_tag

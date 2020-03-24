@@ -36,7 +36,8 @@ class Predict:
             output = [{'label_vals': _label_vals, **_output} for _output, _label_vals in zip(output, label_vals)]
         return output
 
-    def labels_to_int(self, labels):
+    @staticmethod
+    def labels_to_int(labels):
         """Heuristic to convert label to numeric value. Parses leading numbers in label tags such as 1_worried -> 1.
         If any conversion fails this function will return None
         """
