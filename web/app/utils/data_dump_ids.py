@@ -29,16 +29,29 @@ class DataDumpIds(Redis):
         return "{}:{}:{}".format(self.namespace, self.key_namespace, self.project)
 
     def add(self, value):
-        self._r.sadd(self.key, value)
+        self._r.rpush(self.key, value)
+
+    def __len__(self):
+        return self._r.llen(self.key)
 
     def self_remove(self):
         self._r.delete(self.key)
 
-    def num_members(self):
-        return self._r.scard(self.key)
-
     def pop_all(self):
-        return [d.decode() for d in self._r.spop(self.key, count=self.num_members())]
+        pipe = self._r.pipeline()
+        res = pipe.lrange(self.key, 0, -1).delete(self.key).execute()
+        return [r.decode() for r in res[0]]
+
+    def pop_all_iter(self, chunk_size=1000):
+        num_chunks = int(len(self)/chunk_size)
+        while num_chunks > 0:
+            pipe = self._r.pipeline()
+            res = pipe.lrange(self.key, 0, chunk_size-1).ltrim(self.key, chunk_size, -1).execute()
+            yield [r.decode() for r in res[0]]
+            num_chunks -= 1
+        if len(self) > 0:
+            # yield rest of data
+            yield self.pop_all()
 
     def download_existing_data_dump(self):
         logger.info(f'Downloading existing data dump with key {self.data_dump_key} to {self.local_file}...')
@@ -46,14 +59,16 @@ class DataDumpIds(Redis):
         return success
 
     def sync(self):
-        new_data = self.pop_all()
-        num_new_data = len(new_data)
+        num_new_data = len(self)
         if num_new_data == 0:
             logger.info(f'No new data was collected. Aborting.')
             return
-        logger.info(f'Writing {len(new_data):,} to file {self.data_dump_key}...')
+        logger.info(f'Writing {num_new_data:,} to file {self.data_dump_key}...')
         with open(self.local_file_tmp, 'w') as f:
-            f.write('\n'.join(new_data))
+            for chunk in self.pop_all_iter():
+                chunk = list(set(chunk))
+                if len(chunk) > 0:
+                    f.write('\n'.join(chunk) + '\n')
         logger.info(f'Collected {num_new_data:,} ids')
         if self.s3_handler.file_exists(self.data_dump_key):
             success = self.download_existing_data_dump()

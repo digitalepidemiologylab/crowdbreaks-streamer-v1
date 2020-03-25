@@ -57,7 +57,7 @@ celery.conf.beat_schedule = {
             },
         'public-data-dump-ids': {
             'task': 'public-data-dump-ids',
-            'schedule': crontab(hour=3, minute=0) # runs every data at 3am
+            'schedule': crontab(hour=0, minute=0) # runs every data at 0am
             }
         }
 
