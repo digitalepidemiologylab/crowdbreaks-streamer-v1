@@ -45,6 +45,7 @@ class Config(object):
     AWS_REGION = os.environ.get('AWS_REGION', 'eu-central-1')
     S3_BUCKET = os.environ.get('S3_BUCKET', '')
     S3_BUCKET_SAGEMAKER = os.environ.get('S3_BUCKET_SAGEMAKER', 'crowdbreaks-sagemaker')
+    S3_BUCKET_PUBLIC = os.environ.get('S3_BUCKET_PUBLIC', 'crowdbreaks-public')
 
     # Email
     SEND_EMAILS = os.environ.get('SEND_EMAILS', '0')

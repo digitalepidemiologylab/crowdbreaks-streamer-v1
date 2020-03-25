@@ -6,6 +6,7 @@ from app.utils.process_tweet import ProcessTweet
 from app.utils.process_media import ProcessMedia
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.project_config import ProjectConfig
+from app.utils.data_dump_ids import DataDumpIds
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.trending_tweets import TrendingTweets
 from app.stream.trending_topics import TrendingTopics
@@ -14,6 +15,8 @@ from app.extensions import es
 import logging
 import os
 import json
+
+config = Config()
 
 @celery.task(ignore_result=True)
 def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatched_tweets=False):
@@ -29,7 +32,6 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         logger.info(f'Tweet {tweet_id} could not be matched against any existing projects.')
         if store_unmatched_tweets:
             # store to separate file for later analysis
-            config = Config()
             with open(os.path.join(config.PROJECT_ROOT, 'logs', 'reverse_match_errors', f'{tweet_id}.json'), 'w') as f:
                 json.dump(tweet, f)
         return
@@ -56,6 +58,9 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         if stream_config['compile_trending_topics']:
             trending_topics = TrendingTopics(project, project_locales=stream_config['locales'], project_keywords=stream_config['keywords'])
             trending_topics.process(tweet)
+        if stream_config['compile_data_dump_ids'] and config.ENV == 'prd':
+            data_dump_ids = DataDumpIds(project)
+            data_dump_ids.add(tweet_id)
         # preprocess tweet
         pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
         pt.process()

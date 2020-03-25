@@ -11,7 +11,22 @@ class ProjectConfig():
 
     def __init__(self):
         self.config_path = self._get_config_path()
-        self.required_keys = ['keywords', 'es_index_name', 'lang',  'locales', 'slug', 'storage_mode', 'image_storage_mode', 'model_endpoints', 'compile_trending_tweets', 'compile_trending_topics']
+        self.required_keys = ['keywords', 'es_index_name', 'lang',  'locales', 'slug',
+                'storage_mode', 'image_storage_mode', 'model_endpoints', 'compile_trending_tweets',
+                'compile_trending_topics', 'compile_data_dump_ids']
+        self.validations = {
+                'keywords': list,
+                'lang': list,
+                'es_index_name': str,
+                'storage_mode': str,
+                'image_storage_mode': str,
+                'slug': str,
+                'model_endpoints': dict,
+                'locales': list,
+                'compile_trending_tweets': bool,
+                'compile_trending_topics': bool,
+                'compile_data_dump_ids': bool
+                }
 
     def get_pooled_config(self):
         """Pool all configs to run in single stream"""
@@ -93,8 +108,7 @@ class ProjectConfig():
         return True
 
     def _validate_data_types(self, obj):
-        validations = [['keywords', list], ['lang', list], ['es_index_name', str], ['slug', str], ['model_endpoints', dict], ['locales', list], ['compile_trending_tweets', bool], ['compile_trending_topics', bool]]
-        for key, data_type in validations:
+        for key, data_type in self.validations.items():
             if not isinstance(obj[key], data_type):
                 return False
         return True

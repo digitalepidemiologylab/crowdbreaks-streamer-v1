@@ -3,6 +3,7 @@ from celery.utils.log import get_task_logger
 from app.settings import Config
 from app.utils.project_config import ProjectConfig
 from app.utils.predict_queue import PredictQueue
+from app.utils.data_dump_ids import DataDumpIds
 from app.utils.predict import Predict
 from app.stream.s3_handler import S3Handler
 from app.stream.redis_s3_queue import RedisS3Queue
@@ -18,6 +19,7 @@ import json
 import datetime
 import uuid
 
+config = Config()
 
 @celery.task(name='s3-upload-task', ignore_result=True)
 def send_to_s3(debug=False):
@@ -169,7 +171,6 @@ def trending_topics_velocity(debug=False):
 # EMAIL TASKS
 @celery.task(name='stream-status-daily', ignore_result=True)
 def stream_status_daily(debug=False):
-    config = Config()
     logger = get_logger(debug)
     if (config.SEND_EMAILS == '1' and config.ENV == 'prd') or config.ENV == 'test-email':
         mailer = StreamStatusMailer(status_type='daily')
@@ -183,7 +184,6 @@ def stream_status_daily(debug=False):
 
 @celery.task(name='stream-status-weekly', ignore_result=True)
 def stream_status_weekly(debug=False):
-    config = Config()
     logger = get_logger(debug)
     if (config.SEND_EMAILS == '1' and config.ENV == 'prd') or config.ENV == 'test-email':
         mailer = StreamStatusMailer(status_type='weekly')
@@ -194,6 +194,20 @@ def stream_status_weekly(debug=False):
     # clear redis count cache
     redis_queue = RedisS3Queue()
     redis_queue.clear_counts(older_than=90)
+
+# ------------------------------------------
+# Public data dumps
+@celery.task(name='public-data-dump-ids', ignore_result=True)
+def public_data_dump_ids(debug=False):
+    logger = get_logger(debug)
+    if config.ENV != 'prd':
+        logger.info(f'Data dumps are only collected in production environments.')
+        return
+    project_config = ProjectConfig()
+    for project_config in project_config.read():
+        if project_config['compile_data_dump_ids']:
+            data_dump_ids = DataDumpIds(project_config['slug'])
+            data_dump_ids.sync()
 
 # ------------------------------------------
 # Helper functions

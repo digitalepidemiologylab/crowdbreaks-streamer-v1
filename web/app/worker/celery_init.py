@@ -54,6 +54,10 @@ celery.conf.beat_schedule = {
         'email-weekly': {
             'task': 'stream-status-weekly',
             'schedule': crontab(day_of_week=1, hour=9, minute=0) # runs at 9am on Mondays
+            },
+        'public-data-dump-ids': {
+            'task': 'public-data-dump-ids',
+            'schedule': crontab(hour=3, minute=0) # runs every data at 3am
             }
         }
 

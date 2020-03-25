@@ -12,6 +12,7 @@ from app.stream.trending_topics import TrendingTopics
 from app.utils.redis import Redis
 from app.utils.predict_queue import PredictQueue
 from app.utils.predict import Predict
+from app.utils.data_dump_ids import DataDumpIds
 
 
 # session fixtures
@@ -20,6 +21,12 @@ def pq():
     pq = PriorityQueue('test_project', namespace='test', max_queue_length=10)
     yield pq
     pq.self_remove()
+
+@pytest.fixture(scope='function')
+def data_dump_ids():
+    data_dump_ids = DataDumpIds('test_project')
+    yield data_dump_ids
+    data_dump_ids.self_remove()
 
 @pytest.fixture(scope='session')
 def rs():
