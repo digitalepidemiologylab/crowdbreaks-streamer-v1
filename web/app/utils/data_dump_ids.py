@@ -6,7 +6,7 @@ import time
 import os
 import uuid
 import shutil
-from helpers import report_error
+from helpers import report_error, compress, decompress
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,9 @@ class DataDumpIds(Redis):
         self.tmp_path = os.path.join(self.config.APP_DIR, 'tmp')
         self.data_dump_f_name = f'data_dump_ids_{self.project}'
         self.local_file = os.path.join(self.tmp_path, self.data_dump_f_name)
+        self.local_file_compr = os.path.join(self.tmp_path, self.data_dump_f_name + '.gz')
         self.local_file_tmp = os.path.join(self.tmp_path, self.data_dump_f_name + '.tmp')
-        self.data_dump_key = f'data_dump/{self.project}/{self.data_dump_f_name}.txt'
+        self.data_dump_key = f'data_dump/{self.project}/{self.data_dump_f_name}.txt.gz'
         self.s3_handler = S3Handler(bucket='public')
 
     @property
@@ -54,9 +55,10 @@ class DataDumpIds(Redis):
             yield self.pop_all()
 
     def download_existing_data_dump(self):
-        logger.info(f'Downloading existing data dump with key {self.data_dump_key} to {self.local_file}...')
-        success = self.s3_handler.download_file(self.local_file, self.data_dump_key)
+        logger.info(f'Downloading existing data dump with key {self.data_dump_key} to {self.local_file_compr}...')
+        success = self.s3_handler.download_file(self.local_file_compr, self.data_dump_key)
         return success
+
 
     def sync(self):
         num_new_data = len(self)
@@ -75,20 +77,24 @@ class DataDumpIds(Redis):
             if not success:
                 logger.error(f'Something went wrong when trying to download the existing data. Aborting.')
                 return
+            # decompress data
+            decompress(self.local_file_compr, self.local_file)
+            os.remove(self.local_file_compr)
             # concatenating new data
             with open(self.local_file, 'a') as f:
-                f.write('\n')
                 shutil.copyfileobj(open(self.local_file_tmp, 'r'), f)
         else:
             # There is no existing data, simply rename file
             os.rename(self.local_file_tmp, self.local_file)
         # reuploading file
+        logger.info(f'Compressing file...')
+        compress(self.local_file, self.local_file_compr)
         logger.info(f'Uploading file to S3 under key {self.data_dump_key}')
-        success = self.s3_handler.upload_file(self.local_file, self.data_dump_key, make_public=True)
+        success = self.s3_handler.upload_file(self.local_file_compr, self.data_dump_key, make_public=True)
         if not success:
             report_error(logger, msg='Uploading data dump Ids file to S3 unsuccessful.')
         # cleanup
         logger.info('Cleaning up temporary files...')
-        for f in [self.local_file, self.local_file_tmp]:
+        for f in [self.local_file, self.local_file_tmp, self.local_file_compr]:
             if os.path.isfile(f):
                 os.remove(f)

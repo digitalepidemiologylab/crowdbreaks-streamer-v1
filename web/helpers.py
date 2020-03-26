@@ -4,6 +4,8 @@ import pytz
 from datetime import datetime
 from flask import jsonify
 import sys
+import gzip
+import shutil
 
 def report_error(logger, msg='', level='error', exception=False):
     # exception reporting
@@ -45,3 +47,13 @@ def error_response(status_code=400, message='', error_type=''):
             'error': error_obj
             }
     return jsonify(response), status_code
+
+def compress(input_file, output_file):
+    with open(input_file, 'rb') as f_in, gzip.open(output_file, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+
+def decompress(input_file, output_file):
+    with gzip.open(input_file, 'rb') as f_in, open(output_file, 'wb') as f_out:
+        shutil.copyfileobj(f_in, f_out)
+
+
