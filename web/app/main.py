@@ -243,6 +243,13 @@ def get_predictions(index_name):
     res = es.get_predictions(index_name, question_tag, answer_tags, **body)
     return json.dumps(res)
 
+@blueprint.route('data/average_label_val/<index_name>', methods=['POST'])
+def get_average_label_val(index_name):
+    body = request.get_json()
+    question_tag = body.pop('question_tag')
+    res = es.get_avg_label_val(index_name, question_tag, **body)
+    return json.dumps(res)
+
 #################################################################
 # Sentiment data
 @blueprint.route('sentiment/average', methods=['GET'])

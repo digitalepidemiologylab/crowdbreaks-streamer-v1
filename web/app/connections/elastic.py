@@ -254,52 +254,6 @@ class Elastic():
 
     #################################################################
     # Sentiment data
-
-    def get_av_sentiment(self, index_name, **options):
-        start_date = options.get('start_date', 'now-20y')
-        end_date = options.get('end_date', 'now')
-        s_date, e_date = self.parse_dates(start_date, end_date)
-        include_retweets = options.get('include_retweets', False)
-        # Time range condition
-        query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
-        # Include retweets condition
-        if include_retweets:
-            query_conditions.append({'exists': {'field': 'is_retweet'}}) # needs to have is_retweet field
-        else:
-            exclude_retweets_query = [
-                    {'bool': {'must_not': [{'exists': {'field': 'is_retweet'}}]}}, # if field does not exist it is not a retweet, OR ...
-                    {'bool': {'must': [{'exists': {'field': 'is_retweet'}}, {'term': {'is_retweet': False}}]}} # if is_retweet field exists it has to be False
-                ]
-            query_conditions.append({'bool': {'should': exclude_retweets_query}}) # needs to exclude retweets condition
-
-        # full query
-        field = 'meta.sentiment.{}'.format(options.get('model', 'fasttext_v1'))
-        body = {'size': 0,
-                'aggs': {
-                    'avg_sentiment': {
-                        'date_histogram': {
-                            'field': 'created_at',
-                            'interval': options.get('interval', 'month'),
-                            'format': 'yyyy-MM-dd HH:mm:ss'
-                            },
-                        'aggs': {
-                            'avg_sentiment': {
-                                'avg': {
-                                    'field': '{}.label_val'.format(field)
-                                    }
-                                }
-                            }
-                        }
-                    },
-                'query': {'bool': {'must': query_conditions}}
-                }
-        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.avg_sentiment'])
-        if keys_exist(res, 'aggregations', 'avg_sentiment', 'buckets'):
-            return res['aggregations']['avg_sentiment']['buckets']
-        else:
-            return []
-
-
     def get_geo_sentiment(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
@@ -366,6 +320,50 @@ class Elastic():
             else:
                 predictions[answer_tag] = []
         return predictions
+
+    def get_avg_label_val(self, index_name, question_tag, **options):
+        start_date = options.get('start_date', 'now-20y')
+        end_date = options.get('end_date', 'now')
+        run_name = options.get('run_name', '')
+        include_retweets = options.get('include_retweets', True)
+        s_date, e_date = self.parse_dates(start_date, end_date)
+        # Time range condition
+        query_conditions = [{'range': {'created_at': {'gte': s_date, 'lte': e_date}}}]
+        # for certain old data we don't have retweet information, exclude those
+        query_conditions.append({'exists': {'field': 'is_retweet'}})
+        # Include retweets condition
+        if not include_retweets:
+            query_conditions.append({'field': {'is_retweet': False}})
+        predictions = {}
+        if run_name == '':
+            # if run_name is not provided, fall back to primary label
+            field = f'meta.{question_tag}.primary_label_val'
+        else:
+            field = f'meta.{question_tag}.endpoints.{run_name}.label_val'
+        # full query
+        body = {
+                'aggs': {
+                    'hist_agg': {
+                        'date_histogram': {
+                            'field': 'created_at',
+                            'interval': options.get('interval', 'month'),
+                            'format': 'yyyy-MM-dd HH:mm:ss'
+                            },
+                        'aggs': {
+                            'mean_label_val': {
+                                'avg': {
+                                    'field': field
+                                    }
+                                }
+                            }
+                        }
+                    },
+                'query': {'bool': {'must': query_conditions}}
+                }
+        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.hist_agg.buckets'])
+        if keys_exist(res, 'aggregations', 'hist_agg', 'buckets'):
+            return res['aggregations']['hist_agg']['buckets']
+        return []
 
     def get_all_agg(self, index_name, **options):
         start_date = options.get('start_date', 'now-20y')

@@ -6,10 +6,12 @@ from app.ml.sagemaker import Sagemaker
 from helpers import success_response, error_response
 import json
 from app.utils.predict import Predict
+import logging
 
 blueprint = Blueprint('ml', __name__)
 reqparse = reqparse.RequestParser(bundle_errors=True)
 sagemaker = Sagemaker()
+logger = logging.getLogger(__name__)
 
 @blueprint.before_request
 def require_auth_all():
@@ -62,6 +64,7 @@ def predict():
     resp = sagemaker.predict(args.model_endpoint, {'text': args.text})
     status_code = resp['ResponseMetadata']['HTTPStatusCode']
     if status_code != 200:
+        logger.error(resp)
         return error_response(status_code, 'Prediction unsuccessful.', error_type=resp['Error']['Code'])
     prediction = json.loads(resp['Body'].read())
     return jsonify(prediction)
@@ -73,6 +76,7 @@ def endpoint_config():
     resp = sagemaker.predict(args.model_endpoint, {'text': 'this is just a test', 'include_run_config': True})
     status_code = resp['ResponseMetadata']['HTTPStatusCode']
     if status_code != 200:
+        logger.error(resp)
         return error_response(status_code, 'Getting config unsuccessful.', error_type=resp['Error']['Code'])
     prediction = json.loads(resp['Body'].read())
     config = prediction['run_config']
@@ -85,15 +89,12 @@ def endpoint_labels():
     resp = sagemaker.predict(args.model_endpoint, {'text': 'this is just a test'})
     status_code = resp['ResponseMetadata']['HTTPStatusCode']
     if status_code != 200:
+        logger.error(resp)
         return error_response(status_code, 'Getting endpoint labels unsuccessful.', error_type=resp['Error']['Code'])
     prediction = json.loads(resp['Body'].read())
-    print(prediction)
     labels = prediction['predictions'][0]['labels_fixed']
-    print(labels)
-    print(Predict)
     label_vals = Predict.labels_to_int(labels)
     label_obj = {'labels': labels}
-    print(label_obj)
     if label_vals is not None:
         label_obj = {**label_obj, 'label_vals': label_vals}
     return jsonify(label_obj)
