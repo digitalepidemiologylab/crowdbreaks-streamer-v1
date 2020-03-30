@@ -325,6 +325,8 @@ class Elastic():
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         run_name = options.get('run_name', '')
+        moving_average_window_size = options.get('moving_average_window_size', 10)
+        interval = options.get('interval', 'month')
         include_retweets = options.get('include_retweets', True)
         s_date, e_date = self.parse_dates(start_date, end_date)
         # Time range condition
@@ -346,7 +348,7 @@ class Elastic():
                     'hist_agg': {
                         'date_histogram': {
                             'field': 'created_at',
-                            'interval': options.get('interval', 'month'),
+                            'interval': interval,
                             'format': 'yyyy-MM-dd HH:mm:ss'
                             },
                         'aggs': {
@@ -364,7 +366,7 @@ class Elastic():
             body['aggs']['hist_agg']['aggs']['mean_label_val_moving_average'] = {
                     'moving_avg': {
                         'buckets_path': 'mean_label_val',
-                        'window': 5
+                        'window': moving_average_window_size
                         }
                     }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.hist_agg.buckets'])
