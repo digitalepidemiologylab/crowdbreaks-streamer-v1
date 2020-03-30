@@ -321,7 +321,7 @@ class Elastic():
                 predictions[answer_tag] = []
         return predictions
 
-    def get_avg_label_val(self, index_name, question_tag, **options):
+    def get_avg_label_val(self, index_name, question_tag, with_moving_average=True, **options):
         start_date = options.get('start_date', 'now-20y')
         end_date = options.get('end_date', 'now')
         run_name = options.get('run_name', '')
@@ -360,6 +360,13 @@ class Elastic():
                     },
                 'query': {'bool': {'must': query_conditions}}
                 }
+        if with_moving_average:
+            body['aggs']['hist_agg']['aggs']['mean_label_val_moving_average'] = {
+                    'moving_avg': {
+                        'buckets_path': 'mean_label_val',
+                        'window': 5
+                        }
+                    }
         res = self.es.search(index=index_name, body=body, filter_path=['aggregations.hist_agg.buckets'])
         if keys_exist(res, 'aggregations', 'hist_agg', 'buckets'):
             return res['aggregations']['hist_agg']['buckets']
