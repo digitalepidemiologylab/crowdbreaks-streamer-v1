@@ -303,7 +303,9 @@ class Elastic():
         for answer_tag in answer_tags:
             query_conditions[-1]['match_phrase'][field] = answer_tag
             # full query
-            body = {'aggs': {
+            body = {
+                    'size': 0,
+                    'aggs': {
                         'prediction_agg': {
                             'date_histogram': {
                                 'field': 'created_at',
@@ -344,6 +346,7 @@ class Elastic():
             field = f'meta.{question_tag}.endpoints.{run_name}.label_val'
         # full query
         body = {
+                'size': 0,
                 'aggs': {
                     'hist_agg': {
                         'date_histogram': {

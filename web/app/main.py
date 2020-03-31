@@ -233,7 +233,7 @@ def email_status():
 def get_all_data(index_name):
     options = request.get_json()
     res = es.get_all_agg(index_name, **options)
-    return jsonify(res)
+    return json.dumps(res)
 
 @blueprint.route('data/predictions/<index_name>', methods=['POST'])
 def get_predictions(index_name):
