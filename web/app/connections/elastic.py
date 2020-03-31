@@ -316,7 +316,7 @@ class Elastic():
                         },
                     'query': {'bool': {'must': query_conditions}}
                     }
-            res = self.es.search(index=index_name, body=body, filter_path=['aggregations.prediction_agg'])
+            res = self.es.search(index=index_name, body=body, filter_path=['aggregations.prediction_agg'], request_timeout=60)
             if keys_exist(res, 'aggregations', 'prediction_agg', 'buckets'):
                 predictions[answer_tag] = res['aggregations']['prediction_agg']['buckets']
             else:
@@ -403,7 +403,7 @@ class Elastic():
                     },
                 'query': query
                 }
-        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'])
+        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.sentiment'], request_timeout=60)
         if keys_exist(res, 'aggregations', 'sentiment', 'buckets'):
             return res['aggregations']['sentiment']['buckets']
         else:
