@@ -16,7 +16,7 @@ class PriorityQueue(Redis):
     MAX_QUEUE_LENGTH = 1000
 
     def __init__(self, project, namespace='cb', key_namespace='pq', max_queue_length=1000, **args):
-        super().__init__(self)
+        super().__init__(self, **args)
         # logging
         self.logger = logging.getLogger('PriorityQueue')
         self.project = project
@@ -187,7 +187,7 @@ class TweetStore(Redis):
     """Stores tweets with the tweet ID as the key and the tweet as a hash"""
 
     def __init__(self, namespace='cb', key_namespace='tweet_store', **kwargs):
-        super().__init__(self)
+        super().__init__(self, **kwargs)
         self.namespace = namespace
         self.key_namespace = key_namespace
 
@@ -235,7 +235,6 @@ class TweetIdQueue:
             self.logger = logging.getLogger('PriorityQueue')
         else:
             self.logger = logger
-
         self.project = project
         self.pq = PriorityQueue(project, namespace=namespace, max_queue_length=kwargs.get('max_queue_length', 1000))
         self.rset = RedisSet(project, namespace=namespace, **kwargs)

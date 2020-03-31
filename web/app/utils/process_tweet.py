@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class ProcessTweet(object):
+class ProcessTweet():
     """Wrapper class for functions to process/modify tweets"""
 
     # Fields to extract from tweet object
@@ -46,14 +46,11 @@ class ProcessTweet(object):
         ]
 
 
-    def __init__(self, project=None, tweet=None, project_locales=None):
-        self.tweet = tweet            # initial tweet
-        if self.tweet is None:
-            self.extended_tweet = None
-        else:
-            self.extended_tweet = self._get_extended_tweet()
-        self.processed_tweet = None   # processed tweet
-        self.project = project
+    def __init__(self, tweet, project_locales=None):
+        self.tweet = tweet
+        self.extended_tweet = self._get_extended_tweet()
+        self.processed_tweet = None
+        self.is_processed = False
         if not isinstance(project_locales, list):
             self.project_locales = []
         else:
@@ -74,6 +71,27 @@ class ProcessTweet(object):
             return self.tweet['possibly_sensitive']
         else:
             return False
+
+    @property
+    def has_place(self):
+        if self.tweet['place'] is None:
+            return False
+        coords = self.tweet['place'].get('bounding_box', {}).get('coordinates', None)
+        if coords is None:
+            return False
+        else:
+            return True
+
+    @property
+    def has_coordinates(self):
+        if self.tweet['coordinates'] is None:
+            return False
+        try:
+            self.tweet['coordinates']['coordinates']
+        except KeyError:
+            return False
+        else:
+            return True
 
     def is_matching_project_locales(self):
         if len(self.project_locales) == 0:
@@ -108,6 +126,7 @@ class ProcessTweet(object):
             self.compute_average_location()
             logger.debug('Computed average location {} and average radius {}'.format(self.processed_tweet['place']['average_location'],
                 self.processed_tweet['place']['location_radius']))
+        self.is_processed = True
 
     def strip(self):
         """Strip fields before sending to Elasticsearch"""
@@ -133,11 +152,9 @@ class ProcessTweet(object):
 
     def compute_average_location(self):
         """Compute average location from bounding box"""
-        if self.tweet is None:
-            return None
-        coords = self.tweet.get('place', {}).get('bounding_box', {}).get('coordinates', None)
-        if coords is None:
+        if not self.has_place:
             return
+        coords = self.tweet['place']['bounding_box']['coordinates']
         parsed_coords = []
         for lon_d, lat_d in coords[0]:
             parsed_coords.append([float(lon_d), float(lat_d)])
@@ -163,24 +180,21 @@ class ProcessTweet(object):
         max_lon = max([lon for lon, lat in parsed_coords])
         radius = (abs(av_lon - max_lon) + abs(av_lat - max_lat))/2
         # store in target object
+        if self.processed_tweet is None:
+            self.processed_tweet = {}
         if 'place' not in self.processed_tweet:
             self.processed_tweet['place'] = {}
         self.processed_tweet['place']['average_location'] = [av_lon, av_lat]
         self.processed_tweet['place']['location_radius'] = radius
 
     def add_retweet_info(self):
-        if self.tweet is None:
-            return
         self.processed_tweet['is_retweet'] = self.is_retweet
 
     def get_processed_tweet(self):
         """get_processed_tweet"""
-        if self.tweet is None:
-            return None
-        if self.processed_tweet is None:
-            return self.tweet
-        else:
-            return self.processed_tweet
+        if not self.is_processed:
+            raise Exception('Tweet has not been processed yet. Call process() first')
+        return self.processed_tweet
 
     def error(self, msg):
         report_error(logger, msg=msg)

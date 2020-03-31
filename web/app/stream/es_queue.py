@@ -8,8 +8,8 @@ import json
 class ESQueue(Redis):
     """Multi-indexing using Elasticsearch bulk API"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **args):
+        super().__init__(**args)
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.dump_folder = os.path.join(self.config.PROJECT_ROOT, 'logs')

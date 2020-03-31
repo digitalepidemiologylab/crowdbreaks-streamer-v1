@@ -23,8 +23,9 @@ class TrendingTweets(Redis):
             project_locales=None,
             key_namespace='trending-tweets',
             max_queue_length=1e4,
-            expiry_time_ms=2*24*3600*1000):
-        super().__init__(self)
+            expiry_time_ms=2*24*3600*1000,
+            **args):
+        super().__init__(self, **args)
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.project = project

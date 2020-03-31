@@ -7,11 +7,11 @@ from itertools import cycle, dropwhile
 
 class RedisS3Queue(Redis):
     """
-    Handles a queue of tweets for each project to be uploaded to S3 by a celery beat task. 
+    Handles a queue of tweets for each project to be uploaded to S3 by a celery beat task.
     Additionally it keeps track of daily and hourly counts for stats.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **args):
+        super().__init__(**args)
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.counts_namespace = 'counts'
@@ -80,7 +80,7 @@ class RedisS3Queue(Redis):
         counts = self.get_counts(project, day, hour, media_type)
         key = self.count_key(project, day, hour, media_type)
         self._r.set(key, counts + incr)
-    
+
     def clear_counts(self, older_than=90):
         """Clear all keys for project older than `older_than` days"""
         end_day = datetime.utcnow()

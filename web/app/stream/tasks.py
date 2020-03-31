@@ -6,6 +6,7 @@ from app.utils.process_tweet import ProcessTweet
 from app.utils.process_media import ProcessMedia
 from app.utils.priority_queue import TweetIdQueue
 from app.utils.project_config import ProjectConfig
+from app.utils.redis import Redis
 from app.utils.data_dump_ids import DataDumpIds
 from app.stream.redis_s3_queue import RedisS3Queue
 from app.stream.trending_tweets import TrendingTweets
@@ -27,6 +28,9 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
     rtm = ReverseTweetMatcher(tweet=tweet)
     candidates = rtm.get_candidates()
     tweet_id = tweet['id_str']
+    # open Redis connection only once
+    redis = Redis()
+    connection = redis.get_connection()
     if len(candidates) == 0:
         # Could not match keywords. This might occur quite frequently e.g. when tweets are collected accross different languages/keywords
         logger.info(f'Tweet {tweet_id} could not be matched against any existing projects.')
@@ -37,8 +41,8 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         return
     # queue up for s3 upload and add to priority queue
     logger.info("SUCCESS: Found {} project(s) ({}) as a matching project for tweet".format(len(candidates), ', '.join(candidates)))
-    redis_queue = RedisS3Queue()
-    es_queue = ESQueue()
+    redis_queue = RedisS3Queue(connection=connection)
+    es_queue = ESQueue(connection=connection)
     stream_config_reader = ProjectConfig()
     for project in candidates:
         stream_config = stream_config_reader.get_config_by_slug(project)
@@ -50,25 +54,31 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
         tweet['_tracking_info']['matching_keywords'] = rtm.matching_keywords[project]
         # Queue up on Redis for subsequent upload
         redis_queue.push(json.dumps(tweet).encode(), project)
+        # preprocess tweet
+        pt = ProcessTweet(tweet, project_locales=stream_config['locales'])
+        pt.process()
         # Possibly add tweet to trending tweets
         if stream_config['compile_trending_tweets']:
-            trending_tweets = TrendingTweets(project, project_locales=stream_config['locales'])
+            trending_tweets = TrendingTweets(project, project_locales=stream_config['locales'], connection=connection)
             trending_tweets.process(tweet)
         # Extract trending topics
         if stream_config['compile_trending_topics']:
-            trending_topics = TrendingTopics(project, project_locales=stream_config['locales'], project_keywords=stream_config['keywords'])
+            trending_topics = TrendingTopics(project, project_locales=stream_config['locales'], project_keywords=stream_config['keywords'], connection=connection)
             trending_topics.process(tweet)
         if stream_config['compile_data_dump_ids'] and config.ENV == 'prd':
-            data_dump_ids = DataDumpIds(project)
+            data_dump_ids = DataDumpIds(project, connection=connection)
             data_dump_ids.add(tweet_id)
-        # preprocess tweet
-        pt = ProcessTweet(tweet=tweet, project=project, project_locales=stream_config['locales'])
-        pt.process()
+            if pt.has_place:
+                data_dump_ids = DataDumpIds(project, mode='has_place', connection=connection)
+                data_dump_ids.add(tweet_id)
+            if pt.has_coordinates:
+                data_dump_ids = DataDumpIds(project, mode='has_coordinates', connection=connection)
+                data_dump_ids.add(tweet_id)
         if use_pq and pt.should_be_annotated():
             # add to Tweet ID queue for crowd labelling
             logger.info(f'Add tweet {tweet_id} to priority queue...')
             processed_tweet = pt.get_processed_tweet()
-            tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3)
+            tid = TweetIdQueue(stream_config['es_index_name'], priority_threshold=3, connection=connection)
             processed_tweet['text'] = pt.get_text(anonymize=True)
             tid.add_tweet(tweet_id, processed_tweet, priority=0)
         if stream_config['image_storage_mode'] != 'inactive':

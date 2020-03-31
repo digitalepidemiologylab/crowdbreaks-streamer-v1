@@ -208,6 +208,9 @@ def public_data_dump_ids(debug=False):
         if project_config['compile_data_dump_ids']:
             data_dump_ids = DataDumpIds(project_config['slug'])
             data_dump_ids.sync()
+            for mode in ['has_place', 'has_coordinates']:
+                data_dump_ids = DataDumpIds(project_config['slug'], mode=mode)
+                data_dump_ids.sync()
 
 # ------------------------------------------
 # Helper functions

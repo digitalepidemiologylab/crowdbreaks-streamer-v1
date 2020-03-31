@@ -27,9 +27,9 @@ class TrendingTopics(Redis):
             project_locales=None,
             key_namespace_counts='trending-topics-counts',
             max_queue_length=1e4,
-            project_keywords=None
-            ):
-        super().__init__(self)
+            project_keywords=None,
+            **args):
+        super().__init__(self, **args)
         self.config = Config()
         self.namespace = self.config.REDIS_NAMESPACE
         self.project = project
@@ -137,7 +137,7 @@ class TrendingTopics(Redis):
         if not self.should_be_processed(tweet):
             return
         # get tokens
-        pt = ProcessTweet(project=self.project, tweet=tweet, project_locales=self.project_locales)
+        pt = ProcessTweet(tweet, project_locales=self.project_locales)
         tokens = self.tokenize_tweet(tweet, pt)
         # determine count increment
         count_increment = 1

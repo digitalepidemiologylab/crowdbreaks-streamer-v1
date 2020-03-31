@@ -4,7 +4,7 @@ import os
 from app.utils.project_config import ProjectConfig
 from collections import defaultdict
 
-class ReverseTweetMatcher(object):
+class ReverseTweetMatcher():
     """Tries to reverse match a tweet object given a set of keyword lists and languages."""
 
     def __init__(self, tweet=None):

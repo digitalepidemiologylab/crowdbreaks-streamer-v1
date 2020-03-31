@@ -9,25 +9,35 @@ import shutil
 from helpers import report_error, compress, decompress
 
 logger = logging.getLogger(__name__)
+config = Config()
 
 class DataDumpIds(Redis):
-    def __init__(self, project, namespace='cb', key_namespace='data-dump-ids', **args):
-        super().__init__(self)
+    def __init__(self, project, mode=None, namespace='cb', key_namespace='data-dump-ids', **args):
+        super().__init__(self, **args)
         self.project = project
+        self.mode = mode
         self.namespace = namespace
         self.key_namespace = key_namespace
-        self.config = Config()
-        self.tmp_path = os.path.join(self.config.APP_DIR, 'tmp')
-        self.data_dump_f_name = f'data_dump_ids_{self.project}'
+        self.tmp_path = os.path.join(config.APP_DIR, 'tmp')
+        if self.mode is None:
+            self.data_dump_f_name = f'data_dump_ids_{self.project}'
+        else:
+            self.data_dump_f_name = f'data_dump_ids_{self.project}_{self.mode}'
         self.local_file = os.path.join(self.tmp_path, self.data_dump_f_name)
         self.local_file_compr = os.path.join(self.tmp_path, self.data_dump_f_name + '.gz')
         self.local_file_tmp = os.path.join(self.tmp_path, self.data_dump_f_name + '.tmp')
-        self.data_dump_key = f'data_dump/{self.project}/{self.data_dump_f_name}.txt.gz'
+        if config.ENV == 'prd':
+            self.data_dump_key = f'data_dump/{self.project}/{self.data_dump_f_name}.txt.gz'
+        else:
+            self.data_dump_key = f'{config.ENV}/data_dump/{self.project}/{self.data_dump_f_name}.txt.gz'
         self.s3_handler = S3Handler(bucket='public')
 
     @property
     def key(self):
-        return "{}:{}:{}".format(self.namespace, self.key_namespace, self.project)
+        if self.mode is None:
+            return "{}:{}:{}".format(self.namespace, self.key_namespace, self.project)
+        else:
+            return "{}:{}:{}:{}".format(self.namespace, self.key_namespace, self.project, self.mode)
 
     def add(self, value):
         self._r.rpush(self.key, value)
@@ -58,7 +68,6 @@ class DataDumpIds(Redis):
         logger.info(f'Downloading existing data dump with key {self.data_dump_key} to {self.local_file_compr}...')
         success = self.s3_handler.download_file(self.local_file_compr, self.data_dump_key)
         return success
-
 
     def sync(self):
         num_new_data = len(self)
