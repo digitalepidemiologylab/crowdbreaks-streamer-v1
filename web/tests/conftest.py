@@ -86,22 +86,27 @@ def predictor():
 
 # test data
 @pytest.fixture(scope='session')
-def tweet_with_images():
-    config = Config()
-    with open(os.path.join(config.PROJECT_ROOT, 'tests', 'data', 'tweet_with_media.json')) as f:
-        tweet = json.load(f)
-    yield tweet
-
-@pytest.fixture(scope='session')
 def retweet():
-    config = Config()
-    with open(os.path.join(config.PROJECT_ROOT, 'tests', 'data', 'retweet.json')) as f:
-        tweet = json.load(f)
-    yield tweet
+    yield load_tweet('retweet')
 
 @pytest.fixture(scope='session')
 def tweet():
+    yield load_tweet('tweet')
+
+@pytest.fixture(scope='session')
+def tweet_with_place():
+    yield load_tweet('tweet_with_place')
+
+@pytest.fixture(scope='session')
+def tweet_with_images():
+    yield load_tweet('tweet_with_media')
+
+@pytest.fixture(scope='session')
+def tweet_with_coordinates():
+    yield load_tweet('tweet_with_coordinates')
+
+def load_tweet(tweet_type):
     config = Config()
-    with open(os.path.join(config.PROJECT_ROOT, 'tests', 'data', 'tweet.json')) as f:
+    with open(os.path.join(config.PROJECT_ROOT, 'tests', 'data', f'{tweet_type}.json')) as f:
         tweet = json.load(f)
-    yield tweet
+    return tweet

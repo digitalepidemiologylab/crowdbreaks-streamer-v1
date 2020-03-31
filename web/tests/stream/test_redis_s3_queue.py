@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import json
 import sys;sys.path.append('../../../web/')
 from app.utils.mailer import StreamStatusMailer
+from app.stream.redis_s3_queue import RedisS3Queue
 
 
 class TestRedisS3Queue:
@@ -74,10 +75,14 @@ class TestRedisS3Queue:
         dr = s3_q.daterange(one_day_ago, now, hourly=True)
         assert len(list(dr)) == 24
 
+    def test_passing_redis_connection(self, r):
+        conn = r.get_connection()
+        s3_q = RedisS3Queue(connection=conn)
+        assert s3_q.connection is not None
 
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     import os; os.environ["REDIS_HOST"] = "localhost"
     # @pytest.mark.focus
-    # pytest.main(['-s', '-m', 'focus'])
-    pytest.main(['-s'])
+    pytest.main(['-s', '-m', 'focus'])
+    # pytest.main(['-s'])
