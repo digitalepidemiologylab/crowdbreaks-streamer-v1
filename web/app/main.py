@@ -233,7 +233,7 @@ def email_status():
 def get_all_data(index_name):
     options = request.get_json()
     res = es.get_all_agg(index_name, **options)
-    return json.dumps(res)
+    return jsonify(res)
 
 @blueprint.route('data/predictions/<index_name>', methods=['POST'])
 def get_predictions(index_name):
@@ -241,14 +241,14 @@ def get_predictions(index_name):
     question_tag = body.pop('question_tag')
     answer_tags = body.pop('answer_tags')
     res = es.get_predictions(index_name, question_tag, answer_tags, **body)
-    return json.dumps(res)
+    return jsonify(res)
 
 @blueprint.route('data/average_label_val/<index_name>', methods=['POST'])
 def get_average_label_val(index_name):
     body = request.get_json()
     question_tag = body.pop('question_tag')
     res = es.get_avg_label_val(index_name, question_tag, **body)
-    return json.dumps(res)
+    return jsonify(res)
 
 #################################################################
 # Sentiment data
