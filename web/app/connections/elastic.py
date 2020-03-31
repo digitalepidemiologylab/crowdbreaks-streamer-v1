@@ -372,7 +372,7 @@ class Elastic():
                         'window': moving_average_window_size
                         }
                     }
-        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.hist_agg.buckets'])
+        res = self.es.search(index=index_name, body=body, filter_path=['aggregations.hist_agg.buckets'], request_timeout=60)
         if keys_exist(res, 'aggregations', 'hist_agg', 'buckets'):
             return res['aggregations']['hist_agg']['buckets']
         return []
