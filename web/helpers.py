@@ -43,6 +43,7 @@ def error_response(status_code=400, message='', error_type=''):
         error_obj['type'] = error_type
     response = {
             'success': False,
+            'status': status_code,
             'message': message,
             'error': error_obj
             }
