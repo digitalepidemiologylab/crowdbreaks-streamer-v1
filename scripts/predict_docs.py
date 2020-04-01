@@ -97,6 +97,7 @@ def predict(model, label_mapping, texts, legacy=False):
             })
     return predictions
 
+
 def main(args):
     f_path = os.path.join(args.input)
     docs = []
@@ -104,7 +105,11 @@ def main(args):
     with open(f_path, 'r') as f:
         for line in f:
             doc = json.loads(line)
-            docs.append({'id': doc['_id'], 'text': process(doc['_source']['text'])})
+            try:
+                docs.append({'id': doc['_id'], 'text': process(doc['_source']['text'])})
+            except KeyError:
+                logger.warning(f'Doc {doc} is missing text/id column')
+                continue
             num_docs += 1
             if num_docs % 10000 == 0:
                 logger.info(f'Loaded {num_docs:,} documents...')
@@ -115,7 +120,7 @@ def main(args):
     session = boto3.Session(profile_name='crowdbreaks-dev')
     project_config = pc.get_config_by_index_name(args.index)
     if project_config is None:
-        raise ValueError(f'Project {args.project} not found in config file.')
+        raise ValueError(f'Project {args.index} not found in config file.')
     predictions = {}
     if len(project_config['model_endpoints']) > 0:
         project = project_config['slug']
@@ -129,7 +134,7 @@ def main(args):
                 logger.info(f'Running predictions for run {run_name}')
                 model = get_model(args.run_dir, run_name)
                 label_mapping = get_label_mapping(args.run_dir, run_name)
-                preds = predict(model, label_mapping, texts, legacy=(run_name=='fasttext_v1'))
+                preds = predict(model, label_mapping, texts, legacy=(run_name=='fasttext_v1' and args.index == 'project_vaccine_sentiment'))
                 for _id, _pred in zip(ids, preds):
                     if es_index_name not in predictions:
                         predictions[es_index_name] = {}
@@ -150,28 +155,25 @@ def main(args):
                         predictions[es_index_name][_id][question_tag]['primary_label'] = _pred['labels'][0]
                         if 'label_vals' in _pred:
                             predictions[es_index_name][_id][question_tag]['primary_label_val'] = _pred['label_vals'][0]
+
     if len(predictions) > 0:
-        logger.info('Transforming to actions...')
-        actions = []
-        for es_index_name, pred_es_index in predictions.items():
-            for _id, pred_obj in pred_es_index.items():
-                actions.append({
-                    '_id': _id,
-                    '_type': 'tweet',
-                    '_op_type': 'update',
-                    '_index': es_index_name,
-                    '_source': {
-                        'doc': {
-                            'meta': pred_obj
-                            }
-                        }
-                    })
-        # write output
         ts = int(time.time())
-        f_out = os.path.join('cache', f'predictions_{args.index}_{ts}.pkl')
-        logger.info(f'Writing output file {f_out}...')
-        with open(f_out, 'wb') as f:
-            pickle.dump(actions, f)
+        f_out = os.path.join('cache', f'predictions_{args.index}_{ts}.jsonl')
+        logger.info(f'Writing predictions to file {f_out}...')
+        with open(f_out, 'a') as f:
+            for es_index_name, pred_es_index in predictions.items():
+                for _id, pred_obj in pred_es_index.items():
+                    f.write(json.dumps({
+                        '_id': _id,
+                        '_type': 'tweet',
+                        '_op_type': 'update',
+                        '_index': es_index_name,
+                        '_source': {
+                            'doc': {
+                                'meta': pred_obj
+                                }
+                            }
+                        }) + '\n')
     else:
         logger.info('No predictions were made. No files written.')
 
