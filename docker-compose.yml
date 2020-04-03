@@ -19,6 +19,8 @@ services:
     image: "redis:alpine"
     volumes:
       - './redis/:/data'
+      - './redis/redis.conf:/redis.conf'
+    command: [ "redis-server", "/redis.conf" ]
   celery:
     build: ./web
     container_name: celery
