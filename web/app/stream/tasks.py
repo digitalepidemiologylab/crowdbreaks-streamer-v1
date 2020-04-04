@@ -29,8 +29,9 @@ def handle_tweet(tweet, send_to_es=True, use_pq=True, debug=False, store_unmatch
     candidates = rtm.get_candidates()
     tweet_id = tweet['id_str']
     # open Redis connection only once
-    redis = Redis()
-    connection = redis.get_connection()
+    # redis = Redis()
+    # connection = redis.get_connection()
+    connection = None
     if len(candidates) == 0:
         # Could not match keywords. This might occur quite frequently e.g. when tweets are collected accross different languages/keywords
         logger.info(f'Tweet {tweet_id} could not be matched against any existing projects.')
