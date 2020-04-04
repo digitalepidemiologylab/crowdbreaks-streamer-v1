@@ -49,3 +49,6 @@ services:
       - './kibana/config:/usr/share/kibana/config'
     depends_on:
       - elasticsearch
+  flower:
+    ports:
+      - 5555:5555

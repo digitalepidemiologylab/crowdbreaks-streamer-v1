@@ -61,3 +61,9 @@ services:
       - './web/app/tmp/:/home/app/app/tmp/'
     env_file:
       - secrets.list
+  flower:
+    container_name: flower
+    image: mher/flower
+    command: ["flower", "--broker=redis://redis", "--port=5555"]
+    depends_on:
+      - redis
