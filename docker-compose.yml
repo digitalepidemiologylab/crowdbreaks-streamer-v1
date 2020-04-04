@@ -26,7 +26,7 @@ services:
   celery:
     build: ./web
     container_name: celery
-    command: su -m celery-user -c "celery -A app.worker.celery_init worker --loglevel=info --concurrency=20"
+    command: su -m celery-user -c "celery -A app.worker.celery_init worker -O fair --loglevel=info --concurrency=20"
     depends_on:
       - redis
     env_file:
