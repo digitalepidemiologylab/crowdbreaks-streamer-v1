@@ -21,6 +21,8 @@ services:
       - './redis/:/data'
       - './redis/redis.conf:/redis.conf'
     command: [ "redis-server", "/redis.conf" ]
+    sysctls:
+      net.core.somaxconn: '511'
   celery:
     build: ./web
     container_name: celery
