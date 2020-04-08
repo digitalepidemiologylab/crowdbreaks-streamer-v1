@@ -23,6 +23,11 @@ services:
     command: [ "redis-server", "/redis.conf" ]
     sysctls:
       net.core.somaxconn: '511'
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 26677
+        hard: 46677
   celery:
     build: ./web
     container_name: celery
