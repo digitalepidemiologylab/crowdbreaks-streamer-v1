@@ -8,6 +8,7 @@ import json
 import collections
 import numpy as np
 
+logger = logging.getLogger(__name__)
 
 class PriorityQueue(Redis):
     """For each project keep a priority queue of tweet IDs in Redis to quickly get a new tweet to classify"""
@@ -213,6 +214,22 @@ class TweetStore(Redis):
             return
         return json.loads(tweet.decode())
 
+    def cleanup(self, projects):
+        """This cleanup task is run occasionally to make sure there are no leftover keys in Redis"""
+        tweet_ids_keep = set()
+        for project in projects:
+            pq = PriorityQueue(project, namespace=self.namespace)
+            for item in pq:
+                tweet_ids_keep.add(item[0].decode())
+        logger.info(f'Cleanup tweet store: Found {len(tweet_ids_keep):,} items in priority queues')
+        num_removed = 0
+        for k in self._r.scan_iter(self.key('*')):
+            tweet_id = k.decode().split(':')[-1]
+            if tweet_id not in tweet_ids_keep:
+                self.remove(tweet_id)
+                num_removed += 1
+        logger.info(f'Cleanup tweet store: Successfully removed {num_removed:,} stale items')
+
     def remove(self, tweet_id):
         self._r.delete(self.key(tweet_id))
 
@@ -336,7 +353,6 @@ class RedisSet(Redis):
         super().__init__(self)
         # logging
         self.logger = logging.getLogger('RedisSet')
-
         self.project = project
         self.namespace = namespace
         self.key_namespace = key_namespace

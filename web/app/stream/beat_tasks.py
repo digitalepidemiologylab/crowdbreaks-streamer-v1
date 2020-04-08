@@ -145,17 +145,23 @@ def es_predict(debug=True):
         success = es.bulk_actions_in_batches(actions)
         if not success:
             # dump data to disk
+            es_queue = ESQueue()
             es_queue.dump_to_disk(actions, 'es_bulk_update_errors')
 
-@celery.task(name='trending-tweets-cleanup', ignore_result=True)
-def trending_tweets_cleanup_job(debug=False):
+@celery.task(name='cleanup', ignore_result=True)
+def cleanup(debug=False):
     logger = get_logger(debug)
     # Cleanup (remove old trending tweets from redis)
     project_config = ProjectConfig()
+    projects = []
     for project_config in project_config.read():
+        projects.append(project_config['slug'])
         if project_config['compile_trending_tweets']:
             tt = TrendingTweets(project_config['slug'])
             tt.cleanup()
+    # cleanup tweet store
+    ts = TweetStore()
+    ts.cleanup(projects)
 
 @celery.task(name='trending-topics-update', ignore_result=True)
 def trending_topics_velocity(debug=False):

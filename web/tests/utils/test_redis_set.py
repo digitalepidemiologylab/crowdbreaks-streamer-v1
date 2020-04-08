@@ -25,8 +25,7 @@ class TestRedisSet:
         assert rs.is_member('b', 'user_a')
         rs.self_remove_all()
 
-
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     import os; os.environ["REDIS_HOST"] = "localhost"
-    pytest.main()
+    pytest.main(['-s', '-m', 'focus'])

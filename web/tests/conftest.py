@@ -48,7 +48,7 @@ def s3_q():
 
 @pytest.fixture(scope='session')
 def tweet_store():
-    tweet_store = TweetStore()
+    tweet_store = TweetStore(namespace='test')
     yield tweet_store
     tweet_store.remove_all()
 

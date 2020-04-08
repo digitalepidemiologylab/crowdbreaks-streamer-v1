@@ -39,8 +39,8 @@ celery.conf.beat_schedule = {
             'task': 'es-predict',
             'schedule': 60  # runs every 60 sec
             },
-        'trending-tweets-cleanup': {
-            'task': 'trending-tweets-cleanup',
+        'cleanup': {
+            'task': 'cleanup',
             'schedule': 5*60  # runs every 5min
             },
         'trending-topics-update': {
