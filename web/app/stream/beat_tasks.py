@@ -3,7 +3,7 @@ from celery.utils.log import get_task_logger
 from app.settings import Config
 from app.utils.project_config import ProjectConfig
 from app.utils.predict_queue import PredictQueue
-from app.utils.priority_queu import TweetStore
+from app.utils.priority_queue import TweetStore
 from app.utils.data_dump_ids import DataDumpIds
 from app.utils.predict import Predict
 from app.stream.s3_handler import S3Handler
