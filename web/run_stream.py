@@ -9,6 +9,7 @@ import signal
 import rollbar
 from helpers import report_error
 from urllib3.exceptions import ProtocolError
+from http.client import IncompleteRead
 
 run = True
 stream = None
@@ -32,6 +33,9 @@ def main():
             stream.start()
         except KeyboardInterrupt:
             sys.exit()
+        except IncompleteRead:
+            # This error occurrs sometimes under high volume, simply reconnect
+            stream.stop()
         except (TweepError, ConnectionError, ConnectionResetError, ProtocolError) as e:
             stream.stop()
             report_error(logger, exception=True)
