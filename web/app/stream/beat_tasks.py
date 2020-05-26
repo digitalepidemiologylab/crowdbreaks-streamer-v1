@@ -46,7 +46,7 @@ def send_to_s3(debug=False):
                 f.write(b'\n'.join(tweets) + b'\n')
         # compress temporary file
         f_name_gz = f_name + '.gz'
-        tmp_file_path_gz  = os.path.join(os.path.join('/', 'tmp', f_name))
+        tmp_file_path_gz  = os.path.join(os.path.join('/', 'tmp', f_name_gz))
         compress(tmp_file_path, tmp_file_path_gz)
         os.remove(tmp_file_path)
         # upload to S3
