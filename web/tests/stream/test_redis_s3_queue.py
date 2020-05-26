@@ -80,6 +80,22 @@ class TestRedisS3Queue:
         s3_q = RedisS3Queue(connection=conn)
         assert s3_q.connection is not None
 
+    @pytest.mark.focus
+    def test_pop_all_iter(self, s3_q):
+        tweet1 = json.dumps({'id': 20, 'text': 'some text'})
+        tweet2 = json.dumps({'id': 21, 'text': 'some text'})
+        project = 'project_test'
+        assert s3_q.find_projects_in_queue() == []
+        s3_q.push(tweet1, project)
+        s3_q.push(tweet2, project)
+        key = s3_q.queue_key(project).encode()
+        c = 0
+        for batch in s3_q.pop_all_iter(key, batch_size=1):
+            assert len(batch) == 1
+            c += 1
+        assert c == 2
+
+
 if __name__ == "__main__":
     # if running outside of docker, make sure redis is running on localhost
     import os; os.environ["REDIS_HOST"] = "localhost"

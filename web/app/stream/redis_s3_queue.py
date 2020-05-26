@@ -35,6 +35,18 @@ class RedisS3Queue(Redis):
         res = pipe.lrange(key, 0, -1).delete(key).execute()
         return res[0]
 
+    def pop_all_iter(self, key, batch_size=100):
+        num_items = self.num_elements_in_queue(key)
+        if num_items == 0:
+            return
+        while num_items > 0:
+            batch = []
+            n = min(batch_size, num_items)
+            for _ in range(n):
+                batch.append(self._r.lpop(key))
+            yield batch
+            num_items -= n
+
     def num_elements_in_queue(self, key):
         return self._r.llen(key)
 

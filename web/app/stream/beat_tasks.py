@@ -13,7 +13,7 @@ from app.utils.mailer import StreamStatusMailer
 from app.extensions import es
 from app.stream.trending_tweets import TrendingTweets
 from app.stream.trending_topics import TrendingTopics
-from helpers import report_error
+from helpers import report_error, compress
 import logging
 import os
 import json
@@ -35,15 +35,27 @@ def send_to_s3(debug=False):
         return
     for key in project_keys:
         project = key.decode().split(':')[-1]
-        logger.info('Found {} new tweet(s) in project {}'.format(redis_queue.num_elements_in_queue(key), project))
+        logger.info('Found {:,} new tweet(s) in project {}'.format(redis_queue.num_elements_in_queue(key), project))
         stream_config = project_config.get_config_by_slug(project)
-        tweets = b'\n'.join(redis_queue.pop_all(key))  # create json lines byte string
         now = datetime.datetime.now()
-        s3_key = 'tweets/{}/{}/tweets-{}-{}.jsonl'.format(stream_config['es_index_name'], now.strftime("%Y-%m-%d"), now.strftime("%Y%m%d%H%M%S"), str(uuid.uuid4()))
-        if s3_handler.upload_to_s3(tweets, s3_key):
-            logging.info('Successfully uploaded file {} to S3'.format(s3_key))
+        f_name = 'tweets-{}-{}.jsonl'.format(now.strftime("%Y%m%d%H%M%S"), str(uuid.uuid4()))
+        # dump data from redis into a temporary file
+        tmp_file_path  = os.path.join(os.path.join('/', 'tmp', f_name))
+        with open(tmp_file_path, 'w') as f:
+            for tweets in redis_queue.pop_all_iter(key):
+                f.write(b'\n'.join(tweets) + b'\n')
+        # compress temporary file
+        f_name_gz = f_name + '.gz'
+        tmp_file_path_gz  = os.path.join(os.path.join('/', 'tmp', f_name))
+        compress(tmp_file_path, tmp_file_path_gz)
+        os.remove(tmp_file_path)
+        # upload to S3
+        s3_key = 'tweets/{}/{}/{}'.format(stream_config['es_index_name'], now.strftime("%Y-%m-%d"), f_name_gz)
+        if s3_handler.upload_file(tmp_file_path_gz, s3_key):
+            logging.info(f'Successfully uploaded file {s3_key} to S3')
+            os.remove(tmp_file_path_gz)
         else:
-            logging.error('ERROR: Upload of file {} to S3 not successful'.format(s3_key))
+            logging.error(f'ERROR: Upload of file {s3_key} to S3 not successful')
 
 
 @celery.task(name='es-bulk-index-task', ignore_result=True)
