@@ -43,7 +43,7 @@ def send_to_s3(debug=False):
         tmp_file_path  = os.path.join(os.path.join('/', 'tmp', f_name))
         with open(tmp_file_path, 'w') as f:
             for tweets in redis_queue.pop_all_iter(key):
-                f.write(b'\n'.join(tweets) + b'\n')
+                f.write((b'\n'.join(tweets) + b'\n').decode())
         # compress temporary file
         f_name_gz = f_name + '.gz'
         tmp_file_path_gz  = os.path.join(os.path.join('/', 'tmp', f_name))
