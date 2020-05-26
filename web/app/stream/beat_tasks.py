@@ -41,9 +41,9 @@ def send_to_s3(debug=False):
         f_name = 'tweets-{}-{}.jsonl'.format(now.strftime("%Y%m%d%H%M%S"), str(uuid.uuid4()))
         # dump data from redis into a temporary file
         tmp_file_path  = os.path.join(os.path.join('/', 'tmp', f_name))
-        with open(tmp_file_path, 'w') as f:
+        with open(tmp_file_path, 'wb') as f:
             for tweets in redis_queue.pop_all_iter(key):
-                f.write((b'\n'.join(tweets) + b'\n').decode())
+                f.write(b'\n'.join(tweets) + b'\n')
         # compress temporary file
         f_name_gz = f_name + '.gz'
         tmp_file_path_gz  = os.path.join(os.path.join('/', 'tmp', f_name))
