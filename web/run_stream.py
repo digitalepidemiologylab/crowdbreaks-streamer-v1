@@ -46,9 +46,9 @@ def main():
             report_error(logger, msg='Uncaught stream exception.', exception=True)
             error_count_last_hour = update_error_count(error_count_last_hour, time_last_error)
             time_last_error = time.time()
-        if error_count_last_hour > 10:
-            report_error(logger, msg='Failing to reconnect. Aborting.')
-            sys.exit()
+        # if error_count_last_hour > 10:
+        #     report_error(logger, msg='Failing to reconnect. Aborting.')
+        #     sys.exit()
         wait_some_time(time_last_error, error_count_last_hour)
     logger.info('Shutting down...')
 
