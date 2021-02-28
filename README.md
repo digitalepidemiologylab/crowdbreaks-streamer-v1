@@ -63,4 +63,4 @@ resp.json()
 ```
 
 # Contact
-In case of questions feel free to write to info@crowdbreaks.org or directly to Martin Müller (martin.muller@epfl.ch)
+In case of questions feel free to write to info@crowdbreaks.org.
