@@ -1,7 +1,7 @@
 boto3==1.9.82
 scipy==1.2.0
 aws-requests-auth==0.4.2
-celery==4.2.1
+celery==5.2.2
 docker==3.7.0
 elasticsearch==6.4.0
 Flask==1.0.2
